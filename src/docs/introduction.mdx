@@ -1,0 +1,28 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Tessera/Introduction" />
+
+# Tessera
+
+A *tessera* is a single tile of a mosaic. Every component here is a tile; every project is a mosaic.
+
+## Use it in a project
+
+```css
+/* your app's main stylesheet */
+@import "tailwindcss";
+@import "@tessera/ui/styles.css";
+```
+
+```tsx
+import { Button } from "@tessera/ui";
+
+<Button variant="primary">Save</Button>
+```
+
+Tessera uses shadcn-compatible token names (`--primary`, `--ring`, …). Redefine them in your
+app's `:root` / `.dark` to re-theme every component.
+
+## Stack
+
+React 19 · Base UI · Tailwind CSS v4 · cva + tailwind-merge · tsdown · Vitest browser mode · Storybook 10 · Biome
