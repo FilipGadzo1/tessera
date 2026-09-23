@@ -1,8 +1,11 @@
-import { copyFileSync, mkdirSync } from "node:fs";
+import { copyFileSync, mkdirSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-mkdirSync(join(root, "dist"), { recursive: true });
-copyFileSync(join(root, "src/styles/tessera.css"), join(root, "dist/styles.css"));
-console.log("copied src/styles/tessera.css -> dist/styles.css");
+const from = join(root, "src/styles");
+const to = join(root, "dist/styles");
+mkdirSync(to, { recursive: true });
+const files = readdirSync(from).filter((file) => file.endsWith(".css"));
+for (const file of files) copyFileSync(join(from, file), join(to, file));
+console.log(`copied ${files.length} stylesheets -> dist/styles/`);

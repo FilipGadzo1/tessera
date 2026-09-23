@@ -25,6 +25,7 @@ tried — fetch that zip with `curl` and unpack it into `%LOCALAPPDATA%\ms-playw
 | `npm run build` | Builds the library into `dist/` (tsdown) |
 | `npm run check` | Lint + typecheck + tests + build + consumer verification — run before every commit |
 | `npm run format` | Biome format + safe lint fixes |
+| `npm run palettes` | Regenerates src/styles/palettes.css and checks contrast |
 
 ## Stack
 
@@ -48,13 +49,20 @@ React 19 · @base-ui/react · Tailwind CSS v4 · cva + tailwind-merge · tsdown 
    <a href="/docs" className={buttonVariants({ variant: "link" })}>Docs</a>
    ```
 
-Requirements: React 19, Tailwind CSS v4. Re-theme by redefining the shadcn-compatible tokens
-(`--primary`, `--ring`, `--radius`, …) in your own `:root` / `.dark` (Tessera's defaults sit in
-`@layer base`, so your overrides always win).
+Requirements: React 19, Tailwind CSS v4.
 
-Dark mode: add a `.dark` class to an ancestor — typically `<html>` — exactly like shadcn/ui.
-Tessera components never use `dark:` utilities (the tokens do the theming), and `styles.css`
-does not redefine Tailwind's `dark` variant, so your app's own `dark:` setup is untouched.
+### Theming
+
+~~~html
+<html class="dark" data-primary="lapis" data-surface="slate">
+~~~
+
+- Primary: `malachite` (default) · `lapis` · `amethyst` · `carnelian`
+- Surface: `marble` (default) · `slate` · `sandstone`
+- Dark mode: a `.dark` class on an ancestor
+
+Or override semantic tokens (`--primary`, `--background`, `--radius`, …) in your own `:root`
+**and** `.dark`. Palettes are generated — edit `scripts/generate-palettes.mjs`, then `npm run palettes`.
 
 After changing Tessera, repeat steps 1–2 (bump `version` in package.json when you want a new tarball name).
 

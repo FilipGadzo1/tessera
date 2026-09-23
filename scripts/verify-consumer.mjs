@@ -10,6 +10,11 @@ const src = join(root, "src");
 const dist = join(root, "dist");
 const fixture = join(root, ".tmp-consumer");
 
+const pkgJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+const stylesExport = pkgJson.exports["./styles.css"];
+// Derive the dist-relative path from package.json's exports map (strip the leading "./dist/").
+const stylesDistPath = stylesExport.replace(/^\.\/dist\//, "");
+
 function fail(message) {
   rmSync(fixture, { recursive: true, force: true });
   console.error(`✗ ${message}`);
@@ -47,7 +52,13 @@ const sources = readdirSync(src, { recursive: true })
 if (sources.length === 0) fail("no library sources found under src/");
 
 // 1. Every library source has its build output, plus the package entry points.
-for (const file of ["index.js", "index.d.ts", "styles.css"]) {
+for (const file of [
+  "index.js",
+  "index.d.ts",
+  stylesDistPath,
+  "styles/palettes.css",
+  "styles/theme.css",
+]) {
   if (!existsSync(join(dist, file))) fail(`missing dist/${file}`);
 }
 const pairs = [];
@@ -107,8 +118,8 @@ const extracted = run(
   fixture,
 );
 if (extracted.status !== 0) fail(`tar extraction failed:\n${extracted.stderr}`);
-if (!existsSync(join(pkgDir, "dist", "styles.css")))
-  fail("installed package is missing dist/styles.css — check package.json files");
+if (!existsSync(join(pkgDir, "dist", stylesDistPath)))
+  fail(`installed package is missing dist/${stylesDistPath} — check package.json files`);
 
 writeFileSync(
   join(fixture, "input.css"),
@@ -132,16 +143,31 @@ const css = readFileSync(join(fixture, "out.css"), "utf8");
 // never emits as a literal `--color-primary` custom property — confirmed by isolated
 // repro (see task-4-report.md). `--primary` is the real, re-themable token (also the
 // one documented in README.md), so it is what proves the token reached the consumer.
-for (const needle of [
-  ".bg-primary",
-  "--primary:",
-  ".h-9",
+const needles = [
+  // Proves @source scanning of dist JS picked up classes used by components.
   ".animate-spin",
-  ".focus-visible\\:ring-3",
-]) {
+  ".select-none",
+  // Proves the imported stylesheets (theme.css / palettes.css) arrived intact.
+  "--primary:",
+  "--tsr-malachite-600:",
+  "--tsr-primary-600:",
+];
+for (const needle of needles) {
   if (!css.includes(needle)) fail(`consumer CSS is missing ${needle} — @source scanning is broken`);
 }
 pass(`consumer Tailwind build from ${tarball} generates Tessera classes via @source`);
+
+// `--tone:` only exists inside `@utility tone-*` rules (theme.css), which Tailwind's JIT
+// only emits when a `tone-*` class is an actual scanned candidate — none of the currently
+// shipped components use one yet (Button doesn't apply tone-* until it's rewritten in a
+// later task), so it can never appear in `css` above without adding throwaway dead-code
+// usage just to satisfy this check. Instead, verify the tone infrastructure itself shipped
+// intact in the installed package's raw stylesheet (proves "the imported stylesheet
+// arrived" — the same intent as the needles above — without requiring a real consumer).
+const themeCss = readFileSync(join(pkgDir, "dist", "styles/theme.css"), "utf8");
+if (!themeCss.includes("--tone:"))
+  fail("installed dist/styles/theme.css is missing --tone: — tone utility scaffolding is broken");
+pass("installed dist/styles/theme.css ships intact tone-* utility scaffolding");
 
 rmSync(fixture, { recursive: true, force: true });
 pass("consumer verification complete");

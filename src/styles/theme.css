@@ -1,0 +1,324 @@
+/*
+ * Tessera theme — semantic roles (light + dark), Tailwind color mappings, tone utilities.
+ * Palettes and data-primary / data-surface bindings come from palettes.css (generated).
+ * Every role token here is re-declared on any element carrying data-primary / data-surface,
+ * so palette scopes nest: <section data-primary="lapis"> re-themes just that section.
+ */
+
+@layer base {
+  :root {
+    --radius: 0.375rem;
+  }
+
+  /* ---------- Light ---------- */
+  :where(:root, [data-primary], [data-surface]) {
+    --background: var(--tsr-surface-0);
+    --foreground: var(--tsr-surface-900);
+    --card: var(--tsr-surface-0);
+    --card-foreground: var(--tsr-surface-900);
+    --popover: var(--tsr-surface-0);
+    --popover-foreground: var(--tsr-surface-900);
+    --muted: var(--tsr-surface-100);
+    --muted-foreground: var(--tsr-surface-500);
+    --accent: var(--tsr-surface-100);
+    --accent-foreground: var(--tsr-surface-900);
+    --border: var(--tsr-surface-200);
+    --input: var(--tsr-surface-300);
+    --ring: var(--tsr-primary-600);
+
+    --primary: var(--tsr-primary-600);
+    --primary-hover: var(--tsr-primary-700);
+    --primary-active: var(--tsr-primary-800);
+    --primary-foreground: oklch(1 0 0);
+    --primary-soft: var(--tsr-primary-100);
+    --primary-soft-hover: var(--tsr-primary-200);
+    --primary-soft-foreground: var(--tsr-primary-700);
+
+    --neutral: var(--tsr-surface-900);
+    --neutral-hover: var(--tsr-surface-800);
+    --neutral-active: var(--tsr-surface-700);
+    --neutral-foreground: var(--tsr-surface-0);
+    --neutral-soft: var(--tsr-surface-100);
+    --neutral-soft-hover: var(--tsr-surface-200);
+    --neutral-soft-foreground: var(--tsr-surface-900);
+
+    --success: var(--tsr-verdant-600);
+    --success-hover: var(--tsr-verdant-700);
+    --success-active: var(--tsr-verdant-800);
+    --success-foreground: oklch(1 0 0);
+    --success-soft: var(--tsr-verdant-100);
+    --success-soft-hover: var(--tsr-verdant-200);
+    --success-soft-foreground: var(--tsr-verdant-700);
+
+    --warning: var(--tsr-amber-600);
+    --warning-hover: var(--tsr-amber-700);
+    --warning-active: var(--tsr-amber-800);
+    --warning-foreground: oklch(1 0 0);
+    --warning-soft: var(--tsr-amber-100);
+    --warning-soft-hover: var(--tsr-amber-200);
+    --warning-soft-foreground: var(--tsr-amber-700);
+
+    --danger: var(--tsr-garnet-600);
+    --danger-hover: var(--tsr-garnet-700);
+    --danger-active: var(--tsr-garnet-800);
+    --danger-foreground: oklch(1 0 0);
+    --danger-soft: var(--tsr-garnet-100);
+    --danger-soft-hover: var(--tsr-garnet-200);
+    --danger-soft-foreground: var(--tsr-garnet-700);
+
+    --info: var(--tsr-azure-600);
+    --info-hover: var(--tsr-azure-700);
+    --info-active: var(--tsr-azure-800);
+    --info-foreground: oklch(1 0 0);
+    --info-soft: var(--tsr-azure-100);
+    --info-soft-hover: var(--tsr-azure-200);
+    --info-soft-foreground: var(--tsr-azure-700);
+
+    /* shadcn-compatible aliases */
+    --secondary: var(--neutral-soft);
+    --secondary-foreground: var(--neutral-soft-foreground);
+    --destructive: var(--danger);
+    --destructive-foreground: var(--danger-foreground);
+  }
+
+  /* ---------- Dark ---------- */
+  :where(.dark, .dark [data-primary], .dark [data-surface]) {
+    color-scheme: dark;
+    --background: var(--tsr-surface-950);
+    --foreground: var(--tsr-surface-50);
+    --card: var(--tsr-surface-900);
+    --card-foreground: var(--tsr-surface-50);
+    --popover: var(--tsr-surface-900);
+    --popover-foreground: var(--tsr-surface-50);
+    --muted: var(--tsr-surface-800);
+    --muted-foreground: var(--tsr-surface-400);
+    --accent: var(--tsr-surface-800);
+    --accent-foreground: var(--tsr-surface-50);
+    --border: var(--tsr-surface-800);
+    --input: var(--tsr-surface-700);
+    --ring: var(--tsr-primary-400);
+
+    --primary: var(--tsr-primary-400);
+    --primary-hover: var(--tsr-primary-300);
+    --primary-active: var(--tsr-primary-200);
+    --primary-foreground: var(--tsr-primary-950);
+    --primary-soft: color-mix(in oklab, var(--tsr-primary-400) 16%, transparent);
+    --primary-soft-hover: color-mix(in oklab, var(--tsr-primary-400) 24%, transparent);
+    --primary-soft-foreground: var(--tsr-primary-200);
+
+    --neutral: var(--tsr-surface-50);
+    --neutral-hover: var(--tsr-surface-200);
+    --neutral-active: var(--tsr-surface-300);
+    --neutral-foreground: var(--tsr-surface-950);
+    --neutral-soft: var(--tsr-surface-800);
+    --neutral-soft-hover: var(--tsr-surface-700);
+    --neutral-soft-foreground: var(--tsr-surface-50);
+
+    --success: var(--tsr-verdant-400);
+    --success-hover: var(--tsr-verdant-300);
+    --success-active: var(--tsr-verdant-200);
+    --success-foreground: var(--tsr-verdant-950);
+    --success-soft: color-mix(in oklab, var(--tsr-verdant-400) 16%, transparent);
+    --success-soft-hover: color-mix(in oklab, var(--tsr-verdant-400) 24%, transparent);
+    --success-soft-foreground: var(--tsr-verdant-200);
+
+    --warning: var(--tsr-amber-400);
+    --warning-hover: var(--tsr-amber-300);
+    --warning-active: var(--tsr-amber-200);
+    --warning-foreground: var(--tsr-amber-950);
+    --warning-soft: color-mix(in oklab, var(--tsr-amber-400) 16%, transparent);
+    --warning-soft-hover: color-mix(in oklab, var(--tsr-amber-400) 24%, transparent);
+    --warning-soft-foreground: var(--tsr-amber-200);
+
+    --danger: var(--tsr-garnet-400);
+    --danger-hover: var(--tsr-garnet-300);
+    --danger-active: var(--tsr-garnet-200);
+    --danger-foreground: var(--tsr-garnet-950);
+    --danger-soft: color-mix(in oklab, var(--tsr-garnet-400) 16%, transparent);
+    --danger-soft-hover: color-mix(in oklab, var(--tsr-garnet-400) 24%, transparent);
+    --danger-soft-foreground: var(--tsr-garnet-200);
+
+    --info: var(--tsr-azure-400);
+    --info-hover: var(--tsr-azure-300);
+    --info-active: var(--tsr-azure-200);
+    --info-foreground: var(--tsr-azure-950);
+    --info-soft: color-mix(in oklab, var(--tsr-azure-400) 16%, transparent);
+    --info-soft-hover: color-mix(in oklab, var(--tsr-azure-400) 24%, transparent);
+    --info-soft-foreground: var(--tsr-azure-200);
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-active: var(--primary-active);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-soft-hover: var(--primary-soft-hover);
+  --color-primary-soft-foreground: var(--primary-soft-foreground);
+  --color-neutral: var(--neutral);
+  --color-neutral-hover: var(--neutral-hover);
+  --color-neutral-active: var(--neutral-active);
+  --color-neutral-foreground: var(--neutral-foreground);
+  --color-neutral-soft: var(--neutral-soft);
+  --color-neutral-soft-hover: var(--neutral-soft-hover);
+  --color-neutral-soft-foreground: var(--neutral-soft-foreground);
+  --color-success: var(--success);
+  --color-success-hover: var(--success-hover);
+  --color-success-active: var(--success-active);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-soft: var(--success-soft);
+  --color-success-soft-hover: var(--success-soft-hover);
+  --color-success-soft-foreground: var(--success-soft-foreground);
+  --color-warning: var(--warning);
+  --color-warning-hover: var(--warning-hover);
+  --color-warning-active: var(--warning-active);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-soft-hover: var(--warning-soft-hover);
+  --color-warning-soft-foreground: var(--warning-soft-foreground);
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-danger-active: var(--danger-active);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-soft-hover: var(--danger-soft-hover);
+  --color-danger-soft-foreground: var(--danger-soft-foreground);
+  --color-info: var(--info);
+  --color-info-hover: var(--info-hover);
+  --color-info-active: var(--info-active);
+  --color-info-foreground: var(--info-foreground);
+  --color-info-soft: var(--info-soft);
+  --color-info-soft-hover: var(--info-soft-hover);
+  --color-info-soft-foreground: var(--info-soft-foreground);
+
+  --color-primary-50: var(--tsr-primary-50);
+  --color-primary-100: var(--tsr-primary-100);
+  --color-primary-200: var(--tsr-primary-200);
+  --color-primary-300: var(--tsr-primary-300);
+  --color-primary-400: var(--tsr-primary-400);
+  --color-primary-500: var(--tsr-primary-500);
+  --color-primary-600: var(--tsr-primary-600);
+  --color-primary-700: var(--tsr-primary-700);
+  --color-primary-800: var(--tsr-primary-800);
+  --color-primary-900: var(--tsr-primary-900);
+  --color-primary-950: var(--tsr-primary-950);
+  --color-surface-0: var(--tsr-surface-0);
+  --color-surface-50: var(--tsr-surface-50);
+  --color-surface-100: var(--tsr-surface-100);
+  --color-surface-200: var(--tsr-surface-200);
+  --color-surface-300: var(--tsr-surface-300);
+  --color-surface-400: var(--tsr-surface-400);
+  --color-surface-500: var(--tsr-surface-500);
+  --color-surface-600: var(--tsr-surface-600);
+  --color-surface-700: var(--tsr-surface-700);
+  --color-surface-800: var(--tsr-surface-800);
+  --color-surface-900: var(--tsr-surface-900);
+  --color-surface-950: var(--tsr-surface-950);
+
+  /* Tone: components style against these; a tone-* utility decides which role they point at. */
+  --color-tone: var(--tone);
+  --color-tone-hover: var(--tone-hover);
+  --color-tone-active: var(--tone-active);
+  --color-tone-foreground: var(--tone-foreground);
+  --color-tone-soft: var(--tone-soft);
+  --color-tone-soft-hover: var(--tone-soft-hover);
+  --color-tone-soft-foreground: var(--tone-soft-foreground);
+  --color-tone-ink: var(--tone-ink);
+  --color-tone-line: var(--tone-line);
+
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 6px);
+}
+
+@utility tone-primary {
+  --tone: var(--primary);
+  --tone-hover: var(--primary-hover);
+  --tone-active: var(--primary-active);
+  --tone-foreground: var(--primary-foreground);
+  --tone-soft: var(--primary-soft);
+  --tone-soft-hover: var(--primary-soft-hover);
+  --tone-soft-foreground: var(--primary-soft-foreground);
+  --tone-ink: var(--primary);
+  --tone-line: var(--primary);
+}
+
+@utility tone-neutral {
+  --tone: var(--neutral);
+  --tone-hover: var(--neutral-hover);
+  --tone-active: var(--neutral-active);
+  --tone-foreground: var(--neutral-foreground);
+  --tone-soft: var(--neutral-soft);
+  --tone-soft-hover: var(--neutral-soft-hover);
+  --tone-soft-foreground: var(--neutral-soft-foreground);
+  --tone-ink: var(--foreground);
+  --tone-line: var(--input);
+}
+
+@utility tone-success {
+  --tone: var(--success);
+  --tone-hover: var(--success-hover);
+  --tone-active: var(--success-active);
+  --tone-foreground: var(--success-foreground);
+  --tone-soft: var(--success-soft);
+  --tone-soft-hover: var(--success-soft-hover);
+  --tone-soft-foreground: var(--success-soft-foreground);
+  --tone-ink: var(--success);
+  --tone-line: var(--success);
+}
+
+@utility tone-warning {
+  --tone: var(--warning);
+  --tone-hover: var(--warning-hover);
+  --tone-active: var(--warning-active);
+  --tone-foreground: var(--warning-foreground);
+  --tone-soft: var(--warning-soft);
+  --tone-soft-hover: var(--warning-soft-hover);
+  --tone-soft-foreground: var(--warning-soft-foreground);
+  --tone-ink: var(--warning);
+  --tone-line: var(--warning);
+}
+
+@utility tone-danger {
+  --tone: var(--danger);
+  --tone-hover: var(--danger-hover);
+  --tone-active: var(--danger-active);
+  --tone-foreground: var(--danger-foreground);
+  --tone-soft: var(--danger-soft);
+  --tone-soft-hover: var(--danger-soft-hover);
+  --tone-soft-foreground: var(--danger-soft-foreground);
+  --tone-ink: var(--danger);
+  --tone-line: var(--danger);
+}
+
+@utility tone-info {
+  --tone: var(--info);
+  --tone-hover: var(--info-hover);
+  --tone-active: var(--info-active);
+  --tone-foreground: var(--info-foreground);
+  --tone-soft: var(--info-soft);
+  --tone-soft-hover: var(--info-soft-hover);
+  --tone-soft-foreground: var(--info-soft-foreground);
+  --tone-ink: var(--info);
+  --tone-line: var(--info);
+}

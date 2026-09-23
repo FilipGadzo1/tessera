@@ -15,4 +15,8 @@ describe("cn", () => {
       "text-primary-foreground bg-red-500",
     );
   });
+
+  it("resolves conflicting tone utilities to the last one", () => {
+    expect(cn("tone-primary", "px-2", "tone-info")).toBe("px-2 tone-info");
+  });
 });

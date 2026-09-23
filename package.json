@@ -14,7 +14,7 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./styles.css": "./dist/styles.css",
+    "./styles.css": "./dist/styles/tessera.css",
     "./package.json": "./package.json"
   },
   "files": [
@@ -33,7 +33,9 @@
     "format": "biome check --write .",
     "build": "tsdown && node scripts/copy-styles.mjs",
     "verify:consumer": "node scripts/verify-consumer.mjs",
-    "check": "npm run lint && npm run typecheck && npm run test && npm run build && npm run verify:consumer"
+    "palettes": "node scripts/generate-palettes.mjs",
+    "palettes:check": "node scripts/generate-palettes.mjs --check",
+    "check": "npm run palettes:check && npm run lint && npm run typecheck && npm run test && npm run build && npm run verify:consumer"
   },
   "peerDependencies": {
     "react": "^19.0.0",
