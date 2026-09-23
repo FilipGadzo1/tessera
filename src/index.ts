@@ -11,4 +11,13 @@ export {
   type ButtonVariantProps,
   buttonVariants,
 } from "./components/button";
+export {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  type CardProps,
+  CardTitle,
+} from "./components/card";
 export { cn } from "./lib/cn";

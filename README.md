@@ -85,7 +85,8 @@ source files automatically (build output + `"use client"` directive checks).
 
 - [x] Button
 - [x] Badge
-- [ ] Next up: Input, Label, Card, Dialog, Tooltip, Select, Tabs
+- [x] Card
+- [ ] Next up: Label, Field, Input, Textarea, Checkbox, Switch, RadioGroup (Phase B) · Tooltip, Popover, Dialog, Menu (Phase C) · Tabs, Select, Accordion, Toast, Avatar, Separator, Progress (Phase D)
 
 ## Roadmap
 
