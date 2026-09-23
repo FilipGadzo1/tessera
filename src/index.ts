@@ -26,6 +26,7 @@ export {
   cardDefaults,
   cardVariants,
 } from "./components/card";
+export { Checkbox, type CheckboxProps } from "./components/checkbox";
 export {
   Field,
   FieldDescription,
