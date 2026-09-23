@@ -63,7 +63,8 @@ tessera/
     lib/cn.ts             # clsx + tailwind-merge
     styles/tessera.css    # design tokens (@theme inline + :root/.dark) + @source
     components/button/
-      button.tsx
+      button.tsx          # "use client"
+      button-variants.ts  # cva, server-safe
       button.test.tsx
       button.stories.tsx
       index.ts
@@ -116,11 +117,17 @@ Behavior:
   caller can override).
 - `data-slot="button"`, `data-variant`, `data-size` attributes for styling hooks.
 - `ref` forwarded (React 19 ref-as-prop).
-- `disabled`: not clickable, `data-disabled`, reduced opacity, `cursor-not-allowed`.
+- `disabled`: not clickable, `data-disabled`, reduced opacity, `pointer-events-none`
+  (loading buttons keep full opacity; only the spinner signals the state).
+- Tests load the real Tailwind CSS + tokens, so axe's color-contrast rule checks the actual palette.
 - `loading`: sets `disabled` + `focusableWhenDisabled` (stays in tab order so focus is not
   lost mid-action), `aria-busy="true"`, `data-loading`, shows an inline spinner
   (`aria-hidden`) before children; children stay rendered (width is stable).
-- `render` / `nativeButton` pass through to Base UI for polymorphism (e.g. router links).
+- `render` / `nativeButton` pass through to Base UI for polymorphism on non-link elements
+  (Base UI adds `role="button"` when `nativeButton={false}`). **Links are not Buttons**:
+  style `<a>`/router links with `buttonVariants()` instead (per Base UI guidance).
+- `buttonVariants` lives in `button-variants.ts` with **no** `"use client"` directive, so
+  React Server Components can call it; `button.tsx` carries `"use client"`.
 - `className` may be a string or Base UI's state function; merged via `cn` after variants.
 - Icons: any `svg` child auto-sized (`[&_svg:not([class*='size-'])]:size-4`), no pointer events.
 - Focus: visible `focus-visible` ring using `--ring`; no outline on mouse click.
@@ -135,7 +142,7 @@ Vitest browser mode (real Chromium, headless). Button tests cover:
 4. `loading`: `aria-busy`, disabled, still focusable, spinner present and `aria-hidden`,
    `onClick` does not fire
 5. `type="submit"` override works inside a form
-6. `render={<a href="#x" />}` + `nativeButton={false}` renders an anchor
+6. `render={<span />}` + `nativeButton={false}` renders a focusable `role="button"` span
 7. `ref` receives the DOM element
 8. `className` merges and overrides conflicting utilities (tailwind-merge)
 9. axe: zero violations for default, disabled, loading, icon-only-with-aria-label
