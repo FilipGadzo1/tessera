@@ -20,9 +20,18 @@ import { Button } from "@tessera/ui";
 <Button variant="primary">Save</Button>
 ```
 
-Tessera uses shadcn-compatible token names (`--primary`, `--ring`, …). Redefine them in your
-app's `:root` / `.dark` to re-theme every component.
+Theme with attributes on `<html>` (or any element — scopes nest):
+
+```html
+<html class="dark" data-primary="lapis" data-surface="slate">
+```
+
+Use the **Theme / Primary / Surface** switches in the toolbar to preview every combination. Token
+names are shadcn-compatible (`--primary`, `--ring`, …), so apps that already define them keep
+their look.
 
 ## Stack
 
-React 19 · Base UI · Tailwind CSS v4 · cva + tailwind-merge · tsdown · Vitest browser mode · Storybook 10 · Biome
+React 19 · Base UI · Tailwind CSS v4 · cva + tailwind-merge · tsdown · Vitest browser mode ·
+Storybook 10 · Biome — design language inspired by PrimeVue (token tiers, palette presets) and
+Material UI (variant × color, elevation).
