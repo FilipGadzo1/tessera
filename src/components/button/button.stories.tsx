@@ -4,7 +4,8 @@ import { fn } from "storybook/test";
 import { Button } from "./button";
 import { buttonVariants } from "./button-variants";
 
-const variants = ["primary", "secondary", "outline", "ghost", "destructive", "link"] as const;
+const variants = ["solid", "soft", "outline", "ghost", "link"] as const;
+const colors = ["primary", "neutral", "success", "warning", "danger", "info"] as const;
 const sizes = ["xs", "sm", "md", "lg"] as const;
 
 const meta = {
@@ -14,6 +15,7 @@ const meta = {
   args: { children: "Button", onClick: fn() },
   argTypes: {
     variant: { control: "select", options: variants },
+    color: { control: "select", options: colors },
     size: {
       control: "select",
       options: [...sizes, "icon-xs", "icon-sm", "icon", "icon-lg"],
@@ -28,14 +30,25 @@ type Story = StoryObj<typeof meta>;
 
 export const Playground: Story = {};
 
-export const Variants: Story = {
+export const Matrix: Story = {
   render: (args) => (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="grid grid-cols-[auto_repeat(5,max-content)] items-center gap-3">
+      <span />
       {variants.map((variant) => (
-        <Button key={variant} {...args} variant={variant}>
+        <span key={variant} className="text-muted-foreground text-xs">
           {variant}
-        </Button>
+        </span>
       ))}
+      {colors.map((color) => [
+        <span key={color} className="text-muted-foreground text-xs">
+          {color}
+        </span>,
+        ...variants.map((variant) => (
+          <Button key={`${color}-${variant}`} {...args} variant={variant} color={color}>
+            Save
+          </Button>
+        )),
+      ])}
     </div>
   ),
 };
@@ -55,13 +68,13 @@ export const Sizes: Story = {
 export const WithIcons: Story = {
   render: (args) => (
     <div className="flex flex-wrap items-center gap-3">
-      <Button {...args}>
+      <Button {...args} variant="solid" color="primary">
         <Plus /> New project
       </Button>
-      <Button {...args} variant="outline">
+      <Button {...args} variant="outline" color="neutral">
         Continue <ArrowRight />
       </Button>
-      <Button {...args} variant="destructive">
+      <Button {...args} variant="soft" color="danger">
         <Trash2 /> Delete
       </Button>
     </div>
@@ -97,7 +110,7 @@ export const Disabled: Story = {
 
 export const AsLink: Story = {
   render: () => (
-    <a href="#docs" className={buttonVariants({ variant: "outline" })}>
+    <a href="#docs" className={buttonVariants({ variant: "outline", color: "neutral" })}>
       Read the docs <ArrowRight />
     </a>
   ),

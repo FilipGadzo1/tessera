@@ -163,6 +163,10 @@ const needleGroups = [
     reason: "@utility tone-* did not compile",
     needles: ["--tone:"],
   },
+  {
+    reason: "Button v2 utilities (tone, cursor, sizes) did not reach the consumer",
+    needles: [".bg-tone", ".cursor-pointer", ".tone-primary", ".h-10"],
+  },
 ];
 for (const { reason, needles } of needleGroups) {
   for (const needle of needles) {

@@ -1,40 +1,48 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "../../lib/cn";
 
-/** Default variant/size — shared by cva and the Button's data attributes. */
-export const buttonDefaults = { variant: "primary", size: "md" } as const;
+/** Defaults — shared by cva and the Button's data attributes. */
+export const buttonDefaults = { variant: "solid", color: "primary", size: "md" } as const;
 
 const buttonCva = cva(
   [
-    "group/button relative inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap",
+    "group/button relative inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap",
     "rounded-md border border-transparent font-medium select-none",
-    "transition-[color,background-color,border-color,box-shadow,translate] duration-150 ease-out",
-    "outline-hidden focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
-    "active:not-data-disabled:translate-y-px motion-reduce:transition-none motion-reduce:active:translate-y-0",
-    "data-disabled:pointer-events-none data-disabled:not-data-loading:opacity-50",
+    "transition-[color,background-color,border-color,outline-color,box-shadow,translate] duration-150 ease-out motion-reduce:transition-none",
+    "outline-hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+    "active:not-data-disabled:translate-y-px motion-reduce:active:translate-y-0",
+    "data-disabled:not-data-loading:cursor-not-allowed data-disabled:not-data-loading:opacity-50 data-loading:cursor-progress",
     "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   ],
   {
     variants: {
       variant: {
-        primary: "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        solid:
+          "bg-tone text-tone-foreground shadow-xs not-data-disabled:hover:bg-tone-hover not-data-disabled:active:bg-tone-active",
+        soft: "bg-tone-soft text-tone-soft-foreground not-data-disabled:hover:bg-tone-soft-hover",
         outline:
-          "border-border bg-background text-foreground shadow-xs hover:bg-accent hover:text-accent-foreground",
-        ghost: "text-foreground hover:bg-accent hover:text-accent-foreground",
-        destructive:
-          "bg-destructive text-destructive-foreground shadow-xs hover:bg-destructive/90 focus-visible:border-destructive focus-visible:ring-destructive/40",
-        link: "text-primary underline-offset-4 hover:underline",
+          "border-tone-line bg-transparent text-tone-ink not-data-disabled:hover:bg-tone-soft not-data-disabled:hover:text-tone-soft-foreground",
+        ghost:
+          "bg-transparent text-tone-ink not-data-disabled:hover:bg-tone-soft not-data-disabled:hover:text-tone-soft-foreground",
+        link: "bg-transparent text-tone-ink underline-offset-4 not-data-disabled:hover:underline",
+      },
+      color: {
+        primary: "tone-primary",
+        neutral: "tone-neutral",
+        success: "tone-success",
+        warning: "tone-warning",
+        danger: "tone-danger",
+        info: "tone-info",
       },
       size: {
-        xs: "h-7 gap-1 rounded-sm px-2 text-xs [&_svg:not([class*='size-'])]:size-3.5",
+        xs: "h-7 gap-1 px-2.5 text-xs [&_svg:not([class*='size-'])]:size-3.5",
         sm: "h-8 gap-1.5 px-3 text-sm",
-        md: "h-9 px-4 text-sm",
-        lg: "h-10 px-5 text-base",
-        "icon-xs": "size-7 rounded-sm [&_svg:not([class*='size-'])]:size-3.5",
+        md: "h-10 px-4 text-sm",
+        lg: "h-12 gap-2.5 px-6 text-base [&_svg:not([class*='size-'])]:size-5",
+        "icon-xs": "size-7 [&_svg:not([class*='size-'])]:size-3.5",
         "icon-sm": "size-8",
-        icon: "size-9",
-        "icon-lg": "size-10",
+        icon: "size-10",
+        "icon-lg": "size-12 [&_svg:not([class*='size-'])]:size-5",
       },
     },
     defaultVariants: buttonDefaults,
@@ -42,6 +50,7 @@ const buttonCva = cva(
 );
 
 export type ButtonVariantProps = VariantProps<typeof buttonCva>;
+export type ButtonColor = NonNullable<ButtonVariantProps["color"]>;
 
 /** Button classes for any element — use on `<a>` / router links, which must not be Buttons. */
 export function buttonVariants(options: ButtonVariantProps & { className?: string } = {}): string {

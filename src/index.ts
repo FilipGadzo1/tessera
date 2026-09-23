@@ -1,5 +1,6 @@
 export {
   Button,
+  type ButtonColor,
   type ButtonProps,
   type ButtonVariantProps,
   buttonVariants,

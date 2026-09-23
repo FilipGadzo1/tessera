@@ -3,13 +3,14 @@
 import { Button as BaseButton } from "@base-ui/react/button";
 import { type ButtonVariantProps, buttonDefaults, buttonVariants } from "./button-variants";
 
-export interface ButtonProps extends BaseButton.Props, ButtonVariantProps {
+export interface ButtonProps extends Omit<BaseButton.Props, "color">, ButtonVariantProps {
   /** Shows a spinner, sets aria-busy, and blocks interaction while keeping focus. */
   loading?: boolean;
 }
 
 export function Button({
   variant,
+  color,
   size,
   loading = false,
   disabled,
@@ -27,6 +28,7 @@ export function Button({
       {...props}
       data-slot="button"
       data-variant={variant ?? buttonDefaults.variant}
+      data-color={color ?? buttonDefaults.color}
       data-size={resolvedSize}
       data-loading={loading ? "" : undefined}
       aria-busy={loading || props["aria-busy"]}
@@ -35,6 +37,7 @@ export function Button({
       className={(state) =>
         buttonVariants({
           variant,
+          color,
           size,
           className: typeof className === "function" ? className(state) : className,
         })
