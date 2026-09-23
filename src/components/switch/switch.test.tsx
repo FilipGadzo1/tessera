@@ -141,6 +141,86 @@ describe("Switch", () => {
     expect(getComputedStyle(second).outlineStyle).toBe("none");
   });
 
+  describe("hover", () => {
+    const bg = (el: Element) => getComputedStyle(el).backgroundColor;
+
+    it.each([
+      { label: "Off", checked: false, ref: "bg-field-border-hover" },
+      { label: "On", checked: true, ref: "bg-primary-hover" },
+    ])("fills the $label track with $ref on hover", async ({ label, checked, ref }) => {
+      const screen = await render(
+        <div>
+          <Labelled label={label} defaultChecked={checked} />
+          <div data-testid="ref" className={ref} />
+        </div>,
+      );
+      const toggle = screen.getByRole("switch", { name: label });
+      await userEvent.hover(toggle);
+      await settle();
+      expect(bg(toggle.element())).toBe(bg(screen.getByTestId("ref").element()));
+    });
+
+    it("keeps the switch-track fill when a disabled switch is hovered", async () => {
+      const screen = await render(
+        <div>
+          <Labelled label="Off" disabled />
+          <div data-testid="ref" className="bg-switch-track" />
+        </div>,
+      );
+      const toggle = screen.getByRole("switch", { name: "Off" });
+      await userEvent.hover(toggle, { force: true });
+      await settle();
+      expect(bg(toggle.element())).toBe(bg(screen.getByTestId("ref").element()));
+    });
+  });
+
+  describe("checked thumb color", () => {
+    /** Resolves any CSS color (oklch included) to sRGB bytes via a canvas. */
+    function rgb(color: string): [number, number, number] {
+      const ctx = document.createElement("canvas").getContext("2d") as CanvasRenderingContext2D;
+      ctx.fillStyle = color;
+      ctx.fillRect(0, 0, 1, 1);
+      const data = ctx.getImageData(0, 0, 1, 1).data;
+      return [data[0] ?? 0, data[1] ?? 0, data[2] ?? 0];
+    }
+    function luminance(color: string): number {
+      const linear = (c: number) => {
+        const s = c / 255;
+        return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+      };
+      const [r, g, b] = rgb(color);
+      return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
+    }
+    function contrast(a: string, b: string): number {
+      const la = luminance(a);
+      const lb = luminance(b);
+      return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+    }
+
+    it.each(["light", "dark"] as const)(
+      "uses primary-foreground with >= 3:1 against the track in the %s theme",
+      async (theme) => {
+        const screen = await render(
+          <div className={theme === "dark" ? "dark bg-background p-4" : "bg-background p-4"}>
+            <Labelled label="On" defaultChecked />
+            <div data-testid="ref" className="bg-primary-foreground" />
+          </div>,
+        );
+        await settle();
+        const track = screen.getByRole("switch", { name: "On" }).element();
+        const thumb = track.querySelector('[data-slot="switch-thumb"]') as HTMLElement;
+        const thumbBg = getComputedStyle(thumb).backgroundColor;
+        expect(thumbBg).toBe(getComputedStyle(screen.getByTestId("ref").element()).backgroundColor);
+        const white = rgb("#fff").join(",");
+        if (theme === "dark") expect(rgb(thumbBg).join(",")).not.toBe(white);
+        else expect(rgb(thumbBg).join(",")).toBe(white);
+        expect(contrast(thumbBg, getComputedStyle(track).backgroundColor)).toBeGreaterThanOrEqual(
+          3,
+        );
+      },
+    );
+  });
+
   describe("invalid", () => {
     function InvalidSwitch() {
       return (
