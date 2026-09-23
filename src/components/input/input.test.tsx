@@ -121,6 +121,58 @@ describe("Input", () => {
     );
   });
 
+  describe("hover", () => {
+    const settle = () => new Promise((resolve) => setTimeout(resolve, 250));
+
+    it("uses the hover border on a valid input (control)", async () => {
+      const screen = await render(
+        <div>
+          <Labelled id="a" label="Name" />
+          <div data-testid="ref" className="border border-field-border-hover" />
+        </div>,
+      );
+      const input = screen.getByRole("textbox", { name: "Name" });
+      await userEvent.hover(input);
+      await settle();
+      expect(getComputedStyle(input.element()).borderTopColor).toBe(
+        getComputedStyle(screen.getByTestId("ref").element()).borderTopColor,
+      );
+    });
+
+    it("keeps the danger border when hovered inside <Field invalid>", async () => {
+      const screen = await render(
+        <div>
+          <Field invalid>
+            <FieldLabel>Email</FieldLabel>
+            <Input />
+          </Field>
+          <div data-testid="ref" className="border border-danger" />
+        </div>,
+      );
+      const input = screen.getByRole("textbox", { name: "Email" });
+      await userEvent.hover(input);
+      await settle();
+      expect(getComputedStyle(input.element()).borderTopColor).toBe(
+        getComputedStyle(screen.getByTestId("ref").element()).borderTopColor,
+      );
+    });
+
+    it("keeps the danger border when hovered with aria-invalid", async () => {
+      const screen = await render(
+        <div>
+          <Labelled id="a" label="Bad" aria-invalid="true" />
+          <div data-testid="ref" className="border border-danger" />
+        </div>,
+      );
+      const input = screen.getByRole("textbox", { name: "Bad" });
+      await userEvent.hover(input);
+      await settle();
+      expect(getComputedStyle(input.element()).borderTopColor).toBe(
+        getComputedStyle(screen.getByTestId("ref").element()).borderTopColor,
+      );
+    });
+  });
+
   it("renders the placeholder attribute", async () => {
     const screen = await render(<Labelled id="a" label="Email" placeholder="you@example.com" />);
     await expect

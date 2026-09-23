@@ -10,7 +10,7 @@ const checkboxClasses = cn(
   "inline-flex shrink-0 items-center justify-center",
   "size-5 rounded-sm border border-field-border bg-field text-primary-foreground",
   "data-checked:bg-primary data-checked:border-primary data-indeterminate:bg-primary data-indeterminate:border-primary",
-  "not-data-disabled:not-data-checked:hover:border-field-border-hover",
+  "not-data-disabled:not-data-checked:not-data-indeterminate:not-data-invalid:hover:border-field-border-hover",
   "cursor-pointer data-disabled:cursor-not-allowed data-disabled:opacity-50",
   "outline-hidden outline-offset-2 outline-ring focus-visible:outline-2 focus-visible:outline-solid",
   "data-invalid:border-danger",

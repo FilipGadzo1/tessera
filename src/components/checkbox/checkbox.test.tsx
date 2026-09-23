@@ -150,18 +150,65 @@ describe("Checkbox", () => {
             Accept terms
           </FieldLabel>
         </Field>
-        <div data-testid="ref" className="h-4 border border-danger" />
+        <div data-testid="ref" className="border border-danger" />
       </div>,
     );
     const checkbox = screen.getByRole("checkbox", { name: "Accept terms" });
     await expect.element(checkbox).toHaveAttribute("data-invalid");
-    // Park the pointer off the checkbox (a previous test may have left it hovering there).
-    await userEvent.hover(screen.getByTestId("ref"));
     const reference = screen.getByTestId("ref").element();
     await new Promise((resolve) => setTimeout(resolve, 250));
     expect(getComputedStyle(checkbox.element()).borderTopColor).toBe(
       getComputedStyle(reference).borderTopColor,
     );
+  });
+
+  describe("hover", () => {
+    const settle = () => new Promise((resolve) => setTimeout(resolve, 250));
+    const border = (el: Element) => getComputedStyle(el).borderTopColor;
+
+    it("uses the hover border on an unchecked checkbox (control)", async () => {
+      const screen = await render(
+        <div>
+          <Labelled label="Plain" />
+          <div data-testid="ref" className="border border-field-border-hover" />
+        </div>,
+      );
+      const checkbox = screen.getByRole("checkbox", { name: "Plain" });
+      await userEvent.hover(checkbox);
+      await settle();
+      expect(border(checkbox.element())).toBe(border(screen.getByTestId("ref").element()));
+    });
+
+    it("keeps the danger border when hovered inside <Field invalid>", async () => {
+      const screen = await render(
+        <div>
+          <Field invalid>
+            <FieldLabel className="flex items-center gap-2">
+              <Checkbox />
+              Accept terms
+            </FieldLabel>
+          </Field>
+          <div data-testid="ref" className="border border-danger" />
+        </div>,
+      );
+      const checkbox = screen.getByRole("checkbox", { name: "Accept terms" });
+      await userEvent.hover(checkbox);
+      await settle();
+      expect(border(checkbox.element())).toBe(border(screen.getByTestId("ref").element()));
+    });
+
+    it("keeps the primary border when an indeterminate checkbox is hovered", async () => {
+      const screen = await render(
+        <div>
+          <Labelled label="Select all" indeterminate />
+          <div data-testid="ref" className="border border-primary" />
+        </div>,
+      );
+      const checkbox = screen.getByRole("checkbox", { name: "Select all" });
+      await userEvent.hover(checkbox);
+      await settle();
+      expect(border(checkbox.element())).toBe(border(screen.getByTestId("ref").element()));
+    });
   });
 
   it("submits name=on with a form when checked, and nothing when unchecked", async () => {

@@ -120,6 +120,24 @@ describe("Textarea", () => {
     );
   });
 
+  it("keeps the danger border when hovered inside <Field invalid>", async () => {
+    const screen = await render(
+      <div>
+        <Field invalid>
+          <FieldLabel>Bio</FieldLabel>
+          <Textarea />
+        </Field>
+        <div data-testid="ref" className="border border-danger" />
+      </div>,
+    );
+    const textarea = screen.getByRole("textbox", { name: "Bio" });
+    await userEvent.hover(textarea);
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    expect(getComputedStyle(textarea.element()).borderTopColor).toBe(
+      getComputedStyle(screen.getByTestId("ref").element()).borderTopColor,
+    );
+  });
+
   it("passes through textarea attributes and merges className", async () => {
     const screen = await render(
       <Labelled
