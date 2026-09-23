@@ -17,12 +17,15 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+/** CardTitle is a plain div; give it heading semantics with `role="heading"` + `aria-level`. */
 export const Outlined: Story = {
   args: { variant: "outlined" },
   render: (args) => (
     <Card {...args} className="w-96">
       <CardHeader>
-        <CardTitle>Invite teammates</CardTitle>
+        <CardTitle role="heading" aria-level={3}>
+          Invite teammates
+        </CardTitle>
         <CardDescription>They get access to every project in this workspace.</CardDescription>
       </CardHeader>
       <CardContent>3 seats left on your plan.</CardContent>
@@ -60,12 +63,14 @@ export const WithBadge: Story = {
   render: (args) => (
     <Card {...args} className="w-96">
       <CardHeader className="flex-row items-center justify-between">
-        <CardTitle>Monthly usage</CardTitle>
+        <CardTitle role="heading" aria-level={3}>
+          Monthly usage
+        </CardTitle>
         <Badge color="success">Healthy</Badge>
       </CardHeader>
       <CardContent>
         <div className="font-semibold text-3xl">72%</div>
-        <div className="text-muted-foreground">of 50 GB used</div>
+        <div className="text-muted-foreground">36 of 50 GB used</div>
       </CardContent>
     </Card>
   ),
@@ -75,14 +80,21 @@ export const Grid: Story = {
   parameters: { layout: "padded" },
   render: () => (
     <div className="grid grid-cols-3 gap-4">
-      {["Storage", "Bandwidth", "Requests"].map((label) => (
+      {[
+        { label: "Storage", value: "72%", caption: "36 of 50 GB used" },
+        { label: "Bandwidth", value: "41%", caption: "410 of 1,000 GB transferred" },
+        { label: "Requests", value: "88%", caption: "8.8M of 10M requests" },
+      ].map(({ label, value, caption }) => (
         <Card key={label} variant="elevated">
           <CardHeader>
-            <CardTitle>{label}</CardTitle>
+            <CardTitle role="heading" aria-level={3}>
+              {label}
+            </CardTitle>
             <CardDescription>This billing period</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="font-semibold text-3xl">72%</div>
+            <div className="font-semibold text-3xl">{value}</div>
+            <div className="text-muted-foreground">{caption}</div>
           </CardContent>
         </Card>
       ))}

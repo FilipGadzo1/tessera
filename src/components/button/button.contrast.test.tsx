@@ -32,5 +32,7 @@ describe("Button contrast across every palette", () => {
     );
     const results = await axe.run(screen.container, { runOnly: ["color-contrast"] });
     expect(results.violations.flatMap((v) => v.nodes.map((n) => n.target.join(" ")))).toEqual([]);
+    // "incomplete" = axe could not decide (e.g. unresolvable background) — must be empty too.
+    expect(results.incomplete.flatMap((v) => v.nodes.map((n) => n.target.join(" ")))).toEqual([]);
   });
 });

@@ -26,9 +26,16 @@ Theme with attributes on `<html>` (or any element — scopes nest):
 <html class="dark" data-primary="lapis" data-surface="slate">
 ```
 
-Use the **Theme / Primary / Surface** switches in the toolbar to preview every combination. Token
-names are shadcn-compatible (`--primary`, `--ring`, …), so apps that already define them keep
-their look.
+Use the **Theme / Primary / Surface** switches in the toolbar to preview every combination.
+
+For a custom brand, override the palette scale `--tsr-primary-50` … `--tsr-primary-950` (and/or
+`--tsr-surface-0` … `--tsr-surface-950`) in an unlayered `:root`: every role — hover, soft, ring,
+dark mode and the `primary-*` scale utilities — follows. Overriding `--primary` alone changes only
+the resting color. Token names are shadcn-compatible (`--primary`, `--ring`, …), so utilities like
+`bg-primary` work unchanged; the values are Tessera's.
+
+- There is no `.light` scope to switch a region back to light inside `.dark`.
+- Card variants are `outlined` / `elevated` (MUI naming); Button and Badge use `outline`.
 
 ## Stack
 

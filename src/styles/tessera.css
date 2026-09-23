@@ -1,8 +1,10 @@
 /*
  * Tessera — entry stylesheet.
  * Consumers:  @import "tailwindcss";  @import "@tessera/ui/styles.css";
- * Theme with <html data-primary="lapis" data-surface="slate" class="dark"> (any ancestor works),
- * or override the semantic tokens (--primary, --background, --radius, …) in your own :root / .dark.
+ * Theme with <html data-primary="lapis" data-surface="slate" class="dark"> (any ancestor works).
+ * Custom brand: override the scale --tsr-primary-50 … --tsr-primary-950 (and/or --tsr-surface-0 …
+ * --tsr-surface-950) in an unlayered :root — every role (hover, soft, ring, dark, scales) follows.
+ * Overriding --primary alone changes only the resting color. No .light scope inside .dark.
  * Never @import "tailwindcss" here — only the consuming app does that.
  * No `@custom-variant dark` either: it would hijack the consumer's own `dark:` utilities.
  */

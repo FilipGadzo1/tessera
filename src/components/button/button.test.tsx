@@ -37,16 +37,16 @@ describe("Button", () => {
   });
 
   it.each([
-    ["soft", "bg-tone-soft"],
-    ["outline", "border-tone-line"],
-    ["ghost", "text-tone-ink"],
-    ["link", "underline-offset-4"],
-  ] as const)("applies the %s variant", async (variant, expectedClass) => {
+    ["soft", "bg-tone-soft", ["bg-tone"]],
+    ["outline", "border-tone-line", ["bg-tone"]],
+    ["ghost", "text-tone-ink", ["bg-tone", "border-tone-line"]],
+    ["link", "underline-offset-4", ["bg-tone"]],
+  ] as const)("applies the %s variant", async (variant, expectedClass, absentClasses) => {
     const screen = await render(<Button variant={variant}>Label</Button>);
     const button = screen.getByRole("button");
     await expect.element(button).toHaveAttribute("data-variant", variant);
     await expect.element(button).toHaveClass(expectedClass);
-    await expect.element(button).not.toHaveClass("bg-tone");
+    for (const absent of absentClasses) await expect.element(button).not.toHaveClass(absent);
   });
 
   it.each(colors)("applies the %s color through its tone", async (color) => {

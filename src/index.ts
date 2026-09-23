@@ -21,8 +21,8 @@ export {
   CardFooter,
   CardHeader,
   type CardProps,
-  type CardVariantProps,
   CardTitle,
+  type CardVariantProps,
   cardDefaults,
   cardVariants,
 } from "./components/card";

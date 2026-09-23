@@ -191,6 +191,36 @@ describe("theme tokens", () => {
     },
   );
 
+  it("follows a palette-scale override in an unlayered :root across roles, dark and nested scopes", async () => {
+    const style = document.createElement("style");
+    style.textContent =
+      ":root { --tsr-primary-400: rgb(4, 5, 6); --tsr-primary-600: rgb(1, 2, 3); --tsr-primary-700: rgb(7, 8, 9); }";
+    document.head.append(style);
+    try {
+      const screen = await render(
+        <div>
+          <div data-testid="primary" className="size-4 bg-primary" />
+          <div data-testid="hover" className="size-4 bg-primary-hover" />
+          <div data-testid="ring" className="size-4 bg-ring" />
+          <div data-surface="slate">
+            <div data-testid="nested" className="size-4 bg-primary" />
+          </div>
+          <div className="dark">
+            <div data-testid="dark" className="size-4 bg-primary" />
+          </div>
+        </div>,
+      );
+      const color = (id: string) => bg(screen.getByTestId(id).element());
+      expect(color("primary")).toBe("rgb(1, 2, 3)");
+      expect(color("hover")).toBe("rgb(7, 8, 9)");
+      expect(color("ring")).toBe("rgb(1, 2, 3)");
+      expect(color("nested")).toBe("rgb(1, 2, 3)");
+      expect(color("dark")).toBe("rgb(4, 5, 6)");
+    } finally {
+      style.remove();
+    }
+  });
+
   it("cn treats tone-* utilities as one conflict group", () => {
     expect(cn("tone-primary bg-tone", "tone-danger")).toBe("bg-tone tone-danger");
   });

@@ -7,6 +7,7 @@ dist/
 storybook-static/
 .tmp-consumer/
 *.tgz
+.vitest/
 __screenshots__/
 test-results/
 *.log
