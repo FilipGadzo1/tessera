@@ -38,13 +38,14 @@
   - Checked: `data-checked:bg-primary data-checked:not-data-invalid:border-primary` (invalid border wins). The Indicator is a `size-2 rounded-full bg-primary-foreground` dot.
 - **Switch:**
   - Track: `h-6 w-11 rounded-full bg-switch-track p-0.5`. Checked: `data-checked:bg-primary`.
-  - Thumb: `size-5 rounded-full bg-surface-0 shadow-sm`, with `translate-x-0` unchecked and `data-checked:translate-x-5` checked.
+  - Thumb: `size-5 rounded-full bg-surface-0 shadow-sm data-checked:bg-primary-foreground`, with `translate-x-0` unchecked and `data-checked:translate-x-5` checked. (A white thumb on the dark-mode checked track (primary-400) is ≈2.5:1, which fails WCAG 1.4.11; `primary-foreground` is white in light mode and primary-950 in dark mode, ≈6.6:1.)
+  - Hover (the track has no border, so hover changes its fill): `not-data-disabled:not-data-checked:hover:bg-field-border-hover not-data-disabled:data-checked:hover:bg-primary-hover`.
   - Transition: `transition-[translate,background-color]`.
 - **Shared by Checkbox, Radio and Switch:**
   - Cursor: `cursor-pointer`. Disabled: `data-disabled:cursor-not-allowed data-disabled:opacity-50`.
   - Focus: `outline-hidden outline-offset-2 outline-ring focus-visible:outline-2 focus-visible:outline-solid`.
   - Invalid: `data-invalid:border-danger` (the Switch track gets `data-invalid:outline-1 data-invalid:outline-solid data-invalid:outline-danger data-invalid:focus-visible:outline-2`, so while focused the ring keeps 2px width in the danger color).
-  - Hover while unchecked: `not-data-disabled:not-data-checked:not-data-indeterminate:not-data-invalid:hover:border-field-border-hover` (never overrides checked, indeterminate or invalid borders).
+  - Hover while unchecked (Checkbox and Radio; the Switch has its own track rule above): `not-data-disabled:not-data-checked:not-data-indeterminate:not-data-invalid:hover:border-field-border-hover` (never overrides checked, indeterminate or invalid borders).
 - **Label / FieldLabel:** `text-sm font-medium leading-snug text-foreground` plus `data-disabled:opacity-50` (FieldLabel reflects the Field's disabled state).
 - **FieldDescription:** `text-sm text-muted-foreground`.
 - **FieldError:** `text-sm text-danger`.
