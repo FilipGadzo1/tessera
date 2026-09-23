@@ -1,2 +1,5 @@
 @import "tailwindcss";
 @import "../src/styles/tessera.css";
+
+/* Dark mode = a `.dark` class on an ancestor (tessera.css leaves this to the app). */
+@custom-variant dark (&:where(.dark, .dark *));

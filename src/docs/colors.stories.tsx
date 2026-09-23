@@ -1,16 +1,25 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
+// Every color token defined in src/styles/tessera.css.
 const swatches = [
   { name: "background", className: "bg-background" },
   { name: "foreground", className: "bg-foreground" },
+  { name: "card", className: "bg-card" },
+  { name: "card-foreground", className: "bg-card-foreground" },
+  { name: "popover", className: "bg-popover" },
+  { name: "popover-foreground", className: "bg-popover-foreground" },
   { name: "primary", className: "bg-primary" },
   { name: "primary-foreground", className: "bg-primary-foreground" },
   { name: "secondary", className: "bg-secondary" },
+  { name: "secondary-foreground", className: "bg-secondary-foreground" },
   { name: "muted", className: "bg-muted" },
   { name: "muted-foreground", className: "bg-muted-foreground" },
   { name: "accent", className: "bg-accent" },
+  { name: "accent-foreground", className: "bg-accent-foreground" },
   { name: "destructive", className: "bg-destructive" },
+  { name: "destructive-foreground", className: "bg-destructive-foreground" },
   { name: "border", className: "bg-border" },
+  { name: "input", className: "bg-input" },
   { name: "ring", className: "bg-ring" },
 ] as const;
 
