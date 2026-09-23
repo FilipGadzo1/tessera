@@ -157,6 +157,23 @@ describe("Input", () => {
       );
     });
 
+    it("keeps the focus (ring) border when a focused input is hovered", async () => {
+      const screen = await render(
+        <div>
+          <Labelled id="a" label="Name" />
+          <div data-testid="ref" className="border border-ring" />
+        </div>,
+      );
+      const input = screen.getByRole("textbox", { name: "Name" });
+      await userEvent.click(input);
+      await userEvent.hover(input);
+      await settle();
+      expect(document.activeElement).toBe(input.element());
+      expect(getComputedStyle(input.element()).borderTopColor).toBe(
+        getComputedStyle(screen.getByTestId("ref").element()).borderTopColor,
+      );
+    });
+
     it("keeps the danger border when hovered with aria-invalid", async () => {
       const screen = await render(
         <div>

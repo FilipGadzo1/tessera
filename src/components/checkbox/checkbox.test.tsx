@@ -162,6 +162,32 @@ describe("Checkbox", () => {
     );
   });
 
+  it("keeps the danger border when checked inside <Field invalid>, with the primary fill", async () => {
+    const screen = await render(
+      <div>
+        <Field invalid>
+          <FieldLabel className="flex items-center gap-2">
+            <Checkbox defaultChecked />
+            Accept terms
+          </FieldLabel>
+        </Field>
+        <div data-testid="danger" className="border border-danger" />
+        <div data-testid="primary" className="bg-primary" />
+      </div>,
+    );
+    const checkbox = screen.getByRole("checkbox", { name: "Accept terms" });
+    await expect.element(checkbox).toHaveAttribute("data-invalid");
+    await expect.element(checkbox).toHaveAttribute("data-checked");
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    const style = getComputedStyle(checkbox.element());
+    expect(style.borderTopColor).toBe(
+      getComputedStyle(screen.getByTestId("danger").element()).borderTopColor,
+    );
+    expect(style.backgroundColor).toBe(
+      getComputedStyle(screen.getByTestId("primary").element()).backgroundColor,
+    );
+  });
+
   describe("hover", () => {
     const settle = () => new Promise((resolve) => setTimeout(resolve, 250));
     const border = (el: Element) => getComputedStyle(el).borderTopColor;
