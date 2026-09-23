@@ -121,9 +121,16 @@ if (extracted.status !== 0) fail(`tar extraction failed:\n${extracted.stderr}`);
 if (!existsSync(join(pkgDir, "dist", stylesDistPath)))
   fail(`installed package is missing dist/${stylesDistPath} — check package.json files`);
 
+// `source(none)` disables Tailwind's automatic content detection for the "tailwindcss" import —
+// without it, Tailwind auto-scans this whole repo (the fixture lives inside it) and the check
+// can never fail, since repo sources (Storybook, tests, …) already contain every class needed.
+// With it, the only content source left is the package's own `@source "../"` in tessera.css, so
+// this check genuinely exercises (and can genuinely fail) @source scanning of the installed dist.
+// `@source inline("tone-primary")` forces one `tone-*` candidate so the `@utility tone-*` rules
+// in theme.css compile at least once, proving that scaffolding survives the packed install.
 writeFileSync(
   join(fixture, "input.css"),
-  '@import "tailwindcss";\n@import "@tessera/ui/styles.css";\n',
+  '@import "tailwindcss" source(none);\n@import "@tessera/ui/styles.css";\n@source inline("tone-primary");\n',
 );
 
 const cliPkg = JSON.parse(
@@ -143,31 +150,26 @@ const css = readFileSync(join(fixture, "out.css"), "utf8");
 // never emits as a literal `--color-primary` custom property — confirmed by isolated
 // repro (see task-4-report.md). `--primary` is the real, re-themable token (also the
 // one documented in README.md), so it is what proves the token reached the consumer.
-const needles = [
-  // Proves @source scanning of dist JS picked up classes used by components.
-  ".animate-spin",
-  ".select-none",
-  // Proves the imported stylesheets (theme.css / palettes.css) arrived intact.
-  "--primary:",
-  "--tsr-malachite-600:",
-  "--tsr-primary-600:",
+const needleGroups = [
+  {
+    reason: "@source scanning of dist/ is broken",
+    needles: [".animate-spin", ".select-none"],
+  },
+  {
+    reason: "imported stylesheets (palettes/theme) did not arrive",
+    needles: ["--primary:", "--tsr-malachite-600:", "--tsr-primary-600:"],
+  },
+  {
+    reason: "@utility tone-* did not compile",
+    needles: ["--tone:"],
+  },
 ];
-for (const needle of needles) {
-  if (!css.includes(needle)) fail(`consumer CSS is missing ${needle} — @source scanning is broken`);
+for (const { reason, needles } of needleGroups) {
+  for (const needle of needles) {
+    if (!css.includes(needle)) fail(`consumer CSS is missing ${needle} — ${reason}`);
+  }
 }
 pass(`consumer Tailwind build from ${tarball} generates Tessera classes via @source`);
-
-// `--tone:` only exists inside `@utility tone-*` rules (theme.css), which Tailwind's JIT
-// only emits when a `tone-*` class is an actual scanned candidate — none of the currently
-// shipped components use one yet (Button doesn't apply tone-* until it's rewritten in a
-// later task), so it can never appear in `css` above without adding throwaway dead-code
-// usage just to satisfy this check. Instead, verify the tone infrastructure itself shipped
-// intact in the installed package's raw stylesheet (proves "the imported stylesheet
-// arrived" — the same intent as the needles above — without requiring a real consumer).
-const themeCss = readFileSync(join(pkgDir, "dist", "styles/theme.css"), "utf8");
-if (!themeCss.includes("--tone:"))
-  fail("installed dist/styles/theme.css is missing --tone: — tone utility scaffolding is broken");
-pass("installed dist/styles/theme.css ships intact tone-* utility scaffolding");
 
 rmSync(fixture, { recursive: true, force: true });
 pass("consumer verification complete");

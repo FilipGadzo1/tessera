@@ -23,7 +23,7 @@ tried — fetch that zip with `curl` and unpack it into `%LOCALAPPDATA%\ms-playw
 | `npm run dev` | Storybook docs + playground at **http://localhost:8080** |
 | `npm test` | Component tests in real Chromium (Vitest browser mode + axe) |
 | `npm run build` | Builds the library into `dist/` (tsdown) |
-| `npm run check` | Lint + typecheck + tests + build + consumer verification — run before every commit |
+| `npm run check` | Palette contrast check + lint + typecheck + tests + build + consumer verification — run before every commit |
 | `npm run format` | Biome format + safe lint fixes |
 | `npm run palettes` | Regenerates src/styles/palettes.css and checks contrast |
 
@@ -63,6 +63,8 @@ Requirements: React 19, Tailwind CSS v4.
 
 Or override semantic tokens (`--primary`, `--background`, `--radius`, …) in your own `:root`
 **and** `.dark`. Palettes are generated — edit `scripts/generate-palettes.mjs`, then `npm run palettes`.
+Overrides placed on `:root` apply everywhere except inside a nested `data-primary` / `data-surface`
+scope, which re-derives its roles from its own palette.
 
 After changing Tessera, repeat steps 1–2 (bump `version` in package.json when you want a new tarball name).
 
