@@ -84,7 +84,8 @@ source files automatically (build output + `"use client"` directive checks).
 ## Components
 
 - [x] Button
-- [ ] Next up: Input, Label, Card, Badge, Dialog, Tooltip, Select, Tabs
+- [x] Badge
+- [ ] Next up: Input, Label, Card, Dialog, Tooltip, Select, Tabs
 
 ## Roadmap
 
