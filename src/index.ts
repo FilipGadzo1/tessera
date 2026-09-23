@@ -33,10 +33,18 @@ export {
   type FieldDescriptionProps,
   FieldError,
   type FieldErrorProps,
+  FieldItem,
+  type FieldItemProps,
   FieldLabel,
   type FieldLabelProps,
   type FieldProps,
 } from "./components/field";
+export {
+  Fieldset,
+  FieldsetLegend,
+  type FieldsetLegendProps,
+  type FieldsetProps,
+} from "./components/fieldset";
 export {
   Input,
   type InputProps,
@@ -45,6 +53,7 @@ export {
   inputVariants,
 } from "./components/input";
 export { Label, type LabelProps } from "./components/label";
+export { Radio, RadioGroup, type RadioGroupProps, type RadioProps } from "./components/radio-group";
 export { Switch, type SwitchProps } from "./components/switch";
 export { Textarea, type TextareaProps } from "./components/textarea";
 export { cn } from "./lib/cn";

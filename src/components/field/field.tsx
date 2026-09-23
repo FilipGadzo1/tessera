@@ -8,6 +8,7 @@ export type FieldProps = BaseField.Root.Props;
 export type FieldLabelProps = BaseField.Label.Props;
 export type FieldDescriptionProps = BaseField.Description.Props;
 export type FieldErrorProps = BaseField.Error.Props;
+export type FieldItemProps = BaseField.Item.Props;
 
 type ClassName<State> = string | ((state: State) => string | undefined) | undefined;
 
@@ -45,6 +46,20 @@ export function FieldLabel({ className, ...props }: FieldLabelProps) {
         "text-sm font-medium leading-snug text-foreground data-disabled:opacity-50",
         className,
       )}
+    />
+  );
+}
+
+/**
+ * One option of a radio or checkbox group inside a Field. Gives the option its own label and
+ * description ids; without it every option shares the Field's ids and takes the first label.
+ */
+export function FieldItem({ className, ...props }: FieldItemProps) {
+  return (
+    <BaseField.Item
+      {...props}
+      data-slot="field-item"
+      className={mergeClassName("flex flex-col gap-1", className)}
     />
   );
 }

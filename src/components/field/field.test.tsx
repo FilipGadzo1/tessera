@@ -3,7 +3,14 @@ import { describe, expect, it } from "vitest";
 import { userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { Input } from "../input";
-import { Field, FieldDescription, FieldError, FieldLabel, type FieldProps } from "./field";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldItem,
+  FieldLabel,
+  type FieldProps,
+} from "./field";
 
 const DESCRIPTION = "We never share your email.";
 const ERROR = "Enter a valid email.";
@@ -156,6 +163,21 @@ describe("Field", () => {
     );
     await expect.element(screen.getByText("Email")).toHaveClass("label-off");
     expect(document.querySelector("[data-slot='field']")).toHaveClass("is-off");
+  });
+
+  it("renders FieldItem with its data-slot, merging className and reflecting disabled", async () => {
+    await render(
+      <Field disabled>
+        <FieldItem className={(s) => (s.disabled ? "item-off" : "")}>Option</FieldItem>
+        <FieldItem className="gap-2">Other</FieldItem>
+      </Field>,
+    );
+    const items = document.querySelectorAll("[data-slot='field-item']");
+    expect(items).toHaveLength(2);
+    expect(items[0]).toHaveClass("flex", "flex-col", "gap-1", "item-off");
+    expect(items[0]).toHaveAttribute("data-disabled");
+    expect(items[1]).toHaveClass("gap-2");
+    expect(items[1]).not.toHaveClass("gap-1");
   });
 
   it.each(["light", "dark"] as const)("has no axe violations in the %s theme", async (theme) => {

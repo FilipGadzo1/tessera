@@ -117,11 +117,15 @@ source files automatically (build output + `"use client"` directive checks).
 - [x] Card
 - [x] Label
 - [x] Input
-- [x] Field (FieldLabel, FieldDescription, FieldError)
+- [x] Field (FieldLabel, FieldDescription, FieldError, FieldItem for one option of a radio or checkbox group)
 - [x] Textarea (auto-grows with its content; `rows` sets the minimum height)
 - [x] Checkbox (checked and indeterminate states; wrap in Label or use inside a Field)
 - [x] Switch (on/off toggle; wrap in Label or use inside a Field)
-- [ ] Next up: RadioGroup (Phase B) · Tooltip, Popover, Dialog, Menu (Phase C) · Tabs, Select, Accordion, Toast, Avatar, Separator, Progress (Phase D)
+- [x] RadioGroup, Radio (arrow keys move selection; render through a Fieldset so the legend names the group:
+  `<Fieldset render={<RadioGroup />}><FieldsetLegend>…</FieldsetLegend>…</Fieldset>`; inside a Field,
+  wrap each option in FieldItem)
+- [x] Fieldset, FieldsetLegend (groups radios or Fields; a disabled Fieldset disables the Fields inside)
+- [ ] Next up: Tooltip, Popover, Dialog, Menu (Phase C) · Tabs, Select, Accordion, Toast, Avatar, Separator, Progress (Phase D)
 
 ## Roadmap
 

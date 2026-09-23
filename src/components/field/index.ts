@@ -4,6 +4,8 @@ export {
   type FieldDescriptionProps,
   FieldError,
   type FieldErrorProps,
+  FieldItem,
+  type FieldItemProps,
   FieldLabel,
   type FieldLabelProps,
   type FieldProps,
