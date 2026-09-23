@@ -117,7 +117,8 @@ source files automatically (build output + `"use client"` directive checks).
 - [x] Card
 - [x] Label
 - [x] Input
-- [ ] Next up: Field, Textarea, Checkbox, Switch, RadioGroup (Phase B) · Tooltip, Popover, Dialog, Menu (Phase C) · Tabs, Select, Accordion, Toast, Avatar, Separator, Progress (Phase D)
+- [x] Field (FieldLabel, FieldDescription, FieldError)
+- [ ] Next up: Textarea, Checkbox, Switch, RadioGroup (Phase B) · Tooltip, Popover, Dialog, Menu (Phase C) · Tabs, Select, Accordion, Toast, Avatar, Separator, Progress (Phase D)
 
 ## Roadmap
 

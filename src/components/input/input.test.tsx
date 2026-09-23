@@ -2,6 +2,7 @@ import axe from "axe-core";
 import { describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
+import { Field, FieldLabel } from "../field";
 import { Label } from "../label";
 import { Input, type InputProps } from "./input";
 import { inputVariants } from "./input-variants";
@@ -100,6 +101,24 @@ describe("Input", () => {
     const input = screen.getByRole("textbox", { name: "Bad" }).element();
     const reference = screen.getByTestId("ref").element();
     expect(getComputedStyle(input).borderTopColor).toBe(getComputedStyle(reference).borderTopColor);
+  });
+
+  it("is marked invalid with the danger border inside <Field invalid>", async () => {
+    const screen = await render(
+      <div>
+        <Field invalid>
+          <FieldLabel>Email</FieldLabel>
+          <Input />
+        </Field>
+        <div data-testid="ref" className="border border-danger" />
+      </div>,
+    );
+    const input = screen.getByRole("textbox", { name: "Email" });
+    await expect.element(input).toHaveAttribute("data-invalid");
+    const reference = screen.getByTestId("ref").element();
+    expect(getComputedStyle(input.element()).borderTopColor).toBe(
+      getComputedStyle(reference).borderTopColor,
+    );
   });
 
   it("renders the placeholder attribute", async () => {

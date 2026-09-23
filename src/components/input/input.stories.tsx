@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Button } from "../button";
+import { Field, FieldDescription, FieldLabel } from "../field";
 import { Label } from "../label";
 import { Input } from "./input";
 
@@ -72,5 +73,16 @@ export const States: Story = {
         <Input id="state-invalid" aria-invalid="true" defaultValue="not-an-email" />
       </div>
     </div>
+  ),
+};
+
+/** Inside a Field, the label and description are wired to the input automatically. */
+export const InField: Story = {
+  render: () => (
+    <Field>
+      <FieldLabel>Email</FieldLabel>
+      <Input type="email" placeholder="you@example.com" />
+      <FieldDescription>We only use it for sign-in links.</FieldDescription>
+    </Field>
   ),
 };
