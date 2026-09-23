@@ -1,12 +1,15 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "../../lib/cn";
 
+/** Default variant/size — shared by cva and the Button's data attributes. */
+export const buttonDefaults = { variant: "primary", size: "md" } as const;
+
 const buttonCva = cva(
   [
     "group/button relative inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap",
     "rounded-md border border-transparent font-medium select-none",
-    "transition-[color,background-color,border-color,box-shadow,transform] duration-150 ease-out",
-    "outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+    "transition-[color,background-color,border-color,box-shadow,translate] duration-150 ease-out",
+    "outline-hidden focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
     "active:not-data-disabled:translate-y-px motion-reduce:transition-none motion-reduce:active:translate-y-0",
     "data-disabled:pointer-events-none data-disabled:not-data-loading:opacity-50",
     "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
@@ -34,10 +37,7 @@ const buttonCva = cva(
         "icon-lg": "size-10",
       },
     },
-    defaultVariants: {
-      variant: "primary",
-      size: "md",
-    },
+    defaultVariants: buttonDefaults,
   },
 );
 

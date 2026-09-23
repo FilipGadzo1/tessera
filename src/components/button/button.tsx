@@ -1,7 +1,7 @@
 "use client";
 
 import { Button as BaseButton } from "@base-ui/react/button";
-import { type ButtonVariantProps, buttonVariants } from "./button-variants";
+import { type ButtonVariantProps, buttonDefaults, buttonVariants } from "./button-variants";
 
 export interface ButtonProps extends BaseButton.Props, ButtonVariantProps {
   /** Shows a spinner, sets aria-busy, and blocks interaction while keeping focus. */
@@ -18,14 +18,18 @@ export function Button({
   children,
   ...props
 }: ButtonProps) {
+  const resolvedSize = size ?? buttonDefaults.size;
+  // Icon-only sizes are a fixed box: while loading, the spinner replaces the icon
+  // (the accessible name comes from aria-label, not the children).
+  const spinnerOnly = loading && resolvedSize.startsWith("icon");
   return (
     <BaseButton
       {...props}
       data-slot="button"
-      data-variant={variant ?? "primary"}
-      data-size={size ?? "md"}
+      data-variant={variant ?? buttonDefaults.variant}
+      data-size={resolvedSize}
       data-loading={loading ? "" : undefined}
-      aria-busy={loading || undefined}
+      aria-busy={loading || props["aria-busy"]}
       disabled={disabled || loading}
       focusableWhenDisabled={loading || focusableWhenDisabled}
       className={(state) =>
@@ -37,7 +41,7 @@ export function Button({
       }
     >
       {loading && <ButtonSpinner />}
-      {children}
+      {!spinnerOnly && children}
     </BaseButton>
   );
 }

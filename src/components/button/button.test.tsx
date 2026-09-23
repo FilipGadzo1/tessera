@@ -1,6 +1,7 @@
 import axe from "axe-core";
 import { createRef } from "react";
 import { describe, expect, it, vi } from "vitest";
+import { userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { Button } from "./button";
 import { buttonVariants } from "./button-variants";
@@ -105,6 +106,41 @@ describe("Button", () => {
     expect(onClick).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ["Enter", "{Enter}"],
+    ["Space", " "],
+  ])("does not call onClick on keyboard %s while loading", async (_key, keys) => {
+    const onClick = vi.fn();
+    const screen = await render(
+      <Button loading onClick={onClick}>
+        Saving
+      </Button>,
+    );
+    const element = screen.getByRole("button").element() as HTMLButtonElement;
+    element.focus();
+    expect(document.activeElement).toBe(element);
+    await userEvent.keyboard(keys);
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it("keeps a caller-provided aria-busy when not loading", async () => {
+    const screen = await render(<Button aria-busy>Sync</Button>);
+    await expect.element(screen.getByRole("button")).toHaveAttribute("aria-busy", "true");
+  });
+
+  it("renders only the spinner for icon sizes while loading", async () => {
+    const screen = await render(
+      <Button size="icon" loading aria-label="Add">
+        <svg data-testid="icon" aria-hidden="true" />
+      </Button>,
+    );
+    const button = screen.getByRole("button", { name: "Add" });
+    await expect.element(button).toBeInTheDocument();
+    const element = button.element();
+    expect(element.querySelector('[data-slot="button-spinner"]')).not.toBeNull();
+    expect(element.querySelector('[data-testid="icon"]')).toBeNull();
+  });
+
   it("submits a form when type=submit", async () => {
     const onSubmit = vi.fn((event: SubmitEvent) => event.preventDefault());
     const screen = await render(
@@ -143,8 +179,12 @@ describe("Button", () => {
       </Button>,
     );
     const button = screen.getByRole("button", { name: "Menu" });
-    expect(button.element().tagName).toBe("SPAN");
+    const element = button.element() as HTMLSpanElement;
+    expect(element.tagName).toBe("SPAN");
     await expect.element(button).toHaveClass("bg-primary");
+    expect(element.tabIndex).toBe(0);
+    element.focus();
+    expect(document.activeElement).toBe(element);
   });
 
   it("forwards ref to the DOM element", async () => {
