@@ -26,5 +26,13 @@ export {
   cardDefaults,
   cardVariants,
 } from "./components/card";
+export {
+  Input,
+  type InputProps,
+  type InputVariantProps,
+  inputDefaults,
+  inputVariants,
+} from "./components/input";
+export { Label, type LabelProps } from "./components/label";
 export { cn } from "./lib/cn";
 export { type ToneColor, toneColors } from "./lib/tone";
