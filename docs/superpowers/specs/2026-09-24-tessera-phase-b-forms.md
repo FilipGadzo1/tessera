@@ -10,6 +10,7 @@
 |---|---|---|---|
 | `Label` | plain `<label>` | yes | For use outside a Field, e.g. wrapping a Checkbox and its text |
 | `Field`, `FieldLabel`, `FieldDescription`, `FieldError` | `Field.Root/Label/Description/Error` (`@base-ui/react/field`) | no | Wires ids and `aria-describedby` automatically; validation via `validate`, `invalid` and `validationMode` pass-through |
+| `FieldItem` | `Field.Item` | no | Wraps each radio/checkbox of a group inside one Field so every option gets its own id and label (`flex flex-col gap-1`) |
 | `Fieldset`, `FieldsetLegend` | `Fieldset.Root/Legend` (`@base-ui/react/fieldset`) | no | Groups radios and checkboxes; the legend names the group |
 | `Input` | `Input` (`@base-ui/react/input`) | no | Works standalone or inside a Field |
 | `Textarea` | `Input` with `render={<textarea />}` | no | Auto-grows with `field-sizing-content`; `rows` sets the minimum height |
@@ -57,7 +58,7 @@
 
 Every component passes Base UI props through, including `render` and `className`. `className` may be a string or a state function, following Button's pattern: merge with `cn` after the component's own classes.
 
-- `data-slot` is set on every part: `field`, `field-label`, `field-description`, `field-error`, `fieldset`, `fieldset-legend`, `input`, `textarea`, `checkbox`, `checkbox-indicator`, `switch`, `switch-thumb`, `radio-group`, `radio`, `radio-indicator`, `label`.
+- `data-slot` is set on every part: `field`, `field-item`, `field-label`, `field-description`, `field-error`, `fieldset`, `fieldset-legend`, `input`, `textarea`, `checkbox`, `checkbox-indicator`, `switch`, `switch-thumb`, `radio-group`, `radio`, `radio-indicator`, `label`.
 - `FieldError` shows only while the field is invalid, which is Base UI's default. `match` passes through.
 - Every interactive component gets a Tab-focus test that asserts the computed `outline-style` is `solid` and the width is correct (1px for text fields, 2px for the others). The cursor is checked via computed style.
 
