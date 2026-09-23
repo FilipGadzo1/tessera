@@ -95,6 +95,24 @@ describe("Button", () => {
     expect(cursor("Busy")).toBe("progress");
   });
 
+  it("shows a solid 2px outline on keyboard focus and none when unfocused", async () => {
+    const screen = await render(
+      <div>
+        <Button>Focus me</Button>
+        <Button>Idle</Button>
+      </div>,
+    );
+    const focused = screen.getByRole("button", { name: "Focus me" }).element() as HTMLElement;
+    const idle = screen.getByRole("button", { name: "Idle" }).element() as HTMLElement;
+    expect(getComputedStyle(idle).outlineStyle).toBe("none");
+    await userEvent.tab();
+    expect(document.activeElement).toBe(focused);
+    const style = getComputedStyle(focused);
+    expect(style.outlineStyle).toBe("solid");
+    expect(style.outlineWidth).toBe("2px");
+    expect(getComputedStyle(idle).outlineStyle).toBe("none");
+  });
+
   it("calls onClick on keyboard Enter when not loading", async () => {
     const onClick = vi.fn();
     const screen = await render(<Button onClick={onClick}>Go</Button>);

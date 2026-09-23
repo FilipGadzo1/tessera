@@ -19,7 +19,7 @@
 - Color roles: `primary, neutral, success, warning, danger, info`; tone utilities `tone-<role>`.
 - Control sizes: xs h-7, sm h-8, md h-10 (default), lg h-12. Controls `rounded-md`.
 - Clickable controls: `cursor-pointer`; disabled `cursor-not-allowed`; loading `cursor-progress`; hover styles gated with `not-data-disabled:`; never `pointer-events-none` on the control element.
-- Keyboard focus: `outline-hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`.
+- Keyboard focus: `outline-hidden outline-offset-2 outline-ring focus-visible:outline-2 focus-visible:outline-solid` (TW v4: `outline-hidden` sets `--tw-outline-style: none`, so `outline-solid` is required on focus). Every interactive component has a focus test asserting computed `outline-style: solid`.
 - Server-safe components (no hooks) must NOT start with `"use client"`; components using Base UI/hooks MUST.
 - Every component: `src/components/<name>/{<name>.tsx, <name>-variants.ts (if cva is shared), <name>.test.tsx, <name>.stories.tsx, index.ts}`, exported from `src/index.ts`, stories `tags: ["autodocs"]`, axe tests in light and dark.
 - Never weaken a test or disable an axe rule to pass; fix tokens/classes instead.

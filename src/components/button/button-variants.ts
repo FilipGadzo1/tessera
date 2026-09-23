@@ -9,7 +9,7 @@ const buttonCva = cva(
     "group/button relative inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap",
     "rounded-md border border-transparent font-medium select-none",
     "transition-[color,background-color,border-color,outline-color,box-shadow,translate] duration-150 ease-out motion-reduce:transition-none",
-    "outline-hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+    "outline-hidden outline-offset-2 outline-ring focus-visible:outline-2 focus-visible:outline-solid",
     "active:not-data-disabled:translate-y-px motion-reduce:active:translate-y-0",
     "data-disabled:not-data-loading:cursor-not-allowed data-disabled:not-data-loading:opacity-50 data-loading:cursor-progress",
     "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
