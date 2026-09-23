@@ -7,3 +7,4 @@ export {
   type CardProps,
   CardTitle,
 } from "./card";
+export { type CardVariantProps, cardDefaults, cardVariants } from "./card-variants";

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { Button } from "../button/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./card";
+import { cardDefaults, cardVariants } from "./card-variants";
 
 function Example({ variant }: { variant?: "outlined" | "elevated" }) {
   return (
@@ -23,6 +24,15 @@ function Example({ variant }: { variant?: "outlined" | "elevated" }) {
 }
 
 describe("Card", () => {
+  it("cardVariants styles any element and merges className", () => {
+    expect(cardDefaults.variant).toBe("outlined");
+    expect(cardVariants()).toContain("border-border");
+    const elevated = cardVariants({ variant: "elevated", className: "rounded-none" });
+    expect(elevated).toContain("shadow-md");
+    expect(elevated).toContain("rounded-none");
+    expect(elevated).not.toContain("rounded-xl");
+  });
+
   it("renders every part with its data-slot", async () => {
     const screen = await render(<Example />);
     const card = screen.getByTestId("card").element();

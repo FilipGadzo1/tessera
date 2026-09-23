@@ -1,10 +1,11 @@
 import { type ClassValue, clsx } from "clsx";
 import { extendTailwindMerge } from "tailwind-merge";
+import { toneColors } from "./tone";
 
 const twMerge = extendTailwindMerge<"tone">({
   extend: {
     classGroups: {
-      tone: [{ tone: ["primary", "neutral", "success", "warning", "danger", "info"] }],
+      tone: [{ tone: [...toneColors] }],
     },
   },
 });

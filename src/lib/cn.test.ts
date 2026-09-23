@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { cn } from "./cn";
+import { toneClass, toneColors } from "./tone";
 
 describe("cn", () => {
   it("joins truthy class values and drops falsy ones", () => {
@@ -18,5 +19,12 @@ describe("cn", () => {
 
   it("resolves conflicting tone utilities to the last one", () => {
     expect(cn("tone-primary", "px-2", "tone-info")).toBe("px-2 tone-info");
+  });
+
+  it("groups every tone color's utility, each mapped to tone-<color>", () => {
+    for (const color of toneColors) {
+      expect(toneClass[color]).toBe(`tone-${color}`);
+      expect(cn("tone-primary", toneClass[color])).toBe(toneClass[color]);
+    }
   });
 });

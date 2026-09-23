@@ -39,6 +39,38 @@ const isReExportOnly = (code) =>
     .replace(/export\s+\*(\s+as\s+\w+)?\s+from\s*["'][^"']+["']\s*;?/g, "")
     .trim() === "";
 
+/** Index just past the declaration at `start`: its matching `}` (interface) or its `;` at depth 0. */
+function declarationEnd(code, start, isInterface) {
+  let depth = 0;
+  for (let i = start; i < code.length; i++) {
+    const ch = code[i];
+    if (ch === "{" || ch === "(" || ch === "[") depth++;
+    else if (ch === "}" || ch === ")" || ch === "]") {
+      depth--;
+      if (isInterface && depth === 0 && ch === "}") return code[i + 1] === ";" ? i + 2 : i + 1;
+    } else if (!isInterface && ch === ";" && depth === 0) return i + 1;
+  }
+  return code.length;
+}
+
+/**
+ * True when the module has no runtime statements — only `import type`, `export type { … }`,
+ * `type X = …` and `interface X { … }` — so tsdown emits only its .d.ts, like a barrel.
+ */
+function isTypeOnly(code) {
+  const rest = stripComments(code)
+    .replace(/import\s+type\s+[^;]*?from\s*["'][^"']+["']\s*;?/g, "")
+    .replace(/export\s+type\s+\{[^}]*\}(\s*from\s*["'][^"']+["'])?\s*;?/g, "");
+  const declaration = /(?:export\s+)?(?:declare\s+)?(type\s+\w+|interface\s+\w+)/g;
+  let last = 0;
+  for (let match = declaration.exec(rest); match; match = declaration.exec(rest)) {
+    if (rest.slice(last, match.index).trim() !== "") return false;
+    last = declarationEnd(rest, match.index, match[1].startsWith("interface"));
+    declaration.lastIndex = last;
+  }
+  return rest.slice(last).trim() === "";
+}
+
 // Library sources: src/**/*.{ts,tsx} minus tests, stories, declaration files and src/docs/.
 const sources = readdirSync(src, { recursive: true })
   .map((file) => String(file).replaceAll("\\", "/"))
@@ -69,8 +101,9 @@ for (const file of sources) {
   const js = `${base}.js`;
   if (existsSync(join(dist, js))) pairs.push({ file, js, code });
   // In unbundle mode rolldown inlines pure re-export barrels (other than the entry) into
-  // their importers, so only their .d.ts is emitted. Anything else must have a .js file.
-  else if (file === "index.ts" || !isReExportOnly(code))
+  // their importers, and type-only modules have no runtime code, so only their .d.ts is
+  // emitted. Anything else must have a .js file.
+  else if (file === "index.ts" || !(isReExportOnly(code) || isTypeOnly(code)))
     fail(`missing dist/${js} (from src/${file})`);
 }
 pass(`dist artifacts present for ${sources.length} library sources`);
@@ -108,7 +141,12 @@ const run = (command, cwd) => spawnSync(command, { cwd, shell: true, encoding: "
 
 const packed = run(`npm pack --json --pack-destination "${fixture}"`, root);
 if (packed.status !== 0) fail(`npm pack failed:\n${packed.stderr}`);
-const tarball = JSON.parse(packed.stdout)[0]?.filename;
+let tarball;
+try {
+  tarball = JSON.parse(packed.stdout)[0]?.filename;
+} catch (error) {
+  fail(`npm pack printed invalid JSON (${error.message}):\n${packed.stdout}`);
+}
 if (!tarball || !existsSync(join(fixture, tarball)))
   fail(`npm pack produced no tarball:\n${packed.stdout}`);
 
@@ -160,17 +198,19 @@ const needleGroups = [
     needles: ["--primary:", "--tsr-malachite-600:", "--tsr-primary-600:"],
   },
   {
-    reason: "@utility tone-* did not compile",
-    needles: ["--tone:"],
+    reason: "inline-forced tone utility (@utility tone-*) did not compile",
+    needles: [".tone-primary", "--tone:"],
   },
   {
-    reason: "Button v2 utilities (tone, cursor, sizes) did not reach the consumer",
-    needles: [".bg-tone", ".cursor-pointer", ".tone-primary", ".h-10"],
+    // Nothing forces tone-neutral inline, so only @source scanning of dist/ can produce it.
+    reason: "component utilities (tone, cursor, sizes) were not scanned from dist/",
+    needles: [/\.bg-tone\s*\{/, ".cursor-pointer", ".tone-neutral", ".h-10"],
   },
 ];
 for (const { reason, needles } of needleGroups) {
   for (const needle of needles) {
-    if (!css.includes(needle)) fail(`consumer CSS is missing ${needle} — ${reason}`);
+    const found = typeof needle === "string" ? css.includes(needle) : needle.test(css);
+    if (!found) fail(`consumer CSS is missing ${needle} — ${reason}`);
   }
 }
 pass(`consumer Tailwind build from ${tarball} generates Tessera classes via @source`);

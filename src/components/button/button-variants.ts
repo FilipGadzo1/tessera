@@ -1,5 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "../../lib/cn";
+import { type ToneColor, toneClass } from "../../lib/tone";
 
 /** Defaults — shared by cva and the Button's data attributes. */
 export const buttonDefaults = { variant: "solid", color: "primary", size: "md" } as const;
@@ -26,14 +27,7 @@ const buttonCva = cva(
           "bg-transparent text-tone-ink not-data-disabled:hover:bg-tone-soft not-data-disabled:hover:text-tone-soft-foreground",
         link: "bg-transparent text-tone-ink underline-offset-4 not-data-disabled:hover:underline",
       },
-      color: {
-        primary: "tone-primary",
-        neutral: "tone-neutral",
-        success: "tone-success",
-        warning: "tone-warning",
-        danger: "tone-danger",
-        info: "tone-info",
-      },
+      color: toneClass,
       size: {
         xs: "h-7 gap-1 px-2.5 text-xs [&_svg:not([class*='size-'])]:size-3.5",
         sm: "h-8 gap-1.5 px-3 text-sm",
@@ -50,7 +44,8 @@ const buttonCva = cva(
 );
 
 export type ButtonVariantProps = VariantProps<typeof buttonCva>;
-export type ButtonColor = NonNullable<ButtonVariantProps["color"]>;
+/** Alias of ToneColor, kept for compatibility. */
+export type ButtonColor = ToneColor;
 
 /** Button classes for any element — use on `<a>` / router links, which must not be Buttons. */
 export function buttonVariants(options: ButtonVariantProps & { className?: string } = {}): string {

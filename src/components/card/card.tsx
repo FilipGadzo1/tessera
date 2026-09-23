@@ -1,18 +1,8 @@
-import { cva, type VariantProps } from "class-variance-authority";
 import type { ComponentProps } from "react";
 import { cn } from "../../lib/cn";
+import { type CardVariantProps, cardDefaults, cardVariants } from "./card-variants";
 
-const cardVariants = cva("flex flex-col gap-6 rounded-xl bg-card py-6 text-card-foreground", {
-  variants: {
-    variant: {
-      outlined: "border border-border",
-      elevated: "border border-transparent shadow-md",
-    },
-  },
-  defaultVariants: { variant: "outlined" },
-});
-
-export interface CardProps extends ComponentProps<"div">, VariantProps<typeof cardVariants> {}
+export interface CardProps extends ComponentProps<"div">, CardVariantProps {}
 
 /** A surface that groups related content. `elevated` lifts it with a shadow instead of a border. */
 export function Card({ variant, className, ...props }: CardProps) {
@@ -20,8 +10,8 @@ export function Card({ variant, className, ...props }: CardProps) {
     <div
       {...props}
       data-slot="card"
-      data-variant={variant ?? "outlined"}
-      className={cn(cardVariants({ variant }), className)}
+      data-variant={variant ?? cardDefaults.variant}
+      className={cardVariants({ variant, className })}
     />
   );
 }
