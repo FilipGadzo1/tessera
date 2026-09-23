@@ -44,5 +44,6 @@ export {
   inputVariants,
 } from "./components/input";
 export { Label, type LabelProps } from "./components/label";
+export { Textarea, type TextareaProps } from "./components/textarea";
 export { cn } from "./lib/cn";
 export { type ToneColor, toneColors } from "./lib/tone";
