@@ -1,0 +1,84 @@
+/*
+ * Tessera design tokens.
+ * Consumers:  @import "tailwindcss";  @import "@tessera/ui/styles.css";
+ * Token names are shadcn-compatible: redefine any of them in your own :root / .dark to theme Tessera.
+ * Never @import "tailwindcss" here — only the consuming app does that.
+ */
+
+/* Scan the shipped library files (this stylesheet sits in dist/) for class names. */
+@source "./";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* Light — warm stone base, lapis primary. */
+:root {
+  --radius: 0.5rem;
+  --background: oklch(0.99 0.004 85);
+  --foreground: oklch(0.2 0.015 60);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.015 60);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0.015 60);
+  --primary: oklch(0.44 0.16 264);
+  --primary-foreground: oklch(0.98 0.01 264);
+  --secondary: oklch(0.95 0.012 80);
+  --secondary-foreground: oklch(0.25 0.02 60);
+  --muted: oklch(0.95 0.01 80);
+  --muted-foreground: oklch(0.5 0.02 60);
+  --accent: oklch(0.94 0.02 264);
+  --accent-foreground: oklch(0.3 0.1 264);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0.9 0.01 80);
+  --input: oklch(0.9 0.01 80);
+  --ring: oklch(0.6 0.15 264);
+}
+
+/* Dark — deep night-blue base, luminous lapis primary. */
+.dark {
+  --background: oklch(0.17 0.012 265);
+  --foreground: oklch(0.96 0.006 85);
+  --card: oklch(0.21 0.014 265);
+  --card-foreground: oklch(0.96 0.006 85);
+  --popover: oklch(0.21 0.014 265);
+  --popover-foreground: oklch(0.96 0.006 85);
+  --primary: oklch(0.72 0.13 264);
+  --primary-foreground: oklch(0.18 0.04 264);
+  --secondary: oklch(0.26 0.015 265);
+  --secondary-foreground: oklch(0.95 0.006 85);
+  --muted: oklch(0.25 0.012 265);
+  --muted-foreground: oklch(0.72 0.015 85);
+  --accent: oklch(0.3 0.04 264);
+  --accent-foreground: oklch(0.96 0.01 264);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.72 0.13 264);
+}

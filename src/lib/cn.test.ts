@@ -1,0 +1,18 @@
+import { describe, expect, it } from "vitest";
+import { cn } from "./cn";
+
+describe("cn", () => {
+  it("joins truthy class values and drops falsy ones", () => {
+    expect(cn("a", false, undefined, null, "c", { d: true, e: false })).toBe("a c d");
+  });
+
+  it("lets later Tailwind utilities override conflicting earlier ones", () => {
+    expect(cn("px-2 py-1", "px-4")).toBe("py-1 px-4");
+  });
+
+  it("treats Tessera token colors as colors when merging", () => {
+    expect(cn("bg-primary text-primary-foreground", "bg-red-500")).toBe(
+      "text-primary-foreground bg-red-500",
+    );
+  });
+});

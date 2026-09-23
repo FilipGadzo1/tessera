@@ -1,3 +1,13 @@
 # Agent tooling state
 .omc/
 .superpowers/
+
+node_modules/
+dist/
+storybook-static/
+.tmp-consumer/
+*.tgz
+__screenshots__/
+test-results/
+*.log
+.DS_Store
