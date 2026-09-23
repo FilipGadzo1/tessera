@@ -21,7 +21,7 @@
 
 - **Text fields** (Input, Textarea):
   - Base: `w-full min-w-0 rounded-md border border-field-border bg-field text-foreground shadow-xs placeholder:text-muted-foreground`.
-  - Hover: `not-data-disabled:not-data-invalid:not-aria-invalid:hover:border-field-border-hover` (hover must never override the invalid border).
+  - Hover: `not-data-disabled:not-data-invalid:not-aria-invalid:not-focus:hover:border-field-border-hover` (hover never overrides the invalid or the focus border).
   - Focus: `outline-hidden focus:outline-1 focus:outline-solid focus:outline-ring focus:border-ring`.
   - Invalid: `data-invalid:border-danger data-invalid:focus:outline-danger aria-invalid:border-danger aria-invalid:focus:outline-danger`.
   - Disabled: `disabled:cursor-not-allowed disabled:opacity-50`. Read-only: `read-only:bg-muted`.
@@ -31,11 +31,11 @@
 - **Textarea:** `min-h-20 px-3 py-2 text-sm field-sizing-content`, with the same states. Resize: `resize-y`.
 - **Checkbox:**
   - Box: `size-5 rounded-sm border border-field-border bg-field text-primary-foreground`.
-  - Checked or indeterminate: `data-checked:bg-primary data-checked:border-primary data-indeterminate:bg-primary data-indeterminate:border-primary`.
+  - Checked or indeterminate: `data-checked:bg-primary data-checked:not-data-invalid:border-primary data-indeterminate:bg-primary data-indeterminate:not-data-invalid:border-primary` (invalid border wins over checked).
   - Icons: the Indicator shows a 14px check (inline SVG, `aria-hidden`), or a dash when indeterminate.
 - **Radio:**
   - Circle: `size-5 rounded-full border border-field-border bg-field`.
-  - Checked: `bg-primary border-primary`. The Indicator is a `size-2 rounded-full bg-primary-foreground` dot.
+  - Checked: `data-checked:bg-primary data-checked:not-data-invalid:border-primary` (invalid border wins). The Indicator is a `size-2 rounded-full bg-primary-foreground` dot.
 - **Switch:**
   - Track: `h-6 w-11 rounded-full bg-switch-track p-0.5`. Checked: `data-checked:bg-primary`.
   - Thumb: `size-5 rounded-full bg-surface-0 shadow-sm`, with `translate-x-0` unchecked and `data-checked:translate-x-5` checked.
