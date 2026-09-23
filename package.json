@@ -4,6 +4,8 @@
   "private": true,
   "description": "Tessera — Filip's personal React component library. Every component a tile; every project a mosaic.",
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "sideEffects": [
     "**/*.css"
   ],

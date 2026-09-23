@@ -4,6 +4,18 @@
 
 Filip's personal React component library — `@tessera/ui`. Local only (not published).
 
+## Setup (first time)
+
+```sh
+npm install
+npx playwright install chromium   # browser for Vitest browser mode
+npm run check                     # should be all green
+```
+
+If the Chromium download times out, Playwright prints the exact download URL and revision it
+tried — fetch that zip with `curl` and unpack it into `%LOCALAPPDATA%\ms-playwright\chromium-<revision>`
+(the folder name Playwright expects), then re-run `npm run check`.
+
 ## Commands
 
 | Command | What it does |
@@ -37,7 +49,12 @@ React 19 · @base-ui/react · Tailwind CSS v4 · cva + tailwind-merge · tsdown 
    ```
 
 Requirements: React 19, Tailwind CSS v4. Re-theme by redefining the shadcn-compatible tokens
-(`--primary`, `--ring`, `--radius`, …) in your own `:root` / `.dark`.
+(`--primary`, `--ring`, `--radius`, …) in your own `:root` / `.dark` (Tessera's defaults sit in
+`@layer base`, so your overrides always win).
+
+Dark mode: add a `.dark` class to an ancestor — typically `<html>` — exactly like shadcn/ui.
+Tessera components never use `dark:` utilities (the tokens do the theming), and `styles.css`
+does not redefine Tailwind's `dark` variant, so your app's own `dark:` setup is untouched.
 
 After changing Tessera, repeat steps 1–2 (bump `version` in package.json when you want a new tarball name).
 
@@ -51,7 +68,8 @@ src/components/<name>/
   <name>.stories.tsx    # Storybook stories (tags: ["autodocs"])
   index.ts              # barrel
 ```
-Export it from `src/index.ts`, add its dist paths to `scripts/verify-consumer.mjs`, run `npm run check`.
+Export it from `src/index.ts` and run `npm run check` — `scripts/verify-consumer.mjs` discovers new
+source files automatically (build output + `"use client"` directive checks).
 
 ## Components
 

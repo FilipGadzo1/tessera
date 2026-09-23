@@ -15,5 +15,5 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["src", "test", ".storybook", "scripts", "env.d.ts", "*.config.ts"]
+  "include": ["src", "test", ".storybook", "env.d.ts", "*.config.ts"]
 }
