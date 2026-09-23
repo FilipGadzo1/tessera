@@ -21,7 +21,7 @@
 
 - **Text fields** (Input, Textarea):
   - Base: `w-full min-w-0 rounded-md border border-field-border bg-field text-foreground shadow-xs placeholder:text-muted-foreground`.
-  - Hover: `not-data-disabled:hover:border-field-border-hover`.
+  - Hover: `not-data-disabled:not-data-invalid:not-aria-invalid:hover:border-field-border-hover` (hover must never override the invalid border).
   - Focus: `outline-hidden focus:outline-1 focus:outline-solid focus:outline-ring focus:border-ring`.
   - Invalid: `data-invalid:border-danger data-invalid:focus:outline-danger aria-invalid:border-danger aria-invalid:focus:outline-danger`.
   - Disabled: `disabled:cursor-not-allowed disabled:opacity-50`. Read-only: `read-only:bg-muted`.
@@ -44,7 +44,7 @@
   - Cursor: `cursor-pointer`. Disabled: `data-disabled:cursor-not-allowed data-disabled:opacity-50`.
   - Focus: `outline-hidden outline-offset-2 outline-ring focus-visible:outline-2 focus-visible:outline-solid`.
   - Invalid: `data-invalid:border-danger` (the Switch track gets `data-invalid:outline-1 data-invalid:outline-solid data-invalid:outline-danger`).
-  - Hover while unchecked: `not-data-disabled:not-data-checked:hover:border-field-border-hover`.
+  - Hover while unchecked: `not-data-disabled:not-data-checked:not-data-indeterminate:not-data-invalid:hover:border-field-border-hover` (never overrides checked, indeterminate or invalid borders).
 - **Label / FieldLabel:** `text-sm font-medium leading-snug text-foreground` plus `data-disabled:opacity-50` (FieldLabel reflects the Field's disabled state).
 - **FieldDescription:** `text-sm text-muted-foreground`.
 - **FieldError:** `text-sm text-danger`.
