@@ -1,0 +1,45 @@
+"use client";
+
+import { Switch as BaseSwitch } from "@base-ui/react/switch";
+import { cn } from "../../lib/cn";
+
+/** Base UI Switch.Root props. Tessera renders the thumb, so `children` is ignored. */
+export type SwitchProps = BaseSwitch.Root.Props;
+
+/*
+ * Outlines: the track has no border, so invalid is a 1px danger outline. Tailwind emits
+ * `data-invalid:*` after `focus-visible:*`, so while an invalid switch is focused the
+ * `data-invalid:focus-visible:outline-2` compound restores the 2px focus width; the danger
+ * color stays (like text fields' `data-invalid:focus:outline-danger`).
+ * No hover style: the shared hover rule targets a border the track does not have.
+ */
+const trackClasses = cn(
+  "inline-flex shrink-0 items-center",
+  "h-6 w-11 rounded-full bg-switch-track p-0.5",
+  "data-checked:bg-primary",
+  "cursor-pointer data-disabled:cursor-not-allowed data-disabled:opacity-50",
+  "outline-hidden outline-offset-2 outline-ring focus-visible:outline-2 focus-visible:outline-solid",
+  "data-invalid:outline-1 data-invalid:outline-solid data-invalid:outline-danger data-invalid:focus-visible:outline-2",
+  "transition-[translate,background-color] duration-150 ease-out motion-reduce:transition-none",
+);
+
+const thumbClasses = cn(
+  "block size-5 rounded-full bg-surface-0 shadow-sm",
+  "translate-x-0 data-checked:translate-x-5",
+  "transition-[translate,background-color] duration-150 ease-out motion-reduce:transition-none",
+);
+
+/** An on/off switch. Pair with Label or use inside a Field. */
+export function Switch({ className, ...props }: SwitchProps) {
+  return (
+    <BaseSwitch.Root
+      {...props}
+      data-slot="switch"
+      className={(state) =>
+        cn(trackClasses, typeof className === "function" ? className(state) : className)
+      }
+    >
+      <BaseSwitch.Thumb data-slot="switch-thumb" className={thumbClasses} />
+    </BaseSwitch.Root>
+  );
+}

@@ -120,7 +120,8 @@ source files automatically (build output + `"use client"` directive checks).
 - [x] Field (FieldLabel, FieldDescription, FieldError)
 - [x] Textarea (auto-grows with its content; `rows` sets the minimum height)
 - [x] Checkbox (checked and indeterminate states; wrap in Label or use inside a Field)
-- [ ] Next up: Switch, RadioGroup (Phase B) · Tooltip, Popover, Dialog, Menu (Phase C) · Tabs, Select, Accordion, Toast, Avatar, Separator, Progress (Phase D)
+- [x] Switch (on/off toggle; wrap in Label or use inside a Field)
+- [ ] Next up: RadioGroup (Phase B) · Tooltip, Popover, Dialog, Menu (Phase C) · Tabs, Select, Accordion, Toast, Avatar, Separator, Progress (Phase D)
 
 ## Roadmap
 
