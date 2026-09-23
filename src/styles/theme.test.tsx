@@ -128,6 +128,69 @@ describe("theme tokens", () => {
     expect(bg(screen.getByTestId("scale").element())).toBe(bg(screen.getByTestId("ref").element()));
   });
 
+  it.each(["marble", "slate", "sandstone"])(
+    "resolves field tokens in light and dark for the %s surface",
+    async (surface) => {
+      const ref = (value: string) => ({ background: value });
+      const screen = await render(
+        <div data-surface={surface}>
+          <div data-testid="light-border" className="size-4 bg-field-border" />
+          <div
+            data-testid="light-border-ref"
+            className="size-4"
+            style={ref(`color-mix(in oklab, var(--tsr-${surface}-400), var(--tsr-${surface}-500))`)}
+          />
+          <div data-testid="light-track" className="size-4 bg-switch-track" />
+          <div data-testid="light-hover" className="size-4 bg-field-border-hover" />
+          <div
+            data-testid="light-hover-ref"
+            className="size-4"
+            style={ref(`var(--tsr-${surface}-500)`)}
+          />
+          <div data-testid="light-field" className="size-4 bg-field" />
+          <div
+            data-testid="light-field-ref"
+            className="size-4"
+            style={ref(`var(--tsr-${surface}-0)`)}
+          />
+          <div data-testid="neutral-line" className="size-4 tone-neutral bg-tone-line" />
+          <div className="dark">
+            <div data-testid="dark-border" className="size-4 bg-field-border" />
+            <div data-testid="dark-track" className="size-4 bg-switch-track" />
+            <div
+              data-testid="dark-border-ref"
+              className="size-4"
+              style={ref(`var(--tsr-${surface}-500)`)}
+            />
+            <div data-testid="dark-hover" className="size-4 bg-field-border-hover" />
+            <div
+              data-testid="dark-hover-ref"
+              className="size-4"
+              style={ref(`var(--tsr-${surface}-400)`)}
+            />
+            <div data-testid="dark-field" className="size-4 bg-field" />
+            <div
+              data-testid="dark-field-ref"
+              className="size-4"
+              style={ref(`var(--tsr-${surface}-900)`)}
+            />
+          </div>
+        </div>,
+      );
+      const color = (id: string) => bg(screen.getByTestId(id).element());
+      expect(color("light-border")).toBe(color("light-border-ref"));
+      expect(color("light-track")).toBe(color("light-border-ref"));
+      expect(color("neutral-line")).toBe(color("light-border-ref"));
+      expect(color("light-hover")).toBe(color("light-hover-ref"));
+      expect(color("light-field")).toBe(color("light-field-ref"));
+      expect(color("dark-border")).toBe(color("dark-border-ref"));
+      expect(color("dark-track")).toBe(color("dark-border-ref"));
+      expect(color("dark-hover")).toBe(color("dark-hover-ref"));
+      expect(color("dark-field")).toBe(color("dark-field-ref"));
+      expect(color("light-border")).not.toBe(color("dark-border"));
+    },
+  );
+
   it("cn treats tone-* utilities as one conflict group", () => {
     expect(cn("tone-primary bg-tone", "tone-danger")).toBe("bg-tone tone-danger");
   });

@@ -1,6 +1,6 @@
 // Generates src/styles/palettes.css — Tessera's gem palettes — and verifies WCAG contrast.
 // Usage: node scripts/generate-palettes.mjs          (write the file)
-//        node scripts/generate-palettes.mjs --check  (fail if the file is stale or contrast < 4.5)
+//        node scripts/generate-palettes.mjs --check  (fail if the file is stale or a contrast gate fails)
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -91,28 +91,72 @@ for (const [name, [hue, chroma]] of Object.entries(SURFACES)) {
 }
 
 // Contrast gate — mirrors the role mapping in theme.css.
+// Text pairs need ≥ 4.5:1 (WCAG 1.4.3); non-text UI (field borders, focus ring) ≥ 3:1 (WCAG 1.4.11).
 const failures = [];
-const need = (label, ratio) => {
-  if (ratio < 4.5) failures.push(`${label}: ${ratio.toFixed(2)}`);
+const need = (label, ratio, min = 4.5) => {
+  if (ratio < min) failures.push(`${label}: ${ratio.toFixed(2)} (< ${min})`);
 };
+const needUi = (label, ratio) => need(label, ratio, 3);
 const white = 1;
 for (const gem of Object.keys(GEMS)) {
   const p = palettes[gem];
   need(`${gem} solid (600 / white)`, contrast(luminance(p[600]), white));
   need(`${gem} soft (700 on 100)`, contrast(luminance(p[700]), luminance(p[100])));
+  need(`${gem} soft hover (700 on 200)`, contrast(luminance(p[700]), luminance(p[200])));
   need(`${gem} dark solid (950 on 400)`, contrast(luminance(p[950]), luminance(p[400])));
+  need(`${gem} dark solid hover (950 on 300)`, contrast(luminance(p[950]), luminance(p[300])));
   for (const surface of Object.keys(SURFACES)) {
     const s = palettes[surface];
     need(`${gem} ink on ${surface}-0`, contrast(luminance(p[600]), luminance(s[0])));
     need(`${gem} dark ink on ${surface}-950`, contrast(luminance(p[400]), luminance(s[950])));
     need(`${gem} dark ink on ${surface}-900`, contrast(luminance(p[400]), luminance(s[900])));
     // Dark soft = 400 at 24% (hover, worst case) over surface-950; text = 200.
+    // This linear-luminance mix is conservative: browsers composite the translucent color in
+    // gamma-encoded sRGB, which yields a darker background (higher contrast with the 200 text).
     const softBg = 0.24 * luminance(p[400]) + 0.76 * luminance(s[950]);
     need(`${gem} dark soft on ${surface}`, contrast(luminance(p[200]), softBg));
   }
 }
+// Focus ring (non-text): primary 600 in light, primary 400 in dark, against page and muted surfaces.
+for (const gem of PRIMARY_OPTIONS) {
+  const p = palettes[gem];
+  for (const surface of Object.keys(SURFACES)) {
+    const s = palettes[surface];
+    needUi(`${gem} ring (600) on ${surface}-0`, contrast(luminance(p[600]), luminance(s[0])));
+    needUi(`${gem} ring (600) on ${surface}-100`, contrast(luminance(p[600]), luminance(s[100])));
+    needUi(
+      `${gem} dark ring (400) on ${surface}-950`,
+      contrast(luminance(p[400]), luminance(s[950])),
+    );
+    needUi(
+      `${gem} dark ring (400) on ${surface}-900`,
+      contrast(luminance(p[400]), luminance(s[900])),
+    );
+  }
+}
 for (const surface of Object.keys(SURFACES)) {
   const s = palettes[surface];
+  // --field-border / --switch-track: light = oklab midpoint of 400 and 500 (same hue → mid L and C).
+  const fieldBorder = [(s[400][0] + s[500][0]) / 2, (s[400][1] + s[500][1]) / 2, s[400][2]];
+  needUi(
+    `${surface} field-border (400/500) on 0`,
+    contrast(luminance(fieldBorder), luminance(s[0])),
+  );
+  needUi(
+    `${surface} field-border (400/500) on 100`,
+    contrast(luminance(fieldBorder), luminance(s[100])),
+  );
+  // Dark field border = 500. Fields must not sit on bg-muted (800) in dark: 500 on 800 is < 3:1.
+  needUi(
+    `${surface} dark field-border (500) on 950`,
+    contrast(luminance(s[500]), luminance(s[950])),
+  );
+  needUi(
+    `${surface} dark field-border (500) on 900`,
+    contrast(luminance(s[500]), luminance(s[900])),
+  );
+  need(`${surface} neutral solid (0 on 900)`, contrast(luminance(s[0]), luminance(s[900])));
+  need(`${surface} dark neutral solid (950 on 50)`, contrast(luminance(s[950]), luminance(s[50])));
   need(`${surface} muted-foreground (500) on 0`, contrast(luminance(s[500]), luminance(s[0])));
   need(`${surface} muted-foreground (500) on 100`, contrast(luminance(s[500]), luminance(s[100])));
   need(
@@ -125,7 +169,7 @@ for (const surface of Object.keys(SURFACES)) {
   );
 }
 if (failures.length > 0) {
-  console.error(`✗ contrast below 4.5:1\n  ${failures.join("\n  ")}`);
+  console.error(`✗ contrast below threshold\n  ${failures.join("\n  ")}`);
   process.exit(1);
 }
 
@@ -170,7 +214,7 @@ if (process.argv.includes("--check")) {
     console.error("✗ src/styles/palettes.css is stale — run: node scripts/generate-palettes.mjs");
     process.exit(1);
   }
-  console.log("✓ palettes up to date; all role contrasts ≥ 4.5:1");
+  console.log("✓ palettes up to date; text contrasts ≥ 4.5:1, non-text UI ≥ 3:1");
 } else {
   writeFileSync(target, css);
   console.log(`✓ wrote src/styles/palettes.css (${Object.keys(palettes).length} palettes)`);

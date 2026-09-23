@@ -40,6 +40,7 @@ Contrast was verified numerically for every palette × surface (script in the pl
 2. **Bindings**: `--tsr-primary-<step>` and `--tsr-surface-<step>` point at the palette chosen by `data-primary` / `data-surface` (defaults malachite / marble on `:root`).
 3. **Semantic roles** (`src/styles/theme.css`), light and dark:
    - Surfaces (shadcn-compatible names): `background, foreground, card(-foreground), popover(-foreground), muted(-foreground), accent(-foreground), border, input, ring`.
+   - Form controls (WCAG 1.4.11, ≥ 3:1, gated by the generator): `field` (light surface-0 / dark 900), `field-border` and `switch-track` (light = oklab mix of 400 and 500 / dark 500), `field-border-hover` (light 500 / dark 400). Dark 500 is only 2.83:1 on 800, so fields must not sit on `bg-muted` in dark. `tone-neutral`'s `--tone-line` is `--field-border`.
    - Color roles `primary, neutral, success, warning, danger, info`, each with `-hover`, `-active`, `-foreground` (text on solid), `-soft`, `-soft-hover`, `-soft-foreground`.
    - shadcn aliases: `secondary(-foreground)` = neutral soft; `destructive(-foreground)` = danger.
    - Light: solid = 600 / hover 700 / active 800 / foreground white / soft 100 / soft-hover 200 / soft-foreground 700.

@@ -25,6 +25,11 @@
     --border: var(--tsr-surface-200);
     --input: var(--tsr-surface-300);
     --ring: var(--tsr-primary-600);
+    /* Form controls (WCAG 1.4.11: borders ≥ 3:1 on background and muted — gated in the generator). */
+    --field: var(--tsr-surface-0);
+    --field-border: color-mix(in oklab, var(--tsr-surface-400), var(--tsr-surface-500));
+    --field-border-hover: var(--tsr-surface-500);
+    --switch-track: color-mix(in oklab, var(--tsr-surface-400), var(--tsr-surface-500));
 
     --primary: var(--tsr-primary-600);
     --primary-hover: var(--tsr-primary-700);
@@ -97,6 +102,11 @@
     --border: var(--tsr-surface-800);
     --input: var(--tsr-surface-700);
     --ring: var(--tsr-primary-400);
+    /* 500 is ≥ 3:1 on 950 and 900 but not on 800: fields must not sit on bg-muted in dark. */
+    --field: var(--tsr-surface-900);
+    --field-border: var(--tsr-surface-500);
+    --field-border-hover: var(--tsr-surface-400);
+    --switch-track: var(--tsr-surface-500);
 
     --primary: var(--tsr-primary-400);
     --primary-hover: var(--tsr-primary-300);
@@ -162,6 +172,10 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-field: var(--field);
+  --color-field-border: var(--field-border);
+  --color-field-border-hover: var(--field-border-hover);
+  --color-switch-track: var(--switch-track);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-destructive: var(--destructive);
@@ -272,7 +286,7 @@
   --tone-soft-hover: var(--neutral-soft-hover);
   --tone-soft-foreground: var(--neutral-soft-foreground);
   --tone-ink: var(--foreground);
-  --tone-line: var(--input);
+  --tone-line: var(--field-border);
 }
 
 @utility tone-success {
