@@ -271,10 +271,18 @@ source files automatically (build output + `"use client"` directive checks).
   `TableSortButton` is a presentational `<button>` for a sortable column header — no hooks, `onClick`
   and the current `direction` are the caller's, and it swaps its trailing icon (arrow-up / arrow-down
   / arrow-up-down) to match. Server-safe)
+- [x] Slider, SliderLabel, SliderValue (Root → Control → Track → Indicator + one Thumb per value —
+  a plain number or, for a range, a `number[]` with one Thumb each. `color` (tone) and `size`
+  (`sm` | `md`, default `md`) match Progress; `SliderLabel`/`SliderValue` render in a row above the
+  control, same as `ProgressLabel`/`ProgressValue`. Focus lives on each thumb's visually-hidden
+  `<input type="range">`, so the ring is drawn on the thumb wrapper with `has-[:focus-visible]:`.
+  A range slider's thumbs get distinct accessible names from `thumbLabels` (index-aligned with the
+  value array); a single-thumb slider is named by its own `aria-label`/`aria-labelledby`, a
+  `SliderLabel`, or a wrapping `Field`. Client component)
 
 Phase A (foundation), Phase B (forms), Phase C (overlays) and Phase D (navigation and feedback) are
-complete. Phase E (data entry and display) is in progress: Skeleton, Breadcrumb, Pagination and Table
-are done; Slider, NumberField, Combobox and Drawer remain.
+complete. Phase E (data entry and display) is in progress: Skeleton, Breadcrumb, Pagination, Table and
+Slider are done; NumberField, Combobox and Drawer remain.
 
 Composition: when a part is rendered through another (`<Fieldset render={<RadioGroup className=…/>}>`),
 the outer part's own classes win over conflicting classes on the render element (Base UI merges the
@@ -316,7 +324,7 @@ Separators for billing; and a "Save changes" Button that shows a success toast f
 
 ## Roadmap
 
-Finishing Phase E: Combobox, Slider, NumberField, Drawer (Sheet is the same component, on
+Finishing Phase E: Combobox, NumberField, Drawer (Sheet is the same component, on
 Base UI's `Drawer.*`).
 
 Next, Phase F: Calendar, DatePicker, DateRangePicker, ToggleGroup, Toolbar, ScrollArea, Meter,

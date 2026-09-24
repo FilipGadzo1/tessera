@@ -225,6 +225,15 @@ export {
 } from "./components/select";
 export { Separator, type SeparatorProps } from "./components/separator";
 export { Skeleton, type SkeletonProps } from "./components/skeleton";
+export {
+  Slider,
+  SliderLabel,
+  type SliderLabelProps,
+  type SliderProps,
+  type SliderSize,
+  SliderValue,
+  type SliderValueProps,
+} from "./components/slider";
 export { Switch, type SwitchProps } from "./components/switch";
 export {
   Table,

@@ -1,0 +1,249 @@
+import axe from "axe-core";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { userEvent } from "vitest/browser";
+import { render } from "vitest-browser-react";
+import { emulateForcedColors, resetEmulatedMedia, systemColor } from "../../../test/emulation";
+import { Field, FieldLabel } from "../field";
+import { Slider, SliderLabel, SliderValue } from "./slider";
+
+const trackOf = (root: Element) => root.querySelector('[data-slot="slider-track"]') as HTMLElement;
+const indicatorOf = (root: Element) =>
+  root.querySelector('[data-slot="slider-indicator"]') as HTMLElement;
+const thumbsOf = (root: Element) =>
+  [...root.querySelectorAll('[data-slot="slider-thumb"]')] as HTMLElement[];
+const inputOf = (thumb: Element) => thumb.querySelector("input") as HTMLInputElement;
+
+afterEach(async () => {
+  await resetEmulatedMedia();
+});
+
+describe("Slider", () => {
+  it("renders a slider role with aria-valuenow/min/max and data-slot", async () => {
+    const screen = await render(<Slider defaultValue={40} aria-label="Volume" />);
+    const thumb = screen.getByRole("slider", { name: "Volume" });
+    await expect.element(thumb).toHaveAttribute("aria-valuenow", "40");
+    // Native `<input type="range">`: min/max are exposed to the accessibility tree implicitly
+    // from the HTML `min`/`max` attributes rather than literal `aria-valuemin`/`aria-valuemax`.
+    await expect.element(thumb).toHaveAttribute("min", "0");
+    await expect.element(thumb).toHaveAttribute("max", "100");
+    const root = thumb.element().closest('[data-slot="slider"]') as HTMLElement;
+    expect(root).not.toBeNull();
+    expect(trackOf(root)).not.toBeNull();
+    expect(indicatorOf(root)).not.toBeNull();
+    expect(thumbsOf(root)).toHaveLength(1);
+  });
+
+  it("changes the value with arrow keys, PageUp/PageDown, Home and End", async () => {
+    const onValueChange = vi.fn();
+    const screen = await render(
+      <Slider defaultValue={50} aria-label="Level" onValueChange={onValueChange} />,
+    );
+    const thumb = screen.getByRole("slider", { name: "Level" });
+    (thumb.element() as HTMLElement).focus();
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.element(thumb).toHaveAttribute("aria-valuenow", "51");
+    await userEvent.keyboard("{ArrowLeft}");
+    await expect.element(thumb).toHaveAttribute("aria-valuenow", "50");
+    await userEvent.keyboard("{PageUp}");
+    await expect.element(thumb).toHaveAttribute("aria-valuenow", "60");
+    await userEvent.keyboard("{PageDown}");
+    await expect.element(thumb).toHaveAttribute("aria-valuenow", "50");
+    await userEvent.keyboard("{Home}");
+    await expect.element(thumb).toHaveAttribute("aria-valuenow", "0");
+    await userEvent.keyboard("{End}");
+    await expect.element(thumb).toHaveAttribute("aria-valuenow", "100");
+    expect(onValueChange).toHaveBeenCalled();
+  });
+
+  it("renders a range slider with two thumbs given distinct names", async () => {
+    const screen = await render(
+      <Slider defaultValue={[20, 80]} thumbLabels={["Minimum price", "Maximum price"]} />,
+    );
+    const min = screen.getByRole("slider", { name: "Minimum price" });
+    const max = screen.getByRole("slider", { name: "Maximum price" });
+    await expect.element(min).toHaveAttribute("aria-valuenow", "20");
+    await expect.element(max).toHaveAttribute("aria-valuenow", "80");
+    expect(min.element()).not.toBe(max.element());
+  });
+
+  it("ignores interaction when disabled", async () => {
+    const screen = await render(<Slider defaultValue={30} aria-label="Disabled" disabled />);
+    const thumb = screen.getByRole("slider", { name: "Disabled" });
+    await expect.element(thumb).toBeDisabled();
+    const thumbWrapper = thumb.element().closest('[data-slot="slider-thumb"]') as HTMLElement;
+    expect(thumbWrapper.hasAttribute("data-disabled")).toBe(true);
+    const root = thumb.element().closest('[data-slot="slider"]') as HTMLElement;
+    expect(getComputedStyle(root).opacity).toBe("0.5");
+  });
+
+  it("spans the indicator across the value within 1px", async () => {
+    const screen = await render(<Slider defaultValue={30} aria-label="Level" className="w-80" />);
+    const thumb = screen.getByRole("slider", { name: "Level" });
+    const root = thumb.element().closest('[data-slot="slider"]') as HTMLElement;
+    const track = trackOf(root);
+    const indicator = indicatorOf(root);
+    await expect
+      .poll(() => indicator.getBoundingClientRect().width / track.getBoundingClientRect().width)
+      .toBeCloseTo(0.3, 1);
+    const trackRect = track.getBoundingClientRect();
+    const indicatorRect = indicator.getBoundingClientRect();
+    expect(Math.abs(indicatorRect.left - trackRect.left)).toBeLessThanOrEqual(1);
+    expect(Math.abs(indicatorRect.width - trackRect.width * 0.3)).toBeLessThanOrEqual(1);
+  });
+
+  it("is named by a wrapping Field's label and shows the formatted value", async () => {
+    const screen = await render(
+      <Field>
+        <FieldLabel>Brightness</FieldLabel>
+        <Slider defaultValue={70}>
+          <SliderValue />
+        </Slider>
+      </Field>,
+    );
+    const thumb = screen.getByRole("slider", { name: "Brightness" });
+    await expect.element(thumb).toBeInTheDocument();
+    await expect.element(screen.getByText("70")).toHaveAttribute("data-slot", "slider-value");
+  });
+
+  it("is named by its SliderLabel", async () => {
+    const screen = await render(
+      <Slider defaultValue={10}>
+        <SliderLabel>Zoom</SliderLabel>
+      </Slider>,
+    );
+    const thumb = screen.getByRole("slider", { name: "Zoom" });
+    await expect.element(thumb).toBeInTheDocument();
+    await expect.element(screen.getByText("Zoom")).toHaveAttribute("data-slot", "slider-label");
+  });
+
+  it("submits its value with a form", async () => {
+    const screen = await render(
+      <form data-testid="form">
+        <Slider name="volume" defaultValue={45} aria-label="Volume" />
+      </form>,
+    );
+    const form = screen.getByTestId("form").element() as HTMLFormElement;
+    expect(new FormData(form).get("volume")).toBe("45");
+    const thumb = screen.getByRole("slider", { name: "Volume" });
+    (thumb.element() as HTMLElement).focus();
+    await userEvent.keyboard("{ArrowRight}");
+    expect(new FormData(form).get("volume")).toBe("46");
+  });
+
+  it("defaults to the primary tone and applies other tones", async () => {
+    const screen = await render(
+      <div>
+        <Slider defaultValue={40} aria-label="Default" />
+        <Slider defaultValue={40} aria-label="Success" color="success" />
+        <div data-testid="primary" className="bg-primary" />
+        <div data-testid="success" className="bg-success" />
+      </div>,
+    );
+    const defThumb = screen.getByRole("slider", { name: "Default" });
+    const defRoot = defThumb.element().closest('[data-slot="slider"]') as HTMLElement;
+    const successThumb = screen.getByRole("slider", { name: "Success" });
+    const successRoot = successThumb.element().closest('[data-slot="slider"]') as HTMLElement;
+    await expect.element(defRoot).toHaveAttribute("data-color", "primary");
+    expect(defRoot).toHaveClass("tone-primary");
+    expect(successRoot).toHaveClass("tone-success");
+    const bg = (testId: string) =>
+      getComputedStyle(screen.getByTestId(testId).element()).backgroundColor;
+    expect(getComputedStyle(indicatorOf(defRoot)).backgroundColor).toBe(bg("primary"));
+    expect(getComputedStyle(indicatorOf(successRoot)).backgroundColor).toBe(bg("success"));
+  });
+
+  it.each([
+    ["sm", "h-1", "size-4"],
+    ["md", "h-1.5", "size-5"],
+  ] as const)("applies the %s size", async (size, trackCls, thumbCls) => {
+    const screen = await render(<Slider defaultValue={30} size={size} aria-label="Level" />);
+    const thumb = screen.getByRole("slider", { name: "Level" });
+    const root = thumb.element().closest('[data-slot="slider"]') as HTMLElement;
+    await expect.element(root).toHaveAttribute("data-size", size);
+    expect(trackOf(root).classList).toContain(trackCls);
+    const thumbEl = thumbsOf(root)[0];
+    expect(thumbEl?.classList).toContain(thumbCls);
+  });
+
+  it("shows a cursor-grab thumb", async () => {
+    const screen = await render(<Slider defaultValue={30} aria-label="Level" />);
+    const thumb = screen.getByRole("slider", { name: "Level" });
+    const thumbEl = thumb.element().closest('[data-slot="slider-thumb"]') as HTMLElement;
+    expect(getComputedStyle(thumbEl).cursor).toBe("grab");
+  });
+
+  it("merges className and applies data-slot to every part", async () => {
+    const screen = await render(
+      <Slider defaultValue={40} aria-label="Level" className="max-w-40" />,
+    );
+    const thumb = screen.getByRole("slider", { name: "Level" });
+    const root = thumb.element().closest('[data-slot="slider"]') as HTMLElement;
+    await expect.element(root).toHaveClass("max-w-40");
+    expect(root.getAttribute("data-slot")).toBe("slider");
+    expect(root.querySelector('[data-slot="slider-control"]')).not.toBeNull();
+    expect(trackOf(root).getAttribute("data-slot")).toBe("slider-track");
+    expect(indicatorOf(root).getAttribute("data-slot")).toBe("slider-indicator");
+  });
+
+  it("shows a solid 2px outline on the thumb on Tab focus, targeting its hidden input", async () => {
+    const screen = await render(<Slider defaultValue={40} aria-label="Level" />);
+    const thumb = screen.getByRole("slider", { name: "Level" });
+    const thumbEl = thumb.element().closest('[data-slot="slider-thumb"]') as HTMLElement;
+    expect(getComputedStyle(thumbEl).outlineStyle).toBe("none");
+    await userEvent.tab();
+    expect(document.activeElement).toBe(inputOf(thumbEl));
+    const style = getComputedStyle(thumbEl);
+    expect(style.outlineStyle).toBe("solid");
+    expect(style.outlineWidth).toBe("2px");
+  });
+
+  it("shows no permanent outline in forced colors, only on focus", async () => {
+    await emulateForcedColors(true);
+    expect(matchMedia("(forced-colors: active)").matches).toBe(true);
+    const screen = await render(<Slider defaultValue={40} aria-label="Level" />);
+    const thumb = screen.getByRole("slider", { name: "Level" });
+    const thumbEl = thumb.element().closest('[data-slot="slider-thumb"]') as HTMLElement;
+    expect(getComputedStyle(thumbEl).outlineStyle).toBe("none");
+    await userEvent.tab();
+    expect(document.activeElement).toBe(inputOf(thumbEl));
+    const style = getComputedStyle(thumbEl);
+    expect(style.outlineStyle).toBe("solid");
+    expect(Number.parseFloat(style.outlineWidth)).toBeGreaterThanOrEqual(1);
+  });
+
+  it("keeps the track outline and indicator colour visible in forced colors", async () => {
+    await emulateForcedColors(true);
+    const screen = await render(<Slider defaultValue={40} aria-label="Level" />);
+    const thumb = screen.getByRole("slider", { name: "Level" });
+    const root = thumb.element().closest('[data-slot="slider"]') as HTMLElement;
+    const canvas = systemColor("Canvas");
+    const track = getComputedStyle(trackOf(root));
+    expect(track.outlineStyle).toBe("solid");
+    expect(track.outlineWidth).toBe("1px");
+    expect(track.outlineColor).toBe(systemColor("CanvasText"));
+    expect(track.outlineColor).not.toBe(canvas);
+    const indicator = getComputedStyle(indicatorOf(root));
+    expect(indicator.backgroundColor).toBe(systemColor("Highlight"));
+    expect(indicator.backgroundColor).not.toBe(canvas);
+  });
+
+  it.each(["light", "dark"] as const)("has no axe violations in the %s theme", async (theme) => {
+    const screen = await render(
+      <div className={theme === "dark" ? "dark bg-background p-4" : "bg-background p-4"}>
+        <Slider defaultValue={40} color="success">
+          <SliderLabel>Volume</SliderLabel>
+          <SliderValue />
+        </Slider>
+        <Slider defaultValue={[20, 80]} thumbLabels={["Min", "Max"]} aria-label="Range" />
+        <Slider defaultValue={30} disabled aria-label="Disabled" />
+        <Field>
+          <FieldLabel>Brightness</FieldLabel>
+          <Slider defaultValue={70} />
+        </Field>
+      </div>,
+    );
+    const results = await axe.run(screen.container);
+    expect(results.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+    expect(results.incomplete.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+  });
+});
