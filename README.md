@@ -134,7 +134,13 @@ source files automatically (build output + `"use client"` directive checks).
   is set on the trigger or a TooltipProvider (`delay`, default 600 ms). The content gets
   `role="tooltip"` and the trigger `aria-describedby` while it is open — still give icon-only triggers
   an `aria-label`: tooltips don't reach touch users)
-- [ ] Next up: Popover, Dialog, Menu (Phase C) · Tabs, Select, Accordion, Toast, Avatar, Separator, Progress (Phase D)
+- [x] Popover (Popover, PopoverTrigger, PopoverContent, PopoverTitle, PopoverDescription, PopoverClose;
+  a `role="dialog"` panel on the popover surface, named by PopoverTitle and described by
+  PopoverDescription. Compose the trigger and close: `<PopoverTrigger render={<Button variant="outline" />}>`.
+  Opens on click, Enter or Space; Escape, an outside click or PopoverClose closes it and focus returns
+  to the trigger. On open, focus moves to the first tabbable element inside (or the panel itself);
+  change that with `initialFocus` on PopoverContent. Controlled via `open` / `onOpenChange`)
+- [ ] Next up: Dialog, Menu (Phase C) · Tabs, Select, Accordion, Toast, Avatar, Separator, Progress (Phase D)
 
 Composition: when a part is rendered through another (`<Fieldset render={<RadioGroup className=…/>}>`),
 the outer part's own classes win over conflicting classes on the render element (Base UI merges the
@@ -142,7 +148,7 @@ render element's className first; tailwind-merge keeps the last). Lay out childr
 instead — e.g. a horizontal radio group puts the radios in `<div className="flex flex-row gap-6">`
 after the FieldsetLegend.
 
-Overlays (Tooltip, and Popover, Dialog, Menu as they land) portal into `document.body`:
+Overlays (Tooltip, Popover, and Dialog, Menu as they land) portal into `document.body`:
 
 - Put theme scopes (`.dark`, `data-primary`, `data-surface`) on `<html>` so overlays pick them up.
 - A scope on an inner element does not reach a portalled overlay — pass `container` (an element

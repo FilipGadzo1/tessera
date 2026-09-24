@@ -53,6 +53,20 @@ export {
   inputVariants,
 } from "./components/input";
 export { Label, type LabelProps } from "./components/label";
+export {
+  Popover,
+  PopoverClose,
+  type PopoverCloseProps,
+  PopoverContent,
+  type PopoverContentProps,
+  PopoverDescription,
+  type PopoverDescriptionProps,
+  type PopoverProps,
+  PopoverTitle,
+  type PopoverTitleProps,
+  PopoverTrigger,
+  type PopoverTriggerProps,
+} from "./components/popover";
 export { Radio, RadioGroup, type RadioGroupProps, type RadioProps } from "./components/radio-group";
 export { Switch, type SwitchProps } from "./components/switch";
 export { Textarea, type TextareaProps } from "./components/textarea";
