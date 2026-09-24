@@ -402,6 +402,7 @@ describe("Select", () => {
       await expect.element(combobox).toBeInTheDocument();
       await expect.element(combobox).toHaveAccessibleDescription("Used across the app.");
       await expect.element(combobox).toHaveAttribute("data-invalid");
+      await expect.element(combobox).toHaveAttribute("aria-invalid", "true");
       expect(getComputedStyle(combobox.element()).borderTopColor).toBe(
         getComputedStyle(screen.getByTestId("ref").element()).borderTopColor,
       );

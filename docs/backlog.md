@@ -48,7 +48,15 @@ None block current use.
   the announcement is unreliable; moving focus to Undo mitigates it.
 
 ### Phase D notes (from the Phase C review)
-- Toast: add a `--z-toast` token and extend the verify-consumer z-token needle to it.
+- Toast (Task 5, done): `--z-toast: 70` plus verify-consumer needles (token, `z-(--z-toast)`, the
+  `--toast-*` stacking utilities). Open: per-toast `className` / custom content (today a toast
+  renders title, description, action and close only; `data` is unused), a typed `ToastType` on
+  `add()` (it takes Base UI's `type?: string`), and a toast anchored to an element
+  (`Toast.Positioner` / `positionerProps`). Base UI keeps a high-priority toast `aria-hidden` but
+  focusable until keyboard focus enters the viewport; axe reports that as `aria-hidden-focus`
+  "needs review" (the Toast axe test allows exactly that entry).
+- Accordion panel ring room (Task 5): `overflow-clip-margin` is unsupported in Safari, so flush
+  focus rings there are clipped at the panel's sides (no layout cost either way).
 - Select (Task 4, done): reuses `popupSurface` / `popupMotion` / `menuItemBase`; the popup layer
   stays inline in SelectContent (Base UI's Select parts are their own components, so a shared
   `MenuPopupLayer` would not fit). `alignItemWithTrigger` defaults to `false` (drop-down below the

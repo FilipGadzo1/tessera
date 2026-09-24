@@ -1,6 +1,6 @@
 import axe from "axe-core";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cdp, userEvent } from "vitest/browser";
+import { cdp, page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { Button } from "../button";
 import {
@@ -42,6 +42,49 @@ function Faq({
       </AccordionItem>
     </Accordion>
   );
+}
+
+/** Tabs until `target` has focus; fails after 20 presses instead of looping forever. */
+async function tabTo(target: Element) {
+  for (let presses = 0; presses < 20; presses++) {
+    await userEvent.tab();
+    if (document.activeElement === target) return;
+  }
+  throw new Error(`Tab never reached ${target.outerHTML.slice(0, 80)}`);
+}
+
+type Rgb = [number, number, number];
+
+/**
+ * Screenshots `element` (real Chromium pixels) and returns the RGB colour at each viewport point.
+ */
+async function sampleScreenshot(element: Element, points: { x: number; y: number }[]) {
+  const base64 = await page.screenshot({ element, save: false });
+  const image = new Image();
+  image.src = `data:image/png;base64,${base64}`;
+  await image.decode();
+  const canvas = document.createElement("canvas");
+  canvas.width = image.naturalWidth;
+  canvas.height = image.naturalHeight;
+  const context = canvas.getContext("2d") as CanvasRenderingContext2D;
+  context.drawImage(image, 0, 0);
+  const origin = element.getBoundingClientRect();
+  const scale = image.naturalWidth / origin.width;
+  return points.map(({ x, y }) => {
+    const data = context.getImageData(
+      Math.floor((x - origin.left) * scale),
+      Math.floor((y - origin.top) * scale),
+      1,
+      1,
+    ).data;
+    return [data[0] ?? 0, data[1] ?? 0, data[2] ?? 0] as Rgb;
+  });
+}
+
+/** The largest per-channel difference between two sampled colours. */
+function colorDistance(a: Rgb | undefined, b: Rgb | undefined) {
+  if (!a || !b) throw new Error("missing pixel sample");
+  return Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]), Math.abs(a[2] - b[2]));
 }
 
 const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
@@ -345,14 +388,16 @@ describe("Accordion", () => {
   });
 
   /*
-   * The panel clips its content (`overflow-hidden`, needed for the height animation), so it keeps
-   * 4px of ring room on each side (`-mx-1 px-1`): a flush-left or flush-right focusable's
-   * 2px outline at a 2px offset stays fully visible, and the content still lines up with the
-   * trigger text.
+   * The panel clips its content for the height animation. Its clip is widened by 4px on each
+   * side (`overflow-clip-margin` + a `clip-path` inset that trims only top and bottom), so a
+   * flush-left or flush-right focusable's 2px outline at a 2px offset stays fully visible. Checked
+   * on real pixels: a screenshot of the region must show the ring colour at the outer edge of the
+   * outline, outside the panel's box.
    */
-  it("leaves room for the focus ring of flush-left and flush-right content", async () => {
+  it("keeps the focus ring of flush-left and flush-right content visible", async () => {
     const screen = await render(
-      <div className="p-8">
+      <div data-testid="frame" className="bg-background p-8">
+        <div data-testid="ring-swatch" className="mb-4 size-4 bg-ring" />
         <Accordion defaultValue={["email"]}>
           <AccordionItem value="email">
             <AccordionTrigger>Email</AccordionTrigger>
@@ -368,26 +413,103 @@ describe("Accordion", () => {
     );
     await animationsSettled();
     const trigger = screen.getByRole("button", { name: "Email" }).element();
-    const panel = panelOf(trigger) as HTMLElement;
-    const clip = panel.getBoundingClientRect();
-    const triggerBox = trigger.getBoundingClientRect();
-    for (const name of ["Left", "Right"]) {
+    const panelBox = (panelOf(trigger) as HTMLElement).getBoundingClientRect();
+    const frame = screen.getByTestId("frame");
+    const swatch = screen.getByTestId("ring-swatch").element().getBoundingClientRect();
+    for (const [name, side] of [
+      ["Left", "left"],
+      ["Right", "right"],
+    ] as const) {
       const button = screen.getByRole("button", { name }).element() as HTMLElement;
-      await userEvent.tab();
-      while (document.activeElement !== button) await userEvent.tab();
+      await tabTo(button);
       const style = getComputedStyle(button);
       expect(style.outlineStyle).toBe("solid");
       const reach = Number.parseFloat(style.outlineWidth) + Number.parseFloat(style.outlineOffset);
       expect(reach).toBe(4);
       const box = button.getBoundingClientRect();
-      expect(box.left - reach).toBeGreaterThanOrEqual(clip.left);
-      expect(box.right + reach).toBeLessThanOrEqual(clip.right);
+      // Flush with the panel edge, so the ring lies outside the panel's box.
+      expect(Math.round(box[side])).toBe(Math.round(panelBox[side]));
+      await nextFrame();
+      const pixels = await sampleScreenshot(frame.element(), [
+        // The outline's outermost pixel column, at the button's vertical middle.
+        {
+          x: side === "left" ? box.left - reach + 0.5 : box.right + reach - 0.5,
+          y: box.top + box.height / 2,
+        },
+        { x: swatch.left + swatch.width / 2, y: swatch.top + swatch.height / 2 },
+      ]);
+      expect(colorDistance(pixels[0], pixels[1])).toBeLessThan(12);
     }
     // Content still aligns with the trigger's edges.
+    const triggerBox = trigger.getBoundingClientRect();
     const left = screen.getByRole("button", { name: "Left" }).element().getBoundingClientRect();
     const right = screen.getByRole("button", { name: "Right" }).element().getBoundingClientRect();
     expect(Math.round(left.left)).toBe(Math.round(triggerBox.left));
     expect(Math.round(right.right)).toBe(Math.round(triggerBox.right));
+  });
+
+  /*
+   * The widened clip is horizontal only: mid-animation (here a panel pinned at 12px tall) nothing
+   * of the content may paint below the panel's bottom edge, or a collapsing panel would leave a
+   * 4px sliver under the trigger.
+   */
+  it("clips content exactly at the panel's bottom edge", async () => {
+    const screen = await render(
+      <div data-testid="frame" className="bg-background p-8">
+        <Accordion defaultValue={["email"]}>
+          <AccordionItem value="email" className="border-b-0">
+            <AccordionTrigger>Email</AccordionTrigger>
+            <AccordionPanel className="h-3">
+              <div className="h-20 bg-danger" />
+            </AccordionPanel>
+          </AccordionItem>
+        </Accordion>
+      </div>,
+    );
+    await animationsSettled();
+    const panel = panelOf(screen.getByRole("button", { name: "Email" }).element()) as HTMLElement;
+    const box = panel.getBoundingClientRect();
+    expect(box.height).toBe(12);
+    const x = box.left + box.width / 2;
+    const [inside, below, background] = await sampleScreenshot(
+      screen.getByTestId("frame").element(),
+      [
+        { x, y: box.bottom - 2 },
+        { x, y: box.bottom + 2 },
+        { x, y: box.bottom + 12 },
+      ],
+    );
+    expect(colorDistance(inside, background)).toBeGreaterThan(40);
+    expect(colorDistance(below, background)).toBeLessThan(12);
+  });
+
+  /*
+   * The ring room must not widen the panel: inside a scroll parent with no padding, an open
+   * panel may not add horizontal overflow (a negative-margin approach made it 8px wider).
+   */
+  it("adds no horizontal overflow inside a zero-padding scroll parent", async () => {
+    const screen = await render(
+      <div data-testid="scroller" className="w-80 overflow-auto">
+        <Accordion defaultValue={["email"]}>
+          <AccordionItem value="email">
+            <AccordionTrigger>Email</AccordionTrigger>
+            <AccordionPanel>
+              <div className="flex justify-between">
+                <Button variant="outline">Left</Button>
+                <Button variant="outline">Right</Button>
+              </div>
+            </AccordionPanel>
+          </AccordionItem>
+        </Accordion>
+      </div>,
+    );
+    await animationsSettled();
+    const scroller = screen.getByTestId("scroller").element();
+    const panel = panelOf(screen.getByRole("button", { name: "Email" }).element()) as HTMLElement;
+    expect(scroller.scrollWidth).toBe(scroller.clientWidth);
+    expect(panel.getBoundingClientRect().width).toBe(
+      (panel.closest('[data-slot="accordion-item"]') as HTMLElement).getBoundingClientRect().width,
+    );
   });
 
   it.each(["light", "dark"] as const)("has no axe violations in the %s theme", async (theme) => {

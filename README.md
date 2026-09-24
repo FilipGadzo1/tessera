@@ -205,8 +205,10 @@ source files automatically (build output + `"use client"` directive checks).
   `role="region"` named by its trigger and animates its height (instant under reduced motion).
   `hiddenUntilFound` on Accordion keeps closed panels in the DOM as `hidden="until-found"`, so the
   browser's find-in-page opens the matching section; `keepMounted` keeps them mounted but hidden.
-  A disabled item stays focusable (`aria-disabled`) but never opens. The panel keeps 4px of room on
-  each side so focus rings of flush-left/right content aren't clipped)
+  A disabled item stays focusable (`aria-disabled`) but never opens. The panel clips its content for
+  the animation but lets 4px paint past its sides (`overflow-clip-margin`), so focus rings of
+  flush-left/right content aren't clipped and the panel never widens its scroll parent. Browsers
+  without `overflow-clip-margin` (Safari, as of this writing) clip those rings at the sides)
 - [x] Select, SelectTrigger, SelectValue, SelectContent, SelectItem, SelectGroup, SelectGroupLabel,
   SelectSeparator (`<Select items={{ en: "English", de: "Deutsch" }} name="language">` around a
   SelectTrigger holding `<SelectValue placeholder="Pick a language" />`, and a SelectContent of
@@ -221,9 +223,24 @@ source files automatically (build output + `"use client"` directive checks).
   SelectValue also takes a render function `{(value) => …}`. The value is submitted through a
   hidden input named by `name`. `selectTriggerVariants({ size })` gives the trigger classes)
 
-Phase A (foundation), Phase B (forms) and Phase C (overlays) are complete.
+- [x] Toaster, useToast, createToaster (wrap the app in `<Toaster>`; anywhere inside,
+  `const toast = useToast()` then `toast.add({ title, description, type })`. `type` is `default`,
+  `success`, `warning`, `danger` or `info`: toned types get a leading icon and a left accent.
+  `actionProps: { children: "Undo", onClick }` adds an action Button; a toast with an action
+  defaults to `priority: "high"` (announced as an alert), pass `priority: "low"` to opt out.
+  `toast.close(id)`, `toast.update(id, …)`, and `toast.promise(promise, { loading, success, error })`
+  (a spinner, then success or `error` — styled as danger) come from Base UI's toast manager.
+  Toaster props: `position` (`bottom-right` default, `top-right`, `bottom-center`, `top-center`),
+  `limit` (default 3; older toasts hide), `timeout` (ms, default 5000; `0` or a per-toast
+  `timeout: 0` keeps it until closed), `container`, `className` (the viewport). Toasts live in a
+  polite `role="region"` named "Notifications"; hovering or focusing it pauses the timers and
+  spreads the stack, F6 jumps into it, Escape closes a focused toast, and a swipe towards the edge
+  dismisses one. Base UI hides each Close button from assistive tech until the stack is expanded or
+  the button is focused. Outside React: `const toaster = createToaster()` at module level,
+  `<Toaster toastManager={toaster}>`, then `toaster.add(…)` from anywhere — calls made before that
+  Toaster mounts are dropped. Toasts sit on `--z-toast` (70), above dialogs and tooltips)
 
-- [ ] Next up: Toast (Phase D)
+Phase A (foundation), Phase B (forms) and Phase C (overlays) are complete.
 
 Composition: when a part is rendered through another (`<Fieldset render={<RadioGroup className=…/>}>`),
 the outer part's own classes win over conflicting classes on the render element (Base UI merges the
@@ -231,13 +248,15 @@ render element's className first; tailwind-merge keeps the last). Lay out childr
 instead — e.g. a horizontal radio group puts the radios in `<div className="flex flex-row gap-6">`
 after the FieldsetLegend.
 
-Overlays (Tooltip, Popover, Dialog, AlertDialog, Menu, Select) portal into `document.body`:
+Overlays (Tooltip, Popover, Dialog, AlertDialog, Menu, Select) and the Toaster portal into
+`document.body`:
 
 - Put theme scopes (`.dark`, `data-primary`, `data-surface`) on `<html>` so overlays pick them up.
 - A scope on an inner element does not reach a portalled overlay — pass `container` (an element
   inside that scope) to the `*Content` part: `<TooltipContent container={scopeRef}>`.
 - Add `isolation: isolate` to your app root so app z-indexes can't rise above overlays. Overlays
-  use `--z-overlay` (50) and `--z-tooltip` (60), overridable in an unlayered `:root`.
+  use `--z-overlay` (50) and `--z-tooltip` (60), toasts `--z-toast` (70), overridable in an
+  unlayered `:root`.
 - Triggers carry no styles: compose them with `render={<Button … />}`. Anchored `*Content` parts
   (Tooltip, Popover, Menu, Select) take the positioning props `side`, `align`, `sideOffset` (default 6),
   `alignOffset`, `collisionPadding` (MenuSubContent defaults to `sideOffset` 0, `alignOffset` -5 so

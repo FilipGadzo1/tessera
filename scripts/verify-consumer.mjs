@@ -235,7 +235,13 @@ const needleGroups = [
   },
   {
     reason: "overlay z-index tokens (theme.css) or z-(--z-*) utilities from dist/ are missing",
-    needles: ["--z-overlay:", "--z-tooltip:", /z-index:\s*var\(--z-tooltip\)/],
+    needles: [
+      "--z-overlay:",
+      "--z-tooltip:",
+      "--z-toast:",
+      /z-index:\s*var\(--z-tooltip\)/,
+      /z-index:\s*var\(--z-toast\)/,
+    ],
   },
   {
     // Tailwind escapes the parentheses of `z-(--z-overlay)` in the selector: `.z-\(--z-overlay\)`.
@@ -257,6 +263,11 @@ const needleGroups = [
     // Accordion's panel height reads Base UI's --accordion-panel-height; the chevron uses in-*.
     reason: "Accordion panel height var utility or the in-data-panel-open variant missing",
     needles: [/height:\s*var\(--accordion-panel-height\)/, /\.in-data-panel-open\\:rotate-180/],
+  },
+  {
+    // Toast stacking reads Base UI's --toast-* vars through arbitrary properties in dist/.
+    reason: "Toast stacking utilities (--toast-offset-y / --toast-index arbitrary values) missing",
+    needles: [/var\(--toast-offset-y\)/, /z-index:\s*calc\(1000 - var\(--toast-index\)\)/],
   },
 ];
 for (const { reason, needles } of needleGroups) {

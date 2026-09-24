@@ -8,9 +8,11 @@
 @layer base {
   :root {
     --radius: 0.375rem;
-    /* Overlay layers (not theme-scoped): popover, menu, dialog → overlay; tooltip above them. */
+    /* Overlay layers (not theme-scoped): popover, menu, dialog → overlay; tooltip above them;
+       toasts above everything, so a notification is never hidden behind an open dialog. */
     --z-overlay: 50;
     --z-tooltip: 60;
+    --z-toast: 70;
   }
 
   /* ---------- Light ---------- */
