@@ -129,13 +129,28 @@ source files automatically (build output + `"use client"` directive checks).
 - [x] Fieldset, FieldsetLegend (groups radios or Fields; a disabled Fieldset disables its RadioGroup;
   to mute the label text as well, set `disabled` on the surrounding `Field` — FieldLabel dims its text
   color, and the control keeps its own 50% opacity)
-- [ ] Next up: Tooltip, Popover, Dialog, Menu (Phase C) · Tabs, Select, Accordion, Toast, Avatar, Separator, Progress (Phase D)
+- [x] Tooltip (TooltipProvider, Tooltip, TooltipTrigger, TooltipContent; inverted neutral bubble, no arrow.
+  Compose the trigger: `<TooltipTrigger render={<Button size="icon" aria-label="Add" />}>`. Hover delay
+  is set on the trigger or a TooltipProvider (`delay`, default 600 ms). The content gets
+  `role="tooltip"` and the trigger `aria-describedby` while it is open — still give icon-only triggers
+  an `aria-label`: tooltips don't reach touch users)
+- [ ] Next up: Popover, Dialog, Menu (Phase C) · Tabs, Select, Accordion, Toast, Avatar, Separator, Progress (Phase D)
 
 Composition: when a part is rendered through another (`<Fieldset render={<RadioGroup className=…/>}>`),
 the outer part's own classes win over conflicting classes on the render element (Base UI merges the
 render element's className first; tailwind-merge keeps the last). Lay out children with a wrapper
 instead — e.g. a horizontal radio group puts the radios in `<div className="flex flex-row gap-6">`
 after the FieldsetLegend.
+
+Overlays (Tooltip, and Popover, Dialog, Menu as they land) portal into `document.body`:
+
+- Put theme scopes (`.dark`, `data-primary`, `data-surface`) on `<html>` so overlays pick them up.
+- A scope on an inner element does not reach a portalled overlay — pass `container` (an element
+  inside that scope) to the `*Content` part: `<TooltipContent container={scopeRef}>`.
+- Add `isolation: isolate` to your app root so app z-indexes can't rise above overlays. Overlays
+  use `--z-overlay` (50) and `--z-tooltip` (60), overridable in an unlayered `:root`.
+- Triggers carry no styles: compose them with `render={<Button … />}`. `*Content` takes the
+  positioning props `side`, `align`, `sideOffset` (default 6), `alignOffset`, `collisionPadding`.
 
 Forms: there is no Tessera `Form` yet — use Base UI's `Form` (`@base-ui/react/form`) around named
 Fields for submit-time validation. The Storybook story **Tessera/Examples/Sign-up form**

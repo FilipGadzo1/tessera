@@ -56,5 +56,15 @@ export { Label, type LabelProps } from "./components/label";
 export { Radio, RadioGroup, type RadioGroupProps, type RadioProps } from "./components/radio-group";
 export { Switch, type SwitchProps } from "./components/switch";
 export { Textarea, type TextareaProps } from "./components/textarea";
+export {
+  Tooltip,
+  TooltipContent,
+  type TooltipContentProps,
+  type TooltipProps,
+  TooltipProvider,
+  type TooltipProviderProps,
+  TooltipTrigger,
+  type TooltipTriggerProps,
+} from "./components/tooltip";
 export { cn } from "./lib/cn";
 export { type ToneColor, toneColors } from "./lib/tone";

@@ -23,6 +23,7 @@ export default defineConfig({
       "@base-ui/react/tooltip",
       "@base-ui/react/popover",
       "@base-ui/react/dialog",
+      "@base-ui/react/alert-dialog",
       "@base-ui/react/menu",
     ],
   },

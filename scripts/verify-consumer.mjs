@@ -93,12 +93,29 @@ for (const file of [
 ]) {
   if (!existsSync(join(dist, file))) fail(`missing dist/${file}`);
 }
+// Every emitted declaration file, to tell internal runtime-only modules from public ones.
+const distDeclarations = readdirSync(dist, { recursive: true })
+  .map((file) => String(file).replaceAll("\\", "/"))
+  .filter((file) => file.endsWith(".d.ts"))
+  .map((file) => readFileSync(join(dist, file), "utf8"));
+/** True when some emitted .d.ts imports the module at src-relative `base` (by its file name). */
+const inTypeGraph = (base) => {
+  const name = base.split("/").pop();
+  const specifier = new RegExp(`from\\s*["'][^"']*/${name}(\\.js)?["']`);
+  return distDeclarations.some((code) => specifier.test(code));
+};
+
 const pairs = [];
 for (const file of sources) {
   const base = file.replace(/\.tsx?$/, "");
   const code = readFileSync(join(src, file), "utf8");
-  if (!existsSync(join(dist, `${base}.d.ts`))) fail(`missing dist/${base}.d.ts (from src/${file})`);
   const js = `${base}.js`;
+  // tsdown emits declarations only for modules in the public type graph. An internal module used
+  // only at runtime (e.g. lib/overlay-classes: class strings) gets its .js but no .d.ts — fine as
+  // long as no emitted declaration imports it.
+  const internalRuntimeOnly = existsSync(join(dist, js)) && !inTypeGraph(base);
+  if (!existsSync(join(dist, `${base}.d.ts`)) && !internalRuntimeOnly)
+    fail(`missing dist/${base}.d.ts (from src/${file})`);
   if (existsSync(join(dist, js))) pairs.push({ file, js, code });
   // In unbundle mode rolldown inlines pure re-export barrels (other than the entry) into
   // their importers, and type-only modules have no runtime code, so only their .d.ts is
@@ -212,6 +229,10 @@ const needleGroups = [
       ".bg-field",
       ".border-field-border",
     ],
+  },
+  {
+    reason: "overlay z-index tokens (theme.css) or z-(--z-*) utilities from dist/ are missing",
+    needles: ["--z-overlay:", "--z-tooltip:", /z-index:\s*var\(--z-tooltip\)/],
   },
 ];
 for (const { reason, needles } of needleGroups) {
