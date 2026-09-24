@@ -32,6 +32,28 @@ None block current use.
   passes `finalFocus` (consider a documented pattern or a `DialogTrigger`-less helper).
 - Tooltip: no `TooltipArrow` part (the spec chose no arrow); add one if a design needs it.
 
+### Phase C final review — KEEP DEFERRED
+- Tooltip: `TooltipContent` stores the caller's `ref` in an insertion effect, but the stable popup
+  callback ref is not re-run if the caller swaps `ref` while the tooltip is open, so the new ref gets
+  nothing until the next mount (fix: merged refs that re-attach on change).
+- Dialog: the close button is last in the tab order (visually top-right) and scrolls away with the
+  content in a long dialog (documented in the README). Consider a sticky-header option later.
+- Dialog / AlertDialog: `aria-modal` and `data-size` are set after `{...props}` on purpose, so they
+  are not overridable.
+- `verify-consumer`: `inTypeGraph` matches declaration files by filename and ignores side-effect
+  imports. Stricter: walk the import graph from `dist/index.d.ts`.
+- Dialog: the backdrop is not customizable (no `backdropClassName`), and Base UI's nested-dialog
+  styling hook (`data-nested-dialog-open`) is unused.
+- Project card example: the deleted state's `role="status"` mounts together with its content, so
+  the announcement is unreliable; moving focus to Undo mitigates it.
+
+### Phase D notes (from the Phase C review)
+- Toast: add a `--z-toast` token and extend the verify-consumer z-token needle to it.
+- Select: reuse `popupSurface` / `menuItemBase`; consider exporting the internal popup layer
+  (Portal → Positioner → Popup, as `MenuPopupLayer`) for reuse.
+- Select: decide `alignItemWithTrigger` (Base UI default, overlaps the trigger) vs the overlays'
+  `sideOffset = 6`.
+
 ## Theming
 - No `.light` scope: a region cannot switch back to light inside `.dark` (documented limit).
 

@@ -16,7 +16,7 @@ Each overlay ships three kinds of part:
   - `className`, `children` and all other Popup props go to the Popup.
   - Tessera's default is `sideOffset = 6` for all anchored overlays.
 - **Small styled text and layout parts**, such as Title, Description, Header, Footer, Separator, Shortcut and GroupLabel.
-  - Parts that render plain elements with no Base UI context are server-safe.
+  - Parts that render plain elements use no Base UI context. They still live in the `"use client"` modules, so from a React Server Component they render fine as client references.
 
 | Component | Exports |
 |---|---|
@@ -28,8 +28,10 @@ Each overlay ships three kinds of part:
 
 ## 2. Layering, portals and theming
 
-- **Z-index tokens** are added to `theme.css` in `:root` (not layered with colours) and exposed as `@theme` z values: `--z-overlay: 50` (popover, menu, dialog backdrop and popup) and `--z-tooltip: 60`. Positioners and dialog layers use `z-(--z-overlay)` / `z-(--z-tooltip)`.
+- **Z-index tokens** are added to `theme.css` in `:root` (not layered with colours): `--z-overlay: 50` (popover, menu, dialog backdrop and popup) and `--z-tooltip: 60`. There are no `@theme` z entries: positioners and dialog layers read the variables directly with `z-(--z-overlay)` / `z-(--z-tooltip)`.
   - Docs recommend putting `isolation: isolate` on the app root, as Base UI's own docs do.
+- **Overlays nested in a modal Dialog** (final review; `dialog/dialog-nested.test.tsx`). A Menu, Popover or Tooltip opened from inside a Dialog is portalled after the dialog, so at the same `--z-overlay` it paints above it (later portal wins; the tooltip is above anyway). It is not hidden: the nested popup is never under an `aria-hidden` / `data-base-ui-inert` node (Base UI leaves nested floating elements out of the modal's outside-hiding). No z bump was needed. The test checks each case opens, is interactive, is not under an `aria-hidden` / inert node, is topmost at its centre (`elementFromPoint`), closes first on Escape while the dialog stays open, and passes axe in light and dark.
+  - **Fix (Tooltip):** Base UI's tooltip is not in the floating tree that lets the innermost overlay take Escape, and every overlay listens for Escape on `document`. With the pointer resting on a trigger inside the dialog, one Escape closed the tooltip *and* the dialog (the dialog's listener was registered first). Tessera's `Tooltip` now catches Escape on `window` in the capture phase while it is open and closes only itself (via Base UI's `actionsRef.close()`; a caller's `actionsRef` is reused). A keydown on the tooltip's own trigger is left to Base UI, which already stops it from reaching the outer overlay.
 - **Portals render into `document.body`.**
   - Theme scopes (`.dark`, `data-primary`, `data-surface`) placed on `<html>` apply to overlays automatically.
   - A scope on an inner element does **not** reach a portalled overlay. For that case, every `*Content` accepts `container`: pass an element inside the scope. This is documented and tested.
@@ -43,7 +45,9 @@ Each overlay ships three kinds of part:
 - **Surface** (Popover, Menu): `rounded-lg border border-border bg-popover text-popover-foreground shadow-lg outline-hidden`.
   - Popover adds `w-72 p-4 flex flex-col gap-2`.
   - Menu adds `min-w-(--anchor-width) max-h-(--available-height) overflow-y-auto p-1`.
-- **Tooltip:** `rounded-md bg-neutral px-2 py-1 text-xs text-neutral-foreground shadow-md max-w-xs text-balance`.
+  - MenuSubContent overrides the minimum width with `min-w-32` (final review): a submenu's anchor is its trigger item, as wide as the parent menu, so `--anchor-width` would force every short submenu to the parent's width.
+- **Tooltip:** `rounded-md border border-transparent bg-neutral px-2 py-1 text-xs text-neutral-foreground shadow-md max-w-xs text-balance`.
+  - The transparent 1px border (final review) is invisible normally but painted in a system colour in forced-colors mode, where the background and shadow are dropped.
   - It is inverted: dark on a light page, light on a dark page. There is no arrow.
 - **Dialog:**
   - Backdrop: `fixed inset-0 z-(--z-overlay) bg-black/50`.
@@ -68,7 +72,7 @@ Each overlay ships three kinds of part:
   - SubTrigger: an item with a trailing chevron-right, plus `data-popup-open:bg-accent`.
   - Separator: `-mx-1 my-1 h-px bg-border`.
   - GroupLabel: `px-2 py-1.5 text-xs font-medium text-muted-foreground`.
-  - Shortcut: `ml-auto text-xs tracking-widest text-muted-foreground`, server-safe `<span>`.
+  - Shortcut: `ml-auto text-xs tracking-widest text-muted-foreground`, a plain `<span>` (no Base UI context). It always renders `aria-hidden="true"`, set after `{...props}` so a caller cannot un-hide it by accident: the hint stays out of the item's accessible name ("Rename…", not "Rename…F2"). When the app handles the key, put `aria-keyshortcuts` on the MenuItem (final review).
 - **Submenu alignment:** `MenuSubContent` defaults to `alignOffset = -5`. At -5 the submenu's first item lines up with its trigger, which accounts for the popup's 1px border plus `p-1`. A test measures this.
 - **data-slot on every part:**
   - Tooltip: `tooltip-content`.

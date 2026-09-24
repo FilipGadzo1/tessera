@@ -145,7 +145,9 @@ source files automatically (build output + `"use client"` directive checks).
   takes `size` (`sm` / `md` default / `lg`) and `showCloseButton` (default true: a ghost icon Button
   named "Close" in the corner). Focus moves to the first tabbable element and is trapped; page scroll
   is locked; Escape, a backdrop click or DialogClose closes it and focus returns to the trigger. Long
-  content scrolls inside the dialog. `dialogVariants({ size })` gives the popup classes)
+  content scrolls inside the dialog. The close button comes last in the tab order (it sits top-right
+  visually) and scrolls away with the content in a long dialog; Escape always closes.
+  `dialogVariants({ size })` gives the popup classes)
 - [x] AlertDialog (AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader,
   AlertDialogFooter, AlertDialogTitle, AlertDialogDescription, AlertDialogClose; `role="alertdialog"`
   styled like Dialog, with no close button. A backdrop click does not close it — Escape does. Put the
@@ -158,7 +160,9 @@ source files automatically (build output + `"use client"` directive checks).
   highlight (disabled items stay reachable but can't be activated), Enter activates an item and
   closes the menu, Escape closes it and focus returns to the trigger. `<MenuItem variant="danger">`
   marks a destructive action; checkbox and radio items stay open on toggle. A submenu opens on hover,
-  click or ArrowRight and closes with ArrowLeft. `<MenuShortcut>⌘E</MenuShortcut>` is a plain hint)
+  click or ArrowRight and closes with ArrowLeft. `<MenuShortcut>⌘E</MenuShortcut>` is a visual hint,
+  `aria-hidden` so it stays out of the item's name; when the app really handles the key, add
+  `aria-keyshortcuts` to the MenuItem)
 
 Phase A (foundation), Phase B (forms) and Phase C (overlays) are complete.
 
@@ -181,6 +185,8 @@ Overlays (Tooltip, Popover, Dialog, AlertDialog, Menu) portal into `document.bod
   (Tooltip, Popover, Menu) take the positioning props `side`, `align`, `sideOffset` (default 6),
   `alignOffset`, `collisionPadding` (MenuSubContent defaults to `sideOffset` 0, `alignOffset` -5 so
   its first item lines up with its trigger); dialogs are centred and take none.
+- Menus, Popovers and Tooltips work inside a modal Dialog: they stack above it, stay interactive,
+  and Escape closes the innermost overlay first.
 - A dialog opened from a Menu item has no trigger of its own: control it with `open` /
   `onOpenChange` and pass `finalFocus` (a ref, or a function returning an element) to its
   `*Content` so focus returns somewhere sensible — usually the Menu trigger.
