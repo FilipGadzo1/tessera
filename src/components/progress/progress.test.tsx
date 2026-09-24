@@ -1,11 +1,33 @@
 import axe from "axe-core";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { cdp } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { Progress, ProgressLabel, ProgressValue } from "./progress";
 
 const indicatorOf = (bar: Element) =>
   bar.querySelector('[data-slot="progress-indicator"]') as HTMLElement;
 const trackOf = (bar: Element) => bar.querySelector('[data-slot="progress-track"]') as HTMLElement;
+
+/** Resolves a CSS colour keyword (e.g. a system colour) to its computed rgb() string. */
+function resolveColor(color: string) {
+  const probe = document.createElement("div");
+  probe.style.color = color;
+  document.body.append(probe);
+  const value = getComputedStyle(probe).color;
+  probe.remove();
+  return value;
+}
+
+/**
+ * Real media emulation through the Chrome DevTools Protocol (vitest/browser `cdp()`), so the
+ * `motion-reduce:` / `forced-colors:` variants actually match. Reset after every test.
+ */
+const emulateMedia = (features: { name: string; value: string }[]) =>
+  cdp().send("Emulation.setEmulatedMedia", { features });
+
+afterEach(async () => {
+  await emulateMedia([]);
+});
 
 describe("Progress", () => {
   it("renders a determinate progressbar with value, min and max", async () => {
@@ -144,5 +166,46 @@ describe("Progress", () => {
     const results = await axe.run(screen.container);
     expect(results.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
     expect(results.incomplete.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+  });
+
+  it("shows the indeterminate bar full-width and dimmed, not frozen at a value, under reduced motion", async () => {
+    await emulateMedia([{ name: "prefers-reduced-motion", value: "reduce" }]);
+    expect(matchMedia("(prefers-reduced-motion: reduce)").matches).toBe(true);
+    const screen = await render(<Progress value={null} aria-label="Loading" />);
+    const bar = screen.getByRole("progressbar", { name: "Loading" }).element();
+    const indicator = indicatorOf(bar);
+    const style = getComputedStyle(indicator);
+    expect(style.animationName).toBe("none");
+    expect(indicator.getBoundingClientRect().width).toBe(
+      trackOf(bar).getBoundingClientRect().width,
+    );
+    expect(style.opacity).toBe("0.5");
+  });
+
+  it("keeps a determinate bar at full opacity and its value width under reduced motion", async () => {
+    await emulateMedia([{ name: "prefers-reduced-motion", value: "reduce" }]);
+    const screen = await render(<Progress value={40} aria-label="Upload" />);
+    const bar = screen.getByRole("progressbar", { name: "Upload" }).element();
+    const indicator = indicatorOf(bar);
+    expect(getComputedStyle(indicator).opacity).toBe("1");
+    expect(
+      indicator.getBoundingClientRect().width / trackOf(bar).getBoundingClientRect().width,
+    ).toBeCloseTo(0.4, 2);
+  });
+
+  it("keeps the track and indicator visible in forced colors", async () => {
+    await emulateMedia([{ name: "forced-colors", value: "active" }]);
+    expect(matchMedia("(forced-colors: active)").matches).toBe(true);
+    const screen = await render(<Progress value={40} aria-label="Upload" />);
+    const bar = screen.getByRole("progressbar", { name: "Upload" }).element();
+    const canvas = resolveColor("Canvas");
+    const indicator = getComputedStyle(indicatorOf(bar));
+    expect(indicator.backgroundColor).toBe(resolveColor("Highlight"));
+    expect(indicator.backgroundColor).not.toBe(canvas);
+    const track = getComputedStyle(trackOf(bar));
+    expect(track.outlineStyle).toBe("solid");
+    expect(track.outlineWidth).toBe("1px");
+    expect(track.outlineColor).toBe(resolveColor("CanvasText"));
+    expect(track.outlineColor).not.toBe(canvas);
   });
 });

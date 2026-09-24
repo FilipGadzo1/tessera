@@ -37,6 +37,7 @@ const tabsTabCva = cva("", {
       ],
       segmented: [
         "inline-flex h-full flex-1 cursor-pointer items-center justify-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground not-data-disabled:hover:text-foreground data-active:bg-background data-active:text-foreground data-active:shadow-xs data-disabled:cursor-not-allowed data-disabled:opacity-50",
+        "forced-colors:data-active:bg-[Highlight] forced-colors:data-active:text-[HighlightText]",
         tabFocus,
         "data-[orientation=vertical]:h-8 data-[orientation=vertical]:flex-none data-[orientation=vertical]:justify-start",
       ],
@@ -62,7 +63,7 @@ export function tabsTabVariants(options: TabsVariantProps & { className?: string
 
 /** The underline variant's sliding indicator (Base UI sets the `--active-tab-*` vars). */
 export const tabsIndicatorClasses = cn(
-  "absolute bottom-0 left-(--active-tab-left) h-0.5 w-(--active-tab-width) rounded-full bg-primary transition-[left,width] duration-200 ease-out motion-reduce:transition-none",
+  "absolute bottom-0 left-(--active-tab-left) h-0.5 w-(--active-tab-width) rounded-full bg-primary transition-[left,width] duration-200 ease-out motion-reduce:transition-none forced-colors:bg-[Highlight]",
   "data-[orientation=vertical]:top-(--active-tab-top) data-[orientation=vertical]:bottom-auto data-[orientation=vertical]:left-0 data-[orientation=vertical]:h-(--active-tab-height) data-[orientation=vertical]:w-0.5 data-[orientation=vertical]:transition-[top,height] data-[orientation=vertical]:motion-reduce:transition-none",
 );
 

@@ -343,6 +343,68 @@ describe("Tabs", () => {
     },
   );
 
+  /*
+   * Forced colors (Windows High Contrast) replaces author backgrounds with Canvas, so the underline
+   * indicator and the raised segmented tab would vanish. Emulated for real via CDP.
+   */
+  describe("in forced colors", () => {
+    const emulate = (value: "active" | "") =>
+      cdp().send("Emulation.setEmulatedMedia", {
+        features: [{ name: "forced-colors", value }],
+      });
+    const system = (color: string) => {
+      const probe = document.createElement("div");
+      probe.style.color = color;
+      document.body.append(probe);
+      const value = getComputedStyle(probe).color;
+      probe.remove();
+      return value;
+    };
+    afterEach(async () => {
+      await emulate("");
+    });
+
+    it.each(["horizontal", "vertical"] as const)(
+      "paints the %s underline indicator in Highlight",
+      async (orientation) => {
+        await emulate("active");
+        expect(matchMedia("(forced-colors: active)").matches).toBe(true);
+        const screen = await render(<Account orientation={orientation} />);
+        const list = screen.getByRole("tablist").element();
+        await expect.poll(() => indicatorOf(list)).not.toBeNull();
+        const bg = getComputedStyle(indicatorOf(list) as HTMLElement).backgroundColor;
+        expect(bg).toBe(system("Highlight"));
+        expect(bg).not.toBe(system("Canvas"));
+      },
+    );
+
+    it("marks the active segmented tab with Highlight and keeps the focus ring", async () => {
+      await emulate("active");
+      const screen = await render(<Account variant="segmented" />);
+      const profile = screen.getByRole("tab", { name: "Profile" }).element();
+      const billing = screen.getByRole("tab", { name: "Billing" }).element();
+      const highlight = system("Highlight");
+      let active = getComputedStyle(profile);
+      expect(active.backgroundColor).toBe(highlight);
+      expect(active.backgroundColor).not.toBe(system("Canvas"));
+      expect(active.color).toBe(system("HighlightText"));
+      expect(getComputedStyle(billing).backgroundColor).not.toBe(highlight);
+      // The focus ring still shows, 2px outside the Highlight fill. (No "none before focus" check:
+      // Tailwind's `outline-hidden` deliberately leaves a transparent 2px outline in forced colors,
+      // which Chromium forces to CanvasText — see docs/backlog.md.)
+      await userEvent.tab();
+      expect(document.activeElement).toBe(profile);
+      active = getComputedStyle(profile);
+      expect(active.outlineStyle).toBe("solid");
+      expect(active.outlineWidth).toBe("2px");
+      expect(active.outlineOffset).toBe("2px");
+      // Moving selection moves the Highlight.
+      await userEvent.keyboard("{ArrowRight}{ArrowRight}{Enter}");
+      await expect.poll(() => getComputedStyle(billing).backgroundColor).toBe(highlight);
+      expect(getComputedStyle(profile).backgroundColor).not.toBe(highlight);
+    });
+  });
+
   it("merges className strings and accepts className state functions", async () => {
     const screen = await render(
       <Tabs defaultValue="a" className="max-w-md">

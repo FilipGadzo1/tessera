@@ -257,7 +257,20 @@ const needleGroups = [
   {
     // Tabs' indicator reads Base UI's --active-tab-* vars; vertical styles use data-[orientation=…].
     reason: "Tabs indicator var utilities or data-[orientation=vertical] variants missing",
-    needles: [/left:\s*var\(--active-tab-left\)/, /top:\s*var\(--active-tab-top\)/],
+    // The last needle is the exact selector emitted for `data-[orientation=vertical]:flex-col`.
+    needles: [
+      /left:\s*var\(--active-tab-left\)/,
+      /top:\s*var\(--active-tab-top\)/,
+      '.data-\\[orientation\\=vertical\\]\\:flex-col[data-orientation="vertical"]',
+    ],
+  },
+  {
+    // Progress and Tabs keep their indicator / active tab visible in forced colors (Highlight).
+    reason: "forced-colors variants (Progress / Tabs Highlight affordances) missing",
+    needles: [
+      ".forced-colors\\:bg-\\[Highlight\\]",
+      ".forced-colors\\:data-active\\:bg-\\[Highlight\\][data-active]",
+    ],
   },
   {
     // Accordion's panel height reads Base UI's --accordion-panel-height; the chevron uses in-*.

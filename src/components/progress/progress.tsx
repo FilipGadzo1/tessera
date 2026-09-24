@@ -49,14 +49,17 @@ export function Progress({
       )}
       <BaseProgress.Track
         data-slot="progress-track"
-        className={cn("relative w-full overflow-hidden rounded-full bg-muted", trackSizes[size])}
+        className={cn(
+          "relative w-full overflow-hidden rounded-full bg-muted forced-colors:outline forced-colors:outline-1 forced-colors:outline-[CanvasText]",
+          trackSizes[size],
+        )}
       >
         <BaseProgress.Indicator
           data-slot="progress-indicator"
           className={cn(
-            "h-full rounded-full bg-tone transition-[width] duration-300 ease-out motion-reduce:transition-none",
+            "h-full rounded-full bg-tone transition-[width] duration-300 ease-out motion-reduce:transition-none forced-colors:bg-[Highlight]",
             indeterminate &&
-              "w-1/3 animate-[tsr-indeterminate_1.2s_ease-in-out_infinite] motion-reduce:animate-none",
+              "w-1/3 animate-[tsr-indeterminate_1.2s_ease-in-out_infinite] motion-reduce:w-full motion-reduce:animate-none motion-reduce:opacity-50",
           )}
         />
       </BaseProgress.Track>
