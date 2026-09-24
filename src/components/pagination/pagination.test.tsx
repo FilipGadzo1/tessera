@@ -119,6 +119,22 @@ describe("Pagination", () => {
     expect(el.classList).toContain("cursor-pointer");
   });
 
+  it("keeps the component's data-slot even when the render element carries its own", async () => {
+    const screen = await render(
+      <Pagination>
+        <PaginationContent>
+          <PaginationItem>
+            <PaginationLink render={<button type="button" data-slot="my-router-link" />}>
+              4
+            </PaginationLink>
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>,
+    );
+    const el = screen.getByRole("button", { name: "4" }).element();
+    expect(el.getAttribute("data-slot")).toBe("pagination-link");
+  });
+
   it("passes through props and merges className on PaginationLink", async () => {
     const screen = await render(
       <Pagination>

@@ -79,16 +79,16 @@ export function PaginationLink({
     ...props,
     ...(isActive && { "aria-current": "page" as const }),
     ...(disabled ? { "aria-disabled": "true" as const, "data-disabled": "" } : { href }),
-    "data-slot": dataSlot,
   };
   if (render) {
     return cloneElement(render, {
       ...shared,
       ...render.props,
+      "data-slot": dataSlot,
       className: cn(classes, render.props.className),
     });
   }
-  return <a {...shared} className={classes} />;
+  return <a {...shared} data-slot={dataSlot} className={classes} />;
 }
 
 export type PaginationPreviousProps = Omit<PaginationLinkProps, "size" | "isActive">;
