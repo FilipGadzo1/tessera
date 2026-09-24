@@ -43,6 +43,8 @@ describe("Tooltip", () => {
   it("opens on hover with role=tooltip, and the trigger is described by it", async () => {
     await render(<Basic />);
     const trigger = page.getByRole("button", { name: "Save" });
+    // Move the pointer off in case an earlier test left it parked where this trigger mounts.
+    await userEvent.unhover(trigger);
     await expect.element(trigger).not.toHaveAttribute("aria-describedby");
     const popup = await openByHover(trigger);
     expect(popup.textContent).toBe("Save your changes");
@@ -260,6 +262,10 @@ describe("Tooltip", () => {
       </div>,
     );
     const trigger = page.getByRole("button", { name: "Save" });
+    // The previous test leaves the pointer parked over its trigger, at the same spot as this one:
+    // Chromium hovers the new trigger under it and opens the tooltip. Move the pointer off first.
+    await userEvent.unhover(trigger);
+    await expect.element(tooltip()).not.toBeInTheDocument();
     await expect.element(trigger).toHaveAttribute("aria-describedby", "a b");
     const popup = await openByHover(trigger);
     await expect.element(trigger).toHaveAttribute("aria-describedby", `a b ${popup.id}`);
