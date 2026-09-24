@@ -98,10 +98,13 @@ const distDeclarations = readdirSync(dist, { recursive: true })
   .map((file) => String(file).replaceAll("\\", "/"))
   .filter((file) => file.endsWith(".d.ts"))
   .map((file) => readFileSync(join(dist, file), "utf8"));
-/** True when some emitted .d.ts imports the module at src-relative `base` (by its file name). */
+/**
+ * True when some emitted .d.ts references the module at src-relative `base` (by its file name):
+ * `from "./x.js"`, or an inline type reference `import("./x.js")` / `import("./x")`.
+ */
 const inTypeGraph = (base) => {
   const name = base.split("/").pop();
-  const specifier = new RegExp(`from\\s*["'][^"']*/${name}(\\.js)?["']`);
+  const specifier = new RegExp(`(?:from\\s*|import\\(\\s*)["'][^"']*/${name}(\\.js)?["']`);
   return distDeclarations.some((code) => specifier.test(code));
 };
 

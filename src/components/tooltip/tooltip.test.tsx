@@ -3,6 +3,7 @@ import { useRef } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
+import { waitForPopupSettled } from "../../../test/overlay";
 import { Button, buttonVariants } from "../button";
 import {
   Tooltip,
@@ -96,7 +97,7 @@ describe("Tooltip", () => {
     const trigger = page.getByRole("button", { name: "Save" }).element();
     const popup = await openByHover();
     // Let the scale transition settle so the box is at its final size.
-    await new Promise((resolve) => setTimeout(resolve, 250));
+    await waitForPopupSettled(popup);
     const gap = trigger.getBoundingClientRect().top - popup.getBoundingClientRect().bottom;
     expect(Math.round(gap)).toBe(6);
   });
@@ -179,6 +180,67 @@ describe("Tooltip", () => {
     await expect.element(button).toHaveAccessibleDescription("Add item");
   });
 
+  it("merges an aria-describedby on the render element with the tooltip's id", async () => {
+    await render(
+      <div>
+        <span id="save-hint">Ctrl+S</span>
+        <Tooltip>
+          <TooltipTrigger
+            delay={0}
+            closeDelay={0}
+            render={<Button variant="outline" aria-describedby="save-hint" />}
+          >
+            Save
+          </TooltipTrigger>
+          <TooltipContent>Save your changes</TooltipContent>
+        </Tooltip>
+      </div>,
+    );
+    const trigger = page.getByRole("button", { name: "Save" });
+    await expect.element(trigger).toHaveAttribute("aria-describedby", "save-hint");
+    const popup = await openByHover(trigger);
+    await expect.element(trigger).toHaveAttribute("aria-describedby", `save-hint ${popup.id}`);
+    await expect.element(trigger).toHaveAccessibleDescription("Ctrl+S Save your changes");
+    await userEvent.unhover(trigger);
+    await expect.element(tooltip()).not.toBeInTheDocument();
+    await expect.element(trigger).toHaveAttribute("aria-describedby", "save-hint");
+  });
+
+  it("merges aria-describedby given on both the trigger and the render element", async () => {
+    await render(
+      <div>
+        <span id="a">A</span>
+        <span id="b">B</span>
+        <Tooltip>
+          <TooltipTrigger
+            delay={0}
+            closeDelay={0}
+            aria-describedby="a"
+            render={<Button aria-describedby="b" />}
+          >
+            Save
+          </TooltipTrigger>
+          <TooltipContent>Tip</TooltipContent>
+        </Tooltip>
+      </div>,
+    );
+    const trigger = page.getByRole("button", { name: "Save" });
+    await expect.element(trigger).toHaveAttribute("aria-describedby", "b a");
+    const popup = await openByHover(trigger);
+    await expect.element(trigger).toHaveAttribute("aria-describedby", `b a ${popup.id}`);
+  });
+
+  it("forwards ref to the popup element (and null on close)", async () => {
+    const received: (HTMLDivElement | null)[] = [];
+    await render(<Basic ref={(element) => void received.push(element)} />);
+    const trigger = page.getByRole("button", { name: "Save" });
+    const popup = await openByHover(trigger);
+    expect(received.at(-1)).toBe(popup);
+    await userEvent.unhover(trigger);
+    await expect.element(tooltip()).not.toBeInTheDocument();
+    expect(received.at(-1)).toBeNull();
+  });
+
   it("groups tooltips under a TooltipProvider", async () => {
     await render(
       <TooltipProvider delay={0} closeDelay={0}>
@@ -206,9 +268,9 @@ describe("Tooltip", () => {
           <Basic />
         </div>,
       );
-      await openByHover();
+      const popup = await openByHover();
       // Let the opacity transition settle so contrast is measured at rest.
-      await new Promise((resolve) => setTimeout(resolve, 250));
+      await waitForPopupSettled(popup);
       // The popup is portalled, so audit the whole body. `region` (page content inside landmarks)
       // is a page-level rule about the host app, not about this component: off here.
       const results = await axe.run(document.body, { rules: { region: { enabled: false } } });

@@ -1,7 +1,19 @@
 "use client";
 
 import { Tooltip as BaseTooltip } from "@base-ui/react/tooltip";
-import { createContext, type Ref, useCallback, useContext, useId, useRef, useState } from "react";
+import {
+  cloneElement,
+  createContext,
+  isValidElement,
+  type Ref,
+  useCallback,
+  useContext,
+  useId,
+  useInsertionEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { cn } from "../../lib/cn";
 import { mergeClassName } from "../../lib/merge-class-name";
 import { popupMotion } from "../../lib/overlay-classes";
@@ -32,8 +44,9 @@ export type TooltipProps = BaseTooltip.Root.Props;
 /** Groups a trigger and its content. Renders no element. */
 export function Tooltip(props: TooltipProps) {
   const [describedBy, setDescribedBy] = useState<string | undefined>(undefined);
+  const context = useMemo(() => ({ describedBy, setDescribedBy }), [describedBy]);
   return (
-    <TooltipDescriptionContext.Provider value={{ describedBy, setDescribedBy }}>
+    <TooltipDescriptionContext.Provider value={context}>
       <BaseTooltip.Root {...props} />
     </TooltipDescriptionContext.Provider>
   );
@@ -45,14 +58,24 @@ export type TooltipTriggerProps = BaseTooltip.Trigger.Props;
  * The element the tooltip describes. Renders a `<button>` with no classes; compose a styled
  * trigger with `render={<Button … />}`. Set `delay` (default 600 ms) and `closeDelay` here.
  */
-export function TooltipTrigger(props: TooltipTriggerProps) {
+export function TooltipTrigger({ render, ...props }: TooltipTriggerProps) {
   const describedBy = useContext(TooltipDescriptionContext)?.describedBy;
+  // An element `render` (e.g. `<Button aria-describedby="hint" />`) wins over the trigger's own
+  // props when Base UI merges them, so read its aria-describedby too and write the merged list back.
+  const renderElement = isValidElement<{ "aria-describedby"?: string }>(render) ? render : null;
   const ariaDescribedBy =
-    [props["aria-describedby"], describedBy].filter(Boolean).join(" ") || undefined;
+    [renderElement?.props["aria-describedby"], props["aria-describedby"], describedBy]
+      .filter(Boolean)
+      .join(" ") || undefined;
   return (
     <BaseTooltip.Trigger
       {...props}
       {...(ariaDescribedBy !== undefined && { "aria-describedby": ariaDescribedBy })}
+      render={
+        renderElement && ariaDescribedBy !== undefined
+          ? cloneElement(renderElement, { "aria-describedby": ariaDescribedBy })
+          : render
+      }
     />
   );
 }
@@ -92,9 +115,13 @@ export function TooltipContent({
   const generatedId = useId();
   const id = props.id ?? generatedId;
   const setDescribedBy = useContext(TooltipDescriptionContext)?.setDescribedBy;
-  // Keep the callback stable across renders (an inline caller ref must not re-trigger it).
+  // Keep the callback stable across renders (an inline caller ref must not re-trigger it). The
+  // latest caller ref is stored in an insertion effect, not during render: insertion effects run
+  // before refs attach, so a popup mounting in the same commit still reaches the newest ref.
   const callerRef = useRef(ref);
-  callerRef.current = ref;
+  useInsertionEffect(() => {
+    callerRef.current = ref;
+  });
   const popupRef = useCallback(
     (element: HTMLDivElement | null) => {
       setDescribedBy?.(element ? element.id : undefined);
