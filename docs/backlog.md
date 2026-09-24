@@ -1,6 +1,7 @@
 # Tessera backlog
 
-Open follow-ups from the foundation, Phase A (2026-09-23), Phase B and Phase C (2026-09-24) reviews.
+Open follow-ups from the foundation, Phase A (2026-09-23), Phase B, Phase C and Phase D (2026-09-24)
+reviews.
 None block current use.
 
 ## Components
@@ -79,6 +80,11 @@ None block current use.
   prevents default), so apps that bail out on `if (e.defaultPrevented) return` ignore it. The
   registry is global: any open Tessera tooltip anywhere defers every Tessera overlay's Escape close,
   not just overlays that contain it. The recorded keydown is cleared a macrotask after dispatch.
+- Toast: while the stack is collapsed, Base UI keeps each Close button `aria-hidden` yet focusable,
+  so axe reports `aria-hidden-focus` "needs review" on a resting toast. The Toast and Settings
+  example axe tests audit the expanded stack (hover), where it is clean.
+- Settings example (Task 6): the Billing tab's "Change plan" Button has no handler; the Card width
+  is set with a class; the profile Inputs are uncontrolled and are not part of the saved summary.
 
 ## Theming
 - No `.light` scope: a region cannot switch back to light inside `.dark` (documented limit).
@@ -100,5 +106,5 @@ None block current use.
 Follow the phases in the design-system spec §6
 (`docs/superpowers/specs/2026-09-23-tessera-design-system-v2.md`): Phase B forms (Label, Field, Input,
 Textarea, Checkbox, Switch, RadioGroup — use the `field*` / `switch-track` tokens), Phase C overlays,
-Phase D navigation and feedback. Phases B and C are done; next is Phase D (Tabs, Select, Accordion,
-Toast, Avatar, Separator, Progress).
+Phase D navigation and feedback. Phases B, C and D are done. Phase E candidates: Combobox, Slider,
+NumberField, DatePicker, Table, Breadcrumb, Pagination, Skeleton, Sheet/Drawer.

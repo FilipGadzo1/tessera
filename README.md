@@ -243,7 +243,8 @@ source files automatically (build output + `"use client"` directive checks).
   `<Toaster toastManager={toaster}>`, then `toaster.add(…)` from anywhere — calls made before that
   Toaster mounts are dropped. Toasts sit on `--z-toast` (70), above dialogs and tooltips)
 
-Phase A (foundation), Phase B (forms) and Phase C (overlays) are complete.
+Phase A (foundation), Phase B (forms), Phase C (overlays) and Phase D (navigation and feedback) are
+complete.
 
 Composition: when a part is rendered through another (`<Fieldset render={<RadioGroup className=…/>}>`),
 the outer part's own classes win over conflicting classes on the render element (Base UI merges the
@@ -278,6 +279,14 @@ Forms: there is no Tessera `Form` yet — use Base UI's `Form` (`@base-ui/react/
 Fields for submit-time validation. The Storybook story **Tessera/Examples/Sign-up form**
 (`src/docs/examples/sign-up-form.tsx`) composes every form control this way.
 
+The Storybook story **Tessera/Examples/Settings** (`src/docs/examples/settings-page.tsx`) composes
+the Phase D components: Tabs (Profile / Notifications / Billing) with an Avatar, Fields and a
+language Select; an Accordion of notification channels holding Switches; Progress bars and
+Separators for billing; and a "Save changes" Button that shows a success toast from `useToast()`.
+
 ## Roadmap
 
-Components above · visual regression · React Compiler on output · publish to npm (`@tessera/ui` is free).
+Next, Phase E candidates: Combobox, Slider, NumberField, DatePicker, Table, Breadcrumb, Pagination,
+Skeleton, Sheet/Drawer.
+
+Later: visual regression · React Compiler on output · publish to npm (`@tessera/ui` is free).

@@ -56,6 +56,13 @@ set it there). A theme scope on an inner element does not reach a portalled over
 (50) and `--z-tooltip` (60); give your app root `isolation: isolate` so its own z-indexes stay
 below them.
 
+## Navigation and feedback
+
+Tabs, Accordion, Select, Toast (`Toaster` + `useToast()`), Avatar, Progress and Separator. Wrap the
+app in `Toaster` once; any component inside calls `useToast().add({ title, type })`. See
+**Examples / Settings** for all of them on one page. Toasts sit on `--z-toast` (70), above
+overlays and tooltips.
+
 ## Stack
 
 React 19 · Base UI · Tailwind CSS v4 · cva + tailwind-merge · tsdown · Vitest browser mode ·
