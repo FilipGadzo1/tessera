@@ -73,7 +73,7 @@ Each overlay ships three kinds of part:
   - Tooltip: `tooltip-content`.
   - Popover: `popover-content`, `popover-title`, `popover-description`.
   - Dialog: `dialog-backdrop`, `dialog-content`, `dialog-header`, `dialog-footer`, `dialog-title`, `dialog-description`, `dialog-close-button`.
-  - Menu: `menu-content`, `menu-item`, `menu-separator`, `menu-group-label`, `menu-checkbox-item`, `menu-radio-item`, `menu-sub-trigger`, `menu-shortcut`.
+  - Menu: `menu-content`, `menu-sub-content`, `menu-group`, `menu-radio-group`, `menu-item-indicator`, `menu-item`, `menu-separator`, `menu-group-label`, `menu-checkbox-item`, `menu-radio-item`, `menu-sub-trigger`, `menu-shortcut`.
   - AlertDialog: the Dialog slots with the `alert-dialog-` prefix.
 
 ## 4. Behaviour and tests (every overlay)
@@ -89,7 +89,7 @@ Each overlay ships three kinds of part:
   - Clicking the backdrop closes a Dialog but **not** an AlertDialog.
   - Background scroll is locked while open (`document.documentElement` or body overflow is hidden).
 - **Menu:**
-  - The arrow keys move the highlight, and a disabled item is skipped.
+  - The arrow keys move the highlight. Disabled items stay reachable by arrow key but can't be activated. This is Base UI 1.8's deliberate behaviour, and the WAI-ARIA menu guidance recommends it.
   - Enter activates an item (its `onClick` fires and the menu closes).
   - A checkbox item toggles and stays open.
   - A radio item selects.
@@ -98,3 +98,5 @@ Each overlay ships three kinds of part:
 - **Theming:** with `.dark` on `<html>`, the popup background computes to the dark `--popover`. A `container` inside a `data-primary="lapis"` scope makes the popup inherit lapis. Tests must clean up `<html>` classes and attributes afterwards.
 - **Axe:** run in the open state in light and dark mode (dark via `.dark` on `<html>` during the test), asserting that both violations and incomplete are empty.
 - **Portal:** the popup element is a descendant of `document.body` and not of the render container, unless `container` is passed.
+
+- **Submenu alignment:** `MenuSubContent` defaults to `alignOffset = -5`. At -5 the submenu's first item lines up with its trigger, which accounts for the popup's 1px border plus `p-1`. A test measures this.
