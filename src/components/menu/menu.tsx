@@ -1,0 +1,326 @@
+"use client";
+
+import { Menu as BaseMenu } from "@base-ui/react/menu";
+import type { ComponentProps, ReactNode } from "react";
+import { cn } from "../../lib/cn";
+import { mergeClassName } from "../../lib/merge-class-name";
+import { menuItemBase, popupMotion, popupSurface } from "../../lib/overlay-classes";
+
+const menuContentBase = "min-w-(--anchor-width) max-h-(--available-height) overflow-y-auto p-1";
+const menuItemVariantClasses = {
+  default: "",
+  danger:
+    "text-danger data-highlighted:bg-danger-soft data-highlighted:text-danger-soft-foreground",
+} as const;
+const menuIndicatorItem = "pl-8";
+const menuItemIndicatorBase = "absolute left-2 flex size-4 items-center justify-center";
+const menuSubTriggerBase = "data-popup-open:bg-accent";
+const menuSubTriggerChevron = "ml-auto";
+const menuSeparatorBase = "-mx-1 my-1 h-px bg-border";
+const menuGroupLabelBase = "px-2 py-1.5 text-xs font-medium text-muted-foreground";
+const menuShortcutBase = "ml-auto text-xs tracking-widest text-muted-foreground";
+
+export type MenuProps = BaseMenu.Root.Props;
+
+/**
+ * Groups a trigger and its content. Renders no element. Modal by default: outside pointer
+ * interaction is blocked while open. Controlled via `open` / `onOpenChange`.
+ */
+export function Menu(props: MenuProps) {
+  return <BaseMenu.Root {...props} />;
+}
+
+export type MenuTriggerProps = BaseMenu.Trigger.Props;
+
+/**
+ * Opens the menu on click, Enter, Space or ArrowDown. Renders a `<button>` with no classes;
+ * compose a styled trigger with `render={<Button variant="outline" />}`.
+ */
+export function MenuTrigger(props: MenuTriggerProps) {
+  return <BaseMenu.Trigger {...props} />;
+}
+
+type PositionerProps = BaseMenu.Positioner.Props;
+
+interface MenuPositioningProps {
+  /** Side of the anchor to place the menu on (flips on collision). */
+  side?: PositionerProps["side"];
+  /** Alignment against the anchor. */
+  align?: PositionerProps["align"];
+  /** Distance from the anchor in px. */
+  sideOffset?: PositionerProps["sideOffset"];
+  /** Offset along the alignment axis in px. */
+  alignOffset?: PositionerProps["alignOffset"];
+  /** Space kept between the menu and the viewport edges when colliding. */
+  collisionPadding?: PositionerProps["collisionPadding"];
+  /**
+   * Element to portal into (default `document.body`). Pass an element inside a nested theme scope
+   * (`data-primary`, `data-surface`, `.dark` on an inner element) so the menu inherits it.
+   */
+  container?: BaseMenu.Portal.Props["container"];
+}
+
+export interface MenuContentProps extends BaseMenu.Popup.Props, MenuPositioningProps {}
+
+interface MenuPopupLayerProps extends MenuContentProps {
+  slot: string;
+}
+
+function MenuPopupLayer({
+  slot,
+  side,
+  align,
+  sideOffset,
+  alignOffset,
+  collisionPadding,
+  container,
+  className,
+  ...props
+}: MenuPopupLayerProps) {
+  return (
+    <BaseMenu.Portal container={container}>
+      <BaseMenu.Positioner
+        side={side}
+        align={align}
+        sideOffset={sideOffset}
+        alignOffset={alignOffset}
+        collisionPadding={collisionPadding}
+        className="z-(--z-overlay)"
+      >
+        <BaseMenu.Popup
+          {...props}
+          data-slot={slot}
+          className={mergeClassName(cn(popupMotion, popupSurface, menuContentBase), className)}
+        />
+      </BaseMenu.Positioner>
+    </BaseMenu.Portal>
+  );
+}
+
+/**
+ * The menu panel (`role="menu"`): portalled, positioned below the trigger (`side` "bottom",
+ * `align` "start", `sideOffset` 6 by default), on the popover surface, scrolling when taller than
+ * the viewport. The arrow keys move the highlight, typing jumps to a matching item, Escape closes
+ * and focus returns to the trigger.
+ */
+export function MenuContent({
+  side = "bottom",
+  align = "start",
+  sideOffset = 6,
+  ...props
+}: MenuContentProps) {
+  return (
+    <MenuPopupLayer
+      slot="menu-content"
+      side={side}
+      align={align}
+      sideOffset={sideOffset}
+      {...props}
+    />
+  );
+}
+
+export interface MenuItemProps extends BaseMenu.Item.Props {
+  /** `danger` paints a destructive action in the danger colour. @default "default" */
+  variant?: keyof typeof menuItemVariantClasses;
+}
+
+/**
+ * An action (`role="menuitem"`). Clicking it or pressing Enter fires `onClick` and closes the menu
+ * (keep it open with `closeOnClick={false}`). A `disabled` item stays reachable by the arrow keys,
+ * as the WAI-ARIA menu pattern recommends, but cannot be activated.
+ */
+export function MenuItem({ variant = "default", className, ...props }: MenuItemProps) {
+  return (
+    <BaseMenu.Item
+      {...props}
+      data-slot="menu-item"
+      className={mergeClassName(cn(menuItemBase, menuItemVariantClasses[variant]), className)}
+    />
+  );
+}
+
+export type MenuCheckboxItemProps = BaseMenu.CheckboxItem.Props;
+
+/**
+ * A toggle (`role="menuitemcheckbox"`, `aria-checked`) with a check mark in the leading slot.
+ * The menu stays open on toggle. Controlled via `checked` / `onCheckedChange`.
+ */
+export function MenuCheckboxItem({ className, children, ...props }: MenuCheckboxItemProps) {
+  return (
+    <BaseMenu.CheckboxItem
+      {...props}
+      data-slot="menu-checkbox-item"
+      className={mergeClassName(cn(menuItemBase, menuIndicatorItem), className)}
+    >
+      <BaseMenu.CheckboxItemIndicator
+        data-slot="menu-item-indicator"
+        className={menuItemIndicatorBase}
+      >
+        <CheckIcon />
+      </BaseMenu.CheckboxItemIndicator>
+      {children}
+    </BaseMenu.CheckboxItem>
+  );
+}
+
+export type MenuRadioGroupProps = BaseMenu.RadioGroup.Props;
+
+/** Groups radio items; one can be selected. Controlled via `value` / `onValueChange`. */
+export function MenuRadioGroup(props: MenuRadioGroupProps) {
+  return <BaseMenu.RadioGroup {...props} data-slot="menu-radio-group" />;
+}
+
+export type MenuRadioItemProps = BaseMenu.RadioItem.Props;
+
+/**
+ * One choice in a `MenuRadioGroup` (`role="menuitemradio"`, `aria-checked`) with a dot in the
+ * leading slot. The menu stays open on select.
+ */
+export function MenuRadioItem({ className, children, ...props }: MenuRadioItemProps) {
+  return (
+    <BaseMenu.RadioItem
+      {...props}
+      data-slot="menu-radio-item"
+      className={mergeClassName(cn(menuItemBase, menuIndicatorItem), className)}
+    >
+      <BaseMenu.RadioItemIndicator
+        data-slot="menu-item-indicator"
+        className={menuItemIndicatorBase}
+      >
+        <DotIcon />
+      </BaseMenu.RadioItemIndicator>
+      {children}
+    </BaseMenu.RadioItem>
+  );
+}
+
+export type MenuGroupProps = BaseMenu.Group.Props;
+
+/** Groups related items (`role="group"`); name it with a `MenuGroupLabel`. */
+export function MenuGroup(props: MenuGroupProps) {
+  return <BaseMenu.Group {...props} data-slot="menu-group" />;
+}
+
+export type MenuGroupLabelProps = BaseMenu.GroupLabel.Props;
+
+/** A small muted heading that labels its `MenuGroup` (via `aria-labelledby`). */
+export function MenuGroupLabel({ className, ...props }: MenuGroupLabelProps) {
+  return (
+    <BaseMenu.GroupLabel
+      {...props}
+      data-slot="menu-group-label"
+      className={mergeClassName(menuGroupLabelBase, className)}
+    />
+  );
+}
+
+export type MenuSeparatorProps = BaseMenu.Separator.Props;
+
+/** A hairline between groups of items (`role="separator"`). */
+export function MenuSeparator({ className, ...props }: MenuSeparatorProps) {
+  return (
+    <BaseMenu.Separator
+      {...props}
+      data-slot="menu-separator"
+      className={mergeClassName(menuSeparatorBase, className)}
+    />
+  );
+}
+
+export type MenuSubProps = BaseMenu.SubmenuRoot.Props;
+
+/** Groups a `MenuSubTrigger` and its `MenuSubContent`. Renders no element. */
+export function MenuSub(props: MenuSubProps) {
+  return <BaseMenu.SubmenuRoot {...props} />;
+}
+
+export type MenuSubTriggerProps = BaseMenu.SubmenuTrigger.Props;
+
+/**
+ * An item that opens a submenu (`aria-haspopup="menu"`), with a trailing chevron. Opens on hover,
+ * click, Enter, Space or ArrowRight; ArrowLeft in the submenu closes it. Stays painted while its
+ * submenu is open.
+ */
+export function MenuSubTrigger({ className, children, ...props }: MenuSubTriggerProps) {
+  return (
+    <BaseMenu.SubmenuTrigger
+      {...props}
+      data-slot="menu-sub-trigger"
+      className={mergeClassName(cn(menuItemBase, menuSubTriggerBase), className)}
+    >
+      {children}
+      <ChevronRightIcon />
+    </BaseMenu.SubmenuTrigger>
+  );
+}
+
+export type MenuSubContentProps = MenuContentProps;
+
+/**
+ * The submenu panel (`role="menu"`), styled like `MenuContent`. Placed beside its trigger
+ * (Base UI's submenu defaults: `side` "inline-end", `align` "start"), with `sideOffset` 0 and
+ * `alignOffset` -5 so its first item lines up with the trigger item (1px border + 4px padding).
+ */
+export function MenuSubContent({
+  sideOffset = 0,
+  alignOffset = -5,
+  ...props
+}: MenuSubContentProps) {
+  return (
+    <MenuPopupLayer
+      slot="menu-sub-content"
+      sideOffset={sideOffset}
+      alignOffset={alignOffset}
+      {...props}
+    />
+  );
+}
+
+export type MenuShortcutProps = ComponentProps<"span">;
+
+/** A keyboard hint at the end of an item (plain `<span>`, no behaviour): `<MenuShortcut>⌘E</MenuShortcut>`. */
+export function MenuShortcut({ className, ...props }: MenuShortcutProps) {
+  return <span {...props} data-slot="menu-shortcut" className={cn(menuShortcutBase, className)} />;
+}
+
+function Icon({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      {children}
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <Icon>
+      <path d="M20 6 9 17l-5-5" />
+    </Icon>
+  );
+}
+
+function DotIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor">
+      <circle cx="12" cy="12" r="4" />
+    </svg>
+  );
+}
+
+function ChevronRightIcon() {
+  return (
+    <Icon className={menuSubTriggerChevron}>
+      <path d="m9 18 6-6-6-6" />
+    </Icon>
+  );
+}
