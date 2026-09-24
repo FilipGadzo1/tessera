@@ -74,17 +74,46 @@ None block current use.
   must wrap its `onOpenChange` with `useLayeredEscape`, and a raw Base UI overlay around a Tessera
   Tooltip still closes on the same Escape (with the tooltip's trigger focused, too — the tooltip now
   lets the event propagate). A controlled Tooltip whose owner ignores `onOpenChange(false)` keeps
-  outer overlays from closing on Escape while it stays open. The outer overlay's own Escape close
+  outer overlays from closing on Escape while it stays open. A caller that calls `eventDetails.cancel()` in the Tooltip's
+  `onOpenChange` keeps it registered as open (final review M2: the registry follows the final
+  state). The outer overlay's own Escape close
   still stops propagation (Base UI default), so app listeners don't see that second Escape.
   The first Escape reaches app listeners with `defaultPrevented === true` (the tooltip's own close
   prevents default), so apps that bail out on `if (e.defaultPrevented) return` ignore it. The
   registry is global: any open Tessera tooltip anywhere defers every Tessera overlay's Escape close,
   not just overlays that contain it. The recorded keydown is cleared a macrotask after dispatch.
 - Toast: while the stack is collapsed, Base UI keeps each Close button `aria-hidden` yet focusable,
-  so axe reports `aria-hidden-focus` "needs review" on a resting toast. The Toast and Settings
-  example axe tests audit the expanded stack (hover), where it is clean.
+  so axe reports `aria-hidden-focus` "needs review" on a resting toast. By design: keyboard focus
+  entering the viewport expands the stack and lifts `aria-hidden` before a Close is reached (final
+  review M8 pins both — a Tab test and an axe test of the resting stack that allows exactly those
+  entries). Tessera adds no `tabIndex` / `inert` override. The main Toast and Settings example axe
+  tests audit the expanded stack (hover), where it is clean.
 - Settings example (Task 6): the Billing tab's "Change plan" Button has no handler; the Card width
   is set with a class; the profile Inputs are uncontrolled and are not part of the saved summary.
+
+### Phase D final review — KEEP DEFERRED
+- Test gaps from Task 0: AlertDialog layered Escape with the tooltip opened by keyboard focus (only
+  Dialog and Popover cover the focus-trigger case); Popover and Menu have no "Escape with no tooltip
+  open closes at once" baseline; non-Escape close reasons forwarded to `onOpenChange` are not
+  asserted at component level; no controlled-`open` root tests for the layered-Escape wrappers.
+- Tabs: vertical orientation lacks detail assertions (segmented list `h-auto` / `self-start`,
+  underline tab `px-3`, panel `min-w-0`) and the stories do not expose `orientation` / `variant`
+  as args.
+- Accordion: no test for `headingLevel` 5 (only the default and one other level), and the TOP
+  edge of a panel's first focus ring is still clipped (`overflow-clip-margin` only relieves the
+  sides), in addition to the Safari side-ring clipping noted above.
+- Select: the trigger's read-only styling is derived from the Input classes by a string replace;
+  it is guarded only by the Input-parity test (a shared token would be sturdier).
+- Overlays: positioners (Tooltip, Popover, Menu, Select) are not caller-stylable (no
+  `positionerClassName`), e.g. to change the z-index of one instance.
+- Toast: the Positions story ignores its `position` arg (it renders fixed buttons per position);
+  the Close button's `aria-label="Close"` is hardcoded (no i18n prop); Base UI pauses toast timers
+  while the window is blurred (the timer tests assert `document.hasFocus()` so a headed run with
+  another window in front fails fast instead of timing out).
+- Forced colors: Tailwind's `outline-hidden` leaves a transparent 2px outline in forced colors,
+  which Chromium paints as CanvasText, so every Tessera control using the toggle focus pattern shows
+  a permanent outline there and the focus ring is not distinguishable by outline alone (found while
+  adding the Progress/Tabs forced-colors affordances; library-wide, not changed in Phase D).
 
 ## Theming
 - No `.light` scope: a region cannot switch back to light inside `.dark` (documented limit).

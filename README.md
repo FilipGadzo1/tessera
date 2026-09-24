@@ -180,14 +180,17 @@ source files automatically (build output + `"use client"` directive checks).
   Give AvatarImage an `alt`. AvatarGroup overlaps avatars with a background ring and is
   server-safe; pass it an `aria-label` / `role="group"` if the group needs a name)
 - [x] Progress, ProgressLabel, ProgressValue (a `role="progressbar"` bar; `value={null}` is
-  indeterminate — a sweeping third of the bar (static under reduced motion). `min`, `max`, `format`
+  indeterminate — a sweeping third of the bar; under reduced motion a full-width, half-opacity bar
+  that can't be read as a value. In forced colors the bar is painted in `Highlight` inside an
+  outlined track. `min`, `max`, `format`
   (`Intl.NumberFormatOptions`), `color` (tone, default primary), `size` `sm` / `md` / `lg`.
   Children render in a row above the bar: `<Progress value={64}><ProgressLabel>Storage</ProgressLabel><ProgressValue /></Progress>`
   — the label names the bar; without one, pass `aria-label`)
 - [x] Tabs, TabsList, TabsTab, TabsPanel (`<Tabs defaultValue="profile">` around a TabsList of
   TabsTabs and one TabsPanel per `value`. `variant` on TabsList: `underline` (default — text tabs on
   a rule with a primary indicator that slides to the active tab, instant under reduced motion) or
-  `segmented` (a muted track with the active tab raised). TabsTab reads the variant from its TabsList
+  `segmented` (a muted track with the active tab raised). In forced colors the indicator and the
+  active segmented tab use `Highlight`. TabsTab reads the variant from its TabsList
   through context. Arrow keys move focus (looping; `loopFocus={false}` stops at the ends), Home/End
   jump; activation is manual (Enter/Space) unless TabsList has `activateOnFocus`. A disabled tab stays
   focusable (`aria-disabled`) but can never be activated. `orientation="vertical"` on Tabs puts the
@@ -222,7 +225,6 @@ source files automatically (build output + `"use client"` directive checks).
   disabled item can't be chosen. `multiple` keeps the list open and joins labels with commas;
   SelectValue also takes a render function `{(value) => …}`. The value is submitted through a
   hidden input named by `name`. `selectTriggerVariants({ size })` gives the trigger classes)
-
 - [x] Toaster, useToast, createToaster (wrap the app in `<Toaster>`; anywhere inside,
   `const toast = useToast()` then `toast.add({ title, description, type })`. `type` is `default`,
   `success`, `warning`, `danger` or `info`: toned types get a leading icon and a left accent.
