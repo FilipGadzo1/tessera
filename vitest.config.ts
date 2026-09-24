@@ -28,6 +28,7 @@ export default defineConfig({
       "@base-ui/react/avatar",
       "@base-ui/react/progress",
       "@base-ui/react/tabs",
+      "@base-ui/react/accordion",
       // Icons used by the docs examples (src/docs/examples).
       "lucide-react",
     ],

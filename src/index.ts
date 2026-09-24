@@ -1,4 +1,14 @@
 export {
+  Accordion,
+  AccordionItem,
+  type AccordionItemProps,
+  AccordionPanel,
+  type AccordionPanelProps,
+  type AccordionProps,
+  AccordionTrigger,
+  type AccordionTriggerProps,
+} from "./components/accordion";
+export {
   AlertDialog,
   AlertDialogClose,
   type AlertDialogCloseProps,

@@ -253,6 +253,11 @@ const needleGroups = [
     reason: "Tabs indicator var utilities or data-[orientation=vertical] variants missing",
     needles: [/left:\s*var\(--active-tab-left\)/, /top:\s*var\(--active-tab-top\)/],
   },
+  {
+    // Accordion's panel height reads Base UI's --accordion-panel-height; the chevron uses in-*.
+    reason: "Accordion panel height var utility or the in-data-panel-open variant missing",
+    needles: [/height:\s*var\(--accordion-panel-height\)/, /\.in-data-panel-open\\:rotate-180/],
+  },
 ];
 for (const { reason, needles } of needleGroups) {
   for (const needle of needles) {

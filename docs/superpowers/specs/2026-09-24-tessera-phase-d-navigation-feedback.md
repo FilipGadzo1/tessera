@@ -55,6 +55,12 @@ Keep whichever approach passes all the tests: the tooltip is closed first, with 
 - Trigger: `flex w-full cursor-pointer items-center justify-between gap-4 py-4 text-left text-sm font-medium not-data-disabled:hover:underline underline-offset-4`, plus the toggle focus pattern.
 - Chevron: `size-4 shrink-0 text-muted-foreground transition-transform duration-200 in-data-panel-open:rotate-180` (verify that the variant generates; if not, use `group-data-panel-open:`).
 - Panel: `h-(--accordion-panel-height) overflow-hidden text-sm transition-[height] duration-200 ease-out data-starting-style:h-0 data-ending-style:h-0 motion-reduce:transition-none`, with an inner `pb-4` wrapper.
+- *Amended in Task 3 (implementation details the spec left open):*
+  - Chevron: `in-data-panel-open:rotate-180` generates and works as specified (the Trigger carries Base UI's `data-panel-open`; Tailwind's `in-*` matches any ancestor), so no `group-` fallback. The chevron string gains `motion-reduce:transition-none`: without it the chevron still turned with a transition under `prefers-reduced-motion: reduce`, unlike every other Tessera motion. Verified with real reduced-motion emulation via CDP (panel height and chevron both report `transition-property: none`; removing either reset fails the test).
+  - Panel: the specified string needs no extra reset — its `data-*` variants only set `h-0`, never a transition, so the base `motion-reduce:transition-none` wins.
+  - Trigger gains `data-disabled:cursor-not-allowed data-disabled:opacity-50` (design-system-v2 §4 cursor rule: disabled gets `cursor-not-allowed`). Base UI 1.8 keeps a disabled item's trigger focusable (`focusableWhenDisabled: true`, `aria-disabled="true"`); it never opens.
+  - Parts and slots: `accordion`, `accordion-item`, `accordion-header` (the `h1`–`h6` from `headingLevel`, rendered through `Accordion.Header`'s `render`), `accordion-trigger`, `accordion-chevron` (an inline `aria-hidden` SVG), `accordion-panel`, and `accordion-panel-content` (the inner `pb-4` wrapper). `AccordionTrigger`'s other props (and `className`) go to the button, not the heading. The root adds no classes.
+  - Base UI sets the trigger's `aria-controls` only while the panel is open; the panel is a `role="region"` labelled by the trigger.
 
 **Select**
 - Trigger: the text-field look from `textFieldBase` plus `inline-flex items-center justify-between gap-2 cursor-pointer text-left`, sizes sm/md/lg matching Input, and a chevron-down `Select.Icon` (`text-muted-foreground`).

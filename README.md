@@ -196,10 +196,20 @@ source files automatically (build output + `"use client"` directive checks).
   `data-[orientation=vertical]:` (e.g. the list's `gap-1`, the panel's `pt-0`) and outrank a plain
   className, so in vertical tabs prefix your overrides too: `className="data-[orientation=vertical]:gap-2"`.
   `tabsListVariants` / `tabsTabVariants` give the classes)
+- [x] Accordion, AccordionItem, AccordionTrigger, AccordionPanel (`<Accordion defaultValue={["shipping"]}>`
+  around AccordionItems, each holding an AccordionTrigger and an AccordionPanel; the value is an
+  array of item `value`s. One item open at a time unless `multiple`. AccordionTrigger renders the
+  heading and the button together and adds a chevron that turns when open; the heading is an `h3`
+  unless you pass `headingLevel` (1–6) to fit the page outline, and other props go to the button.
+  Enter/Space toggle it; there is no roving focus (Tab moves between triggers). The panel is a
+  `role="region"` named by its trigger and animates its height (instant under reduced motion).
+  `hiddenUntilFound` on Accordion keeps closed panels in the DOM as `hidden="until-found"`, so the
+  browser's find-in-page opens the matching section; `keepMounted` keeps them mounted but hidden.
+  A disabled item stays focusable (`aria-disabled`) but never opens)
 
 Phase A (foundation), Phase B (forms) and Phase C (overlays) are complete.
 
-- [ ] Next up: Select, Accordion, Toast (Phase D)
+- [ ] Next up: Select, Toast (Phase D)
 
 Composition: when a part is rendered through another (`<Fieldset render={<RadioGroup className=…/>}>`),
 the outer part's own classes win over conflicting classes on the render element (Base UI merges the
