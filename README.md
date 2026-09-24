@@ -184,10 +184,19 @@ source files automatically (build output + `"use client"` directive checks).
   (`Intl.NumberFormatOptions`), `color` (tone, default primary), `size` `sm` / `md` / `lg`.
   Children render in a row above the bar: `<Progress value={64}><ProgressLabel>Storage</ProgressLabel><ProgressValue /></Progress>`
   — the label names the bar; without one, pass `aria-label`)
+- [x] Tabs, TabsList, TabsTab, TabsPanel (`<Tabs defaultValue="profile">` around a TabsList of
+  TabsTabs and one TabsPanel per `value`. `variant` on TabsList: `underline` (default — text tabs on
+  a rule with a primary indicator that slides to the active tab, instant under reduced motion) or
+  `segmented` (a muted track with the active tab raised). TabsTab reads the variant from its TabsList
+  through context. Arrow keys move focus (looping; `loopFocus={false}` stops at the ends), Home/End
+  jump; activation is manual (Enter/Space) unless TabsList has `activateOnFocus`. A disabled tab stays
+  focusable (`aria-disabled`) but can never be activated. `orientation="vertical"` on Tabs puts the
+  list beside the panels, with Up/Down arrows. Name the list with `aria-label`. The panel is focusable,
+  so Tab from the active tab lands on it. `tabsListVariants` / `tabsTabVariants` give the classes)
 
 Phase A (foundation), Phase B (forms) and Phase C (overlays) are complete.
 
-- [ ] Next up: Tabs, Select, Accordion, Toast (Phase D)
+- [ ] Next up: Select, Accordion, Toast (Phase D)
 
 Composition: when a part is rendered through another (`<Fieldset render={<RadioGroup className=…/>}>`),
 the outer part's own classes win over conflicting classes on the render element (Base UI merges the

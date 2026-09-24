@@ -159,6 +159,21 @@ export {
 export { Radio, RadioGroup, type RadioGroupProps, type RadioProps } from "./components/radio-group";
 export { Separator, type SeparatorProps } from "./components/separator";
 export { Switch, type SwitchProps } from "./components/switch";
+export {
+  Tabs,
+  TabsList,
+  type TabsListProps,
+  TabsPanel,
+  type TabsPanelProps,
+  type TabsProps,
+  TabsTab,
+  type TabsTabProps,
+  type TabsVariant,
+  type TabsVariantProps,
+  tabsDefaults,
+  tabsListVariants,
+  tabsTabVariants,
+} from "./components/tabs";
 export { Textarea, type TextareaProps } from "./components/textarea";
 export {
   Tooltip,

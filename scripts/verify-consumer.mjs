@@ -248,6 +248,11 @@ const needleGroups = [
     reason: "Progress indeterminate keyframes (theme.css) or animate-[tsr-indeterminate…] missing",
     needles: ["@keyframes tsr-indeterminate", /animation:\s*tsr-indeterminate 1\.2s/],
   },
+  {
+    // Tabs' indicator reads Base UI's --active-tab-* vars; vertical styles use data-[orientation=…].
+    reason: "Tabs indicator var utilities or data-[orientation=vertical] variants missing",
+    needles: [/left:\s*var\(--active-tab-left\)/, /top:\s*var\(--active-tab-top\)/],
+  },
 ];
 for (const { reason, needles } of needleGroups) {
   for (const needle of needles) {

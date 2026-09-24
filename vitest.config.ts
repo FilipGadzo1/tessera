@@ -27,6 +27,7 @@ export default defineConfig({
       "@base-ui/react/menu",
       "@base-ui/react/avatar",
       "@base-ui/react/progress",
+      "@base-ui/react/tabs",
       // Icons used by the docs examples (src/docs/examples).
       "lucide-react",
     ],

@@ -43,6 +43,12 @@ Keep whichever approach passes all the tests: the tooltip is closed first, with 
   - Tab: `inline-flex h-full flex-1 cursor-pointer items-center justify-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground not-data-disabled:hover:text-foreground data-active:bg-background data-active:text-foreground data-active:shadow-xs data-disabled:…`. No Indicator part.
 - Vertical orientation: the list becomes `flex-col border-b-0 border-l` (underline), and the indicator uses the top/height vars on the left edge.
 - Panel: `outline-hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-ring` with `pt-4`.
+- *Amended in Task 2 (implementation details the spec left open):*
+  - The variant is shared with `TabsTab` through a React context provided by `TabsList` (not the root), so a root may hold lists of different variants.
+  - Segmented tabs also get the toggle focus pattern; `data-disabled:…` resolves to the underline tab's `data-disabled:cursor-not-allowed data-disabled:opacity-50`.
+  - Vertical styles key off Base UI's `data-orientation` via `data-[orientation=vertical]:` (every part carries it). Root: `flex gap-6` (list beside the panels). Underline list: `gap-1` (the horizontal `gap-4` leaves 16px between stacked h-10 tabs, visibly loose in a screenshot). Underline tab: `mb-0 px-3` (the `-mb-px` border overlap only makes sense horizontally; `px-3` clears the left-edge indicator). Indicator: `top-(--active-tab-top) bottom-auto left-0 h-(--active-tab-height) w-0.5 transition-[top,height]`. Segmented list: `h-auto flex-col items-stretch self-start`; segmented tab: `h-8 flex-none justify-start`. Panel: `min-w-0 flex-1 pt-0`.
+  - `left-(--active-tab-left)` / `w-(--active-tab-width)` generate as specified (the geometry test passes; verify-consumer gains a needle for `left: var(--active-tab-left)` and `top: var(--active-tab-top)`).
+  - **Disabled tab "skipped" → skipped for activation.** Base UI 1.8 keeps disabled tabs focusable by design (`TabsTab` passes `focusableWhenDisabled: true`; `TabsList` passes `disabledIndices: []` to its composite root), as the WAI-ARIA APG permits, and exposes no prop to change it. Arrow keys land on a disabled tab (`aria-disabled="true"`), but neither Enter/Space, `activateOnFocus` nor a click activates it. §3's test asserts this.
 
 **Accordion**
 - Item: `border-b border-border`.
@@ -77,7 +83,7 @@ Keep whichever approach passes all the tests: the tooltip is closed first, with 
 
 - Every component: `data-slot` on every part, className merge, and axe in light and dark (violations and incomplete both `[]`).
 - Interactive parts: the Tab-focus test (2px solid outline) and cursor.
-- **Tabs:** arrow keys move between tabs (loop), and Home/End work. In manual activation mode, Enter/Space activate. `activateOnFocus` activates on arrow. `aria-selected`, `aria-controls` and the panel's `aria-labelledby` are wired. A disabled tab is skipped. The underline indicator's computed left and width match the active tab's box (within 1px, after the transition settles). Vertical orientation works with ArrowDown.
+- **Tabs:** arrow keys move between tabs (loop), and Home/End work. In manual activation mode, Enter/Space activate. `activateOnFocus` activates on arrow. `aria-selected`, `aria-controls` and the panel's `aria-labelledby` are wired. A disabled tab is never activated (Enter/Space, `activateOnFocus`, click); it stays focusable per Base UI — see the §2 amendment. The underline indicator's computed left and width match the active tab's box (within 1px, after the transition settles). Vertical orientation works with ArrowDown.
 - **Accordion:** Enter/Space toggle `aria-expanded`. Single mode closes the other item. `multiple` keeps both open. The panel height animates to its content height (computed height > 0 after open, 0 after close). `hiddenUntilFound` makes find-in-page content reachable (the `hidden="until-found"` attribute is present when closed). The heading level is correct.
 - **Select:**
   - Opening: click or Enter/Space/ArrowDown opens a listbox, and typeahead highlights the matching item.
