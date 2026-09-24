@@ -136,9 +136,12 @@ source files automatically (build output + `"use client"` directive checks).
   an `aria-label`: tooltips don't reach touch users. Escape closes an open tooltip first, whether
   it opened on hover or focus, even inside a Tessera Dialog, AlertDialog, Popover or Menu: the
   outer overlay stays open until the next Escape. That first Escape is not swallowed — your
-  `document` / `window` keydown listeners receive it. The outer overlay's own Escape close keeps
-  Base UI's default of stopping the event it handles. Only Tessera overlay roots yield to the
-  tooltip: inside a raw Base UI overlay, one Escape closes both)
+  `document` / `window` keydown listeners receive it — but it arrives with `defaultPrevented ===
+  true` (the tooltip handled it), so a listener that starts with `if (e.defaultPrevented) return`
+  ignores it. The open-tooltip registry is global: any open Tessera tooltip anywhere on the page
+  defers every Tessera overlay's Escape close. The outer overlay's own Escape close keeps Base UI's
+  default of stopping the event it handles. Only Tessera overlay roots yield to the tooltip: inside a
+  raw Base UI overlay, one Escape closes both)
 - [x] Popover (Popover, PopoverTrigger, PopoverContent, PopoverTitle, PopoverDescription, PopoverClose;
   a `role="dialog"` panel on the popover surface, named by PopoverTitle and described by
   PopoverDescription. Compose the trigger and close: `<PopoverTrigger render={<Button variant="outline" />}>`.
@@ -168,10 +171,23 @@ source files automatically (build output + `"use client"` directive checks).
   click or ArrowRight and closes with ArrowLeft. `<MenuShortcut>⌘E</MenuShortcut>` is a visual hint,
   `aria-hidden` so it stays out of the item's name; when the app really handles the key, add
   `aria-keyshortcuts` to the MenuItem)
+- [x] Separator (a 1px rule, `orientation` horizontal or vertical — vertical stretches to its flex
+  row. Decorative by default (`role="none"`); `decorative={false}` gives `role="separator"` and
+  `aria-orientation` when it divides content semantically. Server-safe)
+- [x] Avatar, AvatarImage, AvatarFallback, AvatarGroup (a round picture, sizes `sm` / `md` / `lg`.
+  The image shows only once it has loaded; until then, or if it fails, AvatarFallback shows its
+  initials (uppercased) or an icon — `<AvatarFallback delay={600}>` avoids a flash on fast loads.
+  Give AvatarImage an `alt`. AvatarGroup overlaps avatars with a background ring and is
+  server-safe; pass it an `aria-label` / `role="group"` if the group needs a name)
+- [x] Progress, ProgressLabel, ProgressValue (a `role="progressbar"` bar; `value={null}` is
+  indeterminate — a sweeping third of the bar (static under reduced motion). `min`, `max`, `format`
+  (`Intl.NumberFormatOptions`), `color` (tone, default primary), `size` `sm` / `md` / `lg`.
+  Children render in a row above the bar: `<Progress value={64}><ProgressLabel>Storage</ProgressLabel><ProgressValue /></Progress>`
+  — the label names the bar; without one, pass `aria-label`)
 
 Phase A (foundation), Phase B (forms) and Phase C (overlays) are complete.
 
-- [ ] Next up: Tabs, Select, Accordion, Toast, Avatar, Separator, Progress (Phase D)
+- [ ] Next up: Tabs, Select, Accordion, Toast (Phase D)
 
 Composition: when a part is rendered through another (`<Fieldset render={<RadioGroup className=…/>}>`),
 the outer part's own classes win over conflicting classes on the render element (Base UI merges the

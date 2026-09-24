@@ -339,3 +339,14 @@
   --tone-ink: var(--info);
   --tone-line: var(--info);
 }
+
+/* Indeterminate Progress: a one-third-width indicator sweeping across the track. Plain CSS (not
+ * inside @theme), so it always ships; used via animate-[tsr-indeterminate_…]. */
+@keyframes tsr-indeterminate {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}

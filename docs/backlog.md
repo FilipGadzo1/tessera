@@ -64,6 +64,10 @@ None block current use.
   lets the event propagate). A controlled Tooltip whose owner ignores `onOpenChange(false)` keeps
   outer overlays from closing on Escape while it stays open. The outer overlay's own Escape close
   still stops propagation (Base UI default), so app listeners don't see that second Escape.
+  The first Escape reaches app listeners with `defaultPrevented === true` (the tooltip's own close
+  prevents default), so apps that bail out on `if (e.defaultPrevented) return` ignore it. The
+  registry is global: any open Tessera tooltip anywhere defers every Tessera overlay's Escape close,
+  not just overlays that contain it. The recorded keydown is cleared a macrotask after dispatch.
 
 ## Theming
 - No `.light` scope: a region cannot switch back to light inside `.dark` (documented limit).

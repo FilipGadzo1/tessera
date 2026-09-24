@@ -17,6 +17,17 @@ export {
   type AlertDialogTriggerProps,
 } from "./components/alert-dialog";
 export {
+  Avatar,
+  AvatarFallback,
+  type AvatarFallbackProps,
+  AvatarGroup,
+  type AvatarGroupProps,
+  AvatarImage,
+  type AvatarImageProps,
+  type AvatarProps,
+  type AvatarSize,
+} from "./components/avatar";
+export {
   Badge,
   type BadgeColor,
   type BadgeProps,
@@ -136,7 +147,17 @@ export {
   PopoverTrigger,
   type PopoverTriggerProps,
 } from "./components/popover";
+export {
+  Progress,
+  ProgressLabel,
+  type ProgressLabelProps,
+  type ProgressProps,
+  type ProgressSize,
+  ProgressValue,
+  type ProgressValueProps,
+} from "./components/progress";
 export { Radio, RadioGroup, type RadioGroupProps, type RadioProps } from "./components/radio-group";
+export { Separator, type SeparatorProps } from "./components/separator";
 export { Switch, type SwitchProps } from "./components/switch";
 export { Textarea, type TextareaProps } from "./components/textarea";
 export {

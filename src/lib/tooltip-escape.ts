@@ -16,12 +16,18 @@ const openTooltips = new Set<symbol>();
 /**
  * The last Escape keydown seen while a tooltip was open, recorded on `window` in the capture
  * phase (before any overlay handles it). Overlays compare against it, so the outcome does not
- * depend on whether the tooltip's listener happens to run before or after theirs.
+ * depend on whether the tooltip's listener happens to run before or after theirs. Cleared once
+ * the event has finished dispatching (next macrotask), so it is never held longer than needed.
  */
 let escapeWithTooltipOpen: Event | null = null;
 
 function recordEscape(event: KeyboardEvent) {
-  if (event.key === "Escape" && openTooltips.size > 0) escapeWithTooltipOpen = event;
+  if (event.key !== "Escape" || openTooltips.size === 0) return;
+  escapeWithTooltipOpen = event;
+  // Overlays handle Escape synchronously during this dispatch; drop the reference afterwards.
+  setTimeout(() => {
+    if (escapeWithTooltipOpen === event) escapeWithTooltipOpen = null;
+  }, 0);
 }
 
 /** Marks a tooltip as open; returns the cleanup that unmarks it. */
@@ -63,6 +69,10 @@ export function yieldEscapeToTooltip(open: boolean, eventDetails: OpenChangeDeta
 /**
  * Wraps an overlay root's `onOpenChange` with `yieldEscapeToTooltip`; a cancelled close is not
  * forwarded to the caller.
+ *
+ * Every Tessera overlay root with Escape dismissal (Dialog, AlertDialog, Popover, Menu, MenuSub,
+ * and later Select, Drawer, Combobox, …) must wrap its `onOpenChange` with this — otherwise an
+ * Escape meant for an open Tooltip also closes that overlay.
  */
 export function useLayeredEscape<Details extends OpenChangeDetails>(
   onOpenChange: ((open: boolean, eventDetails: Details) => void) | undefined,

@@ -243,6 +243,11 @@ const needleGroups = [
       "overlay surface utilities (popover surface, overlay z-index) were not scanned from dist/",
     needles: [".bg-popover", ".text-popover-foreground", ".z-\\(--z-overlay\\)"],
   },
+  {
+    // theme.css ships the keyframes as plain CSS; Progress uses them via an arbitrary animate-[…].
+    reason: "Progress indeterminate keyframes (theme.css) or animate-[tsr-indeterminate…] missing",
+    needles: ["@keyframes tsr-indeterminate", /animation:\s*tsr-indeterminate 1\.2s/],
+  },
 ];
 for (const { reason, needles } of needleGroups) {
   for (const needle of needles) {

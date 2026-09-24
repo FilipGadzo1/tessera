@@ -65,4 +65,13 @@ describe("yieldEscapeToTooltip", () => {
     document.body.dispatchEvent(next);
     expect(yieldEscapeToTooltip(false, details(next))).toBe(false);
   });
+
+  it("forgets the recorded Escape once it has finished dispatching", async () => {
+    const unregister = registerOpenTooltip();
+    const event = escapeKeydown();
+    document.body.dispatchEvent(event);
+    unregister();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(yieldEscapeToTooltip(false, details(event))).toBe(false);
+  });
 });
