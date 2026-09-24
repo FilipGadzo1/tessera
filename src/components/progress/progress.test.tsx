@@ -1,16 +1,22 @@
 import axe from "axe-core";
 import { afterEach, describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
-import { emulateForcedColors, emulateReducedMotion, systemColor } from "../../../test/emulation";
+import {
+  emulateForcedColors,
+  emulateReducedMotion,
+  resetEmulatedMedia,
+  systemColor,
+} from "../../../test/emulation";
 import { Progress, ProgressLabel, ProgressValue } from "./progress";
 
 const indicatorOf = (bar: Element) =>
   bar.querySelector('[data-slot="progress-indicator"]') as HTMLElement;
 const trackOf = (bar: Element) => bar.querySelector('[data-slot="progress-track"]') as HTMLElement;
 
-// CDP media emulation (test/emulation.ts); each call replaces all features, so one reset clears both.
+// CDP media emulation (test/emulation.ts) clears whichever of forced-colors / reduced-motion a
+// test turned on.
 afterEach(async () => {
-  await emulateForcedColors(false);
+  await resetEmulatedMedia();
 });
 
 describe("Progress", () => {
