@@ -48,8 +48,11 @@ Each overlay ships three kinds of part:
 - **Dialog:**
   - Backdrop: `fixed inset-0 z-(--z-overlay) bg-black/50`.
   - Popup: `fixed left-1/2 top-1/2 z-(--z-overlay) -translate-x-1/2 -translate-y-1/2 grid w-[calc(100%-2rem)] gap-4 rounded-xl border border-border bg-popover p-6 text-popover-foreground shadow-xl outline-hidden`.
+  - The popup also carries `max-h-[calc(100dvh-2rem)] overflow-y-auto` (added in Task 3): it is centred with `fixed` + translate, so long content would otherwise overflow both viewport edges and its top could not be reached while page scroll is locked.
   - The `size` prop sets the max width: sm `max-w-sm`, md `max-w-lg` (default), lg `max-w-2xl`.
   - `showCloseButton` (default `true`) renders a `DialogClose` composed with `<Button variant="ghost" color="neutral" size="icon-sm" aria-label="Close">` plus an X icon (inline SVG), positioned `absolute right-4 top-4`.
+    - Because Button always sets its own `data-slot="button"` after its props, the `dialog-close-button` slot and the `absolute right-4 top-4` position sit on a `<span>` wrapping the close Button (Task 3).
+  - Base UI hides everything outside a modal dialog (`aria-hidden` plus `data-base-ui-inert`) but sets no `aria-modal`; Tessera adds `aria-modal="true"` when the dialog is modal (Dialog `modal` true or `"trap-focus"`; AlertDialog always).
   - AlertDialog content matches, but has no close button and no `showCloseButton` prop.
 - **Dialog text and layout parts:**
   - Header: `flex flex-col gap-1.5`.

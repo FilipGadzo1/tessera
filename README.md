@@ -140,7 +140,18 @@ source files automatically (build output + `"use client"` directive checks).
   Opens on click, Enter or Space; Escape, an outside click or PopoverClose closes it and focus returns
   to the trigger. On open, focus moves to the first tabbable element inside (or the panel itself);
   change that with `initialFocus` on PopoverContent. Controlled via `open` / `onOpenChange`)
-- [ ] Next up: Dialog, Menu (Phase C) · Tabs, Select, Accordion, Toast, Avatar, Separator, Progress (Phase D)
+- [x] Dialog (Dialog, DialogTrigger, DialogContent, DialogHeader, DialogFooter, DialogTitle,
+  DialogDescription, DialogClose; a centred modal `role="dialog"` over a dimmed backdrop. DialogContent
+  takes `size` (`sm` / `md` default / `lg`) and `showCloseButton` (default true: a ghost icon Button
+  named "Close" in the corner). Focus moves to the first tabbable element and is trapped; page scroll
+  is locked; Escape, a backdrop click or DialogClose closes it and focus returns to the trigger. Long
+  content scrolls inside the dialog. `dialogVariants({ size })` gives the popup classes)
+- [x] AlertDialog (AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader,
+  AlertDialogFooter, AlertDialogTitle, AlertDialogDescription, AlertDialogClose; `role="alertdialog"`
+  styled like Dialog, with no close button. A backdrop click does not close it — Escape does. Put the
+  choices in the footer: `<AlertDialogClose render={<Button variant="outline" color="neutral" />}>Cancel</AlertDialogClose>`
+  and a confirm `<Button color="danger" onClick={…}>`)
+- [ ] Next up: Menu (Phase C) · Tabs, Select, Accordion, Toast, Avatar, Separator, Progress (Phase D)
 
 Composition: when a part is rendered through another (`<Fieldset render={<RadioGroup className=…/>}>`),
 the outer part's own classes win over conflicting classes on the render element (Base UI merges the
@@ -148,15 +159,16 @@ render element's className first; tailwind-merge keeps the last). Lay out childr
 instead — e.g. a horizontal radio group puts the radios in `<div className="flex flex-row gap-6">`
 after the FieldsetLegend.
 
-Overlays (Tooltip, Popover, and Dialog, Menu as they land) portal into `document.body`:
+Overlays (Tooltip, Popover, Dialog, AlertDialog, and Menu as it lands) portal into `document.body`:
 
 - Put theme scopes (`.dark`, `data-primary`, `data-surface`) on `<html>` so overlays pick them up.
 - A scope on an inner element does not reach a portalled overlay — pass `container` (an element
   inside that scope) to the `*Content` part: `<TooltipContent container={scopeRef}>`.
 - Add `isolation: isolate` to your app root so app z-indexes can't rise above overlays. Overlays
   use `--z-overlay` (50) and `--z-tooltip` (60), overridable in an unlayered `:root`.
-- Triggers carry no styles: compose them with `render={<Button … />}`. `*Content` takes the
-  positioning props `side`, `align`, `sideOffset` (default 6), `alignOffset`, `collisionPadding`.
+- Triggers carry no styles: compose them with `render={<Button … />}`. Anchored `*Content` parts
+  (Tooltip, Popover, Menu) take the positioning props `side`, `align`, `sideOffset` (default 6),
+  `alignOffset`, `collisionPadding`; dialogs are centred and take none.
 
 Forms: there is no Tessera `Form` yet — use Base UI's `Form` (`@base-ui/react/form`) around named
 Fields for submit-time validation. The Storybook story **Tessera/Examples/Sign-up form**

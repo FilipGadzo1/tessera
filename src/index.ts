@@ -1,4 +1,22 @@
 export {
+  AlertDialog,
+  AlertDialogClose,
+  type AlertDialogCloseProps,
+  AlertDialogContent,
+  type AlertDialogContentProps,
+  AlertDialogDescription,
+  type AlertDialogDescriptionProps,
+  AlertDialogFooter,
+  type AlertDialogFooterProps,
+  AlertDialogHeader,
+  type AlertDialogHeaderProps,
+  type AlertDialogProps,
+  AlertDialogTitle,
+  type AlertDialogTitleProps,
+  AlertDialogTrigger,
+  type AlertDialogTriggerProps,
+} from "./components/alert-dialog";
+export {
   Badge,
   type BadgeColor,
   type BadgeProps,
@@ -27,6 +45,27 @@ export {
   cardVariants,
 } from "./components/card";
 export { Checkbox, type CheckboxProps } from "./components/checkbox";
+export {
+  Dialog,
+  DialogClose,
+  type DialogCloseProps,
+  DialogContent,
+  type DialogContentProps,
+  DialogDescription,
+  type DialogDescriptionProps,
+  DialogFooter,
+  type DialogFooterProps,
+  DialogHeader,
+  type DialogHeaderProps,
+  type DialogProps,
+  DialogTitle,
+  type DialogTitleProps,
+  DialogTrigger,
+  type DialogTriggerProps,
+  type DialogVariantProps,
+  dialogDefaults,
+  dialogVariants,
+} from "./components/dialog";
 export {
   Field,
   FieldDescription,
