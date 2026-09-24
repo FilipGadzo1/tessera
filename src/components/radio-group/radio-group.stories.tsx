@@ -95,10 +95,13 @@ export const Horizontal: Story = {
   ),
 };
 
-/** A disabled Fieldset disables every Field inside it. */
+/**
+ * A disabled Fieldset disables its RadioGroup. `disabled` on the surrounding Field also dims the
+ * option labels, so set it there.
+ */
 export const Disabled: Story = {
   render: () => (
-    <Field>
+    <Field disabled>
       <Fieldset disabled render={<RadioGroup defaultValue="pro" />}>
         <FieldsetLegend>Plan</FieldsetLegend>
         {plans.map((plan) => (

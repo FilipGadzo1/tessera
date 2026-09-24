@@ -203,8 +203,15 @@ const needleGroups = [
   },
   {
     // Nothing forces tone-neutral inline, so only @source scanning of dist/ can produce it.
-    reason: "component utilities (tone, cursor, sizes) were not scanned from dist/",
-    needles: [/\.bg-tone\s*\{/, ".cursor-pointer", ".tone-neutral", ".h-10"],
+    reason: "component utilities (tone, cursor, sizes, field tokens) were not scanned from dist/",
+    needles: [
+      /\.bg-tone\s*\{/,
+      ".cursor-pointer",
+      ".tone-neutral",
+      ".h-10",
+      ".bg-field",
+      ".border-field-border",
+    ],
   },
 ];
 for (const { reason, needles } of needleGroups) {

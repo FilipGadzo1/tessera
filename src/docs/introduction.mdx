@@ -34,8 +34,16 @@ dark mode and the `primary-*` scale utilities — follows. Overriding `--primary
 the resting color. Token names are shadcn-compatible (`--primary`, `--ring`, …), so utilities like
 `bg-primary` work unchanged; the values are Tessera's.
 
+- A nested `data-primary` scope rebinds `--tsr-primary-*`, so a `:root` primary-scale override
+  does not reach inside it.
 - There is no `.light` scope to switch a region back to light inside `.dark`.
 - Card variants are `outlined` / `elevated` (MUI naming); Button and Badge use `outline`.
+
+## Forms
+
+Label, Field (FieldLabel, FieldDescription, FieldError, FieldItem), Fieldset, Input, Textarea,
+Checkbox, Switch and RadioGroup. Wrap named Fields in Base UI's `Form` (`@base-ui/react/form`) for
+submit-time validation — see **Examples / Sign-up form**.
 
 ## Stack
 

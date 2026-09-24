@@ -80,6 +80,8 @@ Overriding a single semantic token such as `--primary` changes only that one res
 hover, active, soft and ring colors stay on the old palette, it has no separate dark value (with
 `.dark` on `<html>` the `:root` value also wins in dark mode — add a later `.dark` rule for one), and
 nested `data-primary` / `data-surface` scopes re-derive it from their own palette.
+A nested `data-primary` scope likewise rebinds `--tsr-primary-*` to its own palette, so a `:root`
+primary-scale override does not reach inside it (override the scale on that scope too).
 `--radius` is a plain token and can be overridden on its own.
 
 Token names are shadcn-compatible (`--primary`, `--muted-foreground`, `--ring`, …), so utilities
@@ -124,8 +126,13 @@ source files automatically (build output + `"use client"` directive checks).
 - [x] RadioGroup, Radio (arrow keys move selection; render through a Fieldset so the legend names the group:
   `<Fieldset render={<RadioGroup />}><FieldsetLegend>…</FieldsetLegend>…</Fieldset>`; inside a Field,
   wrap each option in FieldItem)
-- [x] Fieldset, FieldsetLegend (groups radios or Fields; a disabled Fieldset disables the Fields inside)
+- [x] Fieldset, FieldsetLegend (groups radios or Fields; a disabled Fieldset disables its RadioGroup;
+  to dim labels as well, set `disabled` on the surrounding `Field`)
 - [ ] Next up: Tooltip, Popover, Dialog, Menu (Phase C) · Tabs, Select, Accordion, Toast, Avatar, Separator, Progress (Phase D)
+
+Forms: there is no Tessera `Form` yet — use Base UI's `Form` (`@base-ui/react/form`) around named
+Fields for submit-time validation. The Storybook story **Tessera/Examples/Sign-up form**
+(`src/docs/examples/sign-up-form.tsx`) composes every form control this way.
 
 ## Roadmap
 
