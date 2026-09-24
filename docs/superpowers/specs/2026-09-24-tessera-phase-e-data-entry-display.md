@@ -1,0 +1,112 @@
+# Tessera Phase E: Data Entry and Display (Spec Addendum)
+
+**Date:** 2026-09-24
+**Status:** Claude made these decisions under the owner's standing delegation ("do not ask me questions, keep implementing").
+**Builds on:**
+- design-system-v2 §4: tokens, sizes, focus, cursor, motion, server safety.
+- Phase B §3: composition rule, `mergeClassName`, `textFieldBase` / `textFieldSizes`.
+- Phase C §1–§4: the overlay pattern (`popupSurface`, `popupMotion`, `dialogMotion`, `backdropMotion`, `menuItemBase`, z tokens, `container`, `auditOpenOverlay`).
+- Phase D §0: `useLayeredEscape` on every overlay root with Escape dismissal.
+
+**Scope rulings:**
+- *DatePicker is deferred to Phase F.* Base UI 1.8 has no calendar primitive, so a DatePicker means a hand-built Calendar grid (roving focus, month paging, locale week starts, min/max, ranges). That is a phase on its own; bundling it here would starve the other eight components of review attention. Cost if wrong: the owner waits one more phase for dates.
+- *Sheet = Drawer.* One component, `Drawer`, on Base UI `Drawer.*` (swipe-to-dismiss, side placement). No separate `Sheet` export.
+
+## 0. Carry-over: forced-colors focus visibility (Task 0, first)
+
+Problem (Phase D final review): Tailwind v4 `outline-hidden` is `outline-style: none` normally but, inside `@media (forced-colors: active)`, `outline: 2px solid transparent; outline-offset: 2px`. Chromium paints that transparent outline as CanvasText, so every control using the toggle focus pattern (`outline-hidden … focus-visible:outline-2 focus-visible:outline-solid`) shows a permanent outline in forced colors and focus is not distinguishable by outline (WCAG 2.4.7).
+
+Target:
+- **Interactive controls and items** (Button, Checkbox, Switch, Radio, Tabs tab + panel, Accordion trigger, text fields, Select trigger, menu/select items, and every Phase E control): replace `outline-hidden` with `outline-none` (`outline-style: none` in every mode). The focus state keeps `outline-2 outline-solid` (text fields `outline-1`), so in forced colors the ring appears only on focus, painted in a system colour. Where the focus colour would equal the unfocused border colour in forced colors, add `forced-colors:focus-visible:outline-[Highlight]` (text fields: `forced-colors:focus:outline-[Highlight]`).
+- **Menu / Select items**: the highlighted item keeps its `data-highlighted:outline-2 outline-solid -outline-offset-2` (transparent normally, a system colour in forced colors); unhighlighted items must show no outline in forced colors.
+- **Surfaces** (`popupSurface`, dialog popup, toast root): keep `outline-hidden`. A forced-colors outline on a floating surface is a desirable border there, and the surfaces are not focus targets except the toast root, which adds its own focus ring — verify it stays distinguishable (outline width or colour differs on focus); if not, give it `forced-colors:focus-visible:outline-[Highlight]`.
+- **Segmented tabs**: an active segmented tab under hover must keep `HighlightText` text in forced colors (`forced-colors:data-active:hover:text-[HighlightText]`), otherwise the hover text colour wins against the `Highlight` background.
+- Update design-system-v2 §4 **Focus** so the rule reads `outline-none` (and drop the sentence claiming `outline-hidden` keeps focus visible in forced colors).
+- Tests: a shared helper `emulateForcedColors(active)` in `test/` using Playwright CDP (`Emulation.setEmulatedMedia` with `forced-colors: active`), as Phase D's Progress/Tabs tests did. For each control family: unfocused → computed `outline-style: none`; Tab-focused → `solid` with width ≥ 1px. Plus the segmented hover text test. The existing normal-mode focus tests must keep passing unchanged.
+
+## 1. Components
+
+| Export | Base UI | Client? | Notes |
+|---|---|---|---|
+| `Skeleton` | none | no | `div`, `aria-hidden="true"`, `animate-pulse rounded-md bg-muted motion-reduce:animate-none`. Shape via className. In forced colors: `forced-colors:bg-[GrayText]` so the placeholder is still visible. |
+| `Breadcrumb`, `BreadcrumbList`, `BreadcrumbItem`, `BreadcrumbLink`, `BreadcrumbPage`, `BreadcrumbSeparator`, `BreadcrumbEllipsis` | none | no | See §2. |
+| `Pagination`, `PaginationContent`, `PaginationItem`, `PaginationLink`, `PaginationPrevious`, `PaginationNext`, `PaginationEllipsis`, `getPaginationRange` | none | no | See §2. |
+| `Table`, `TableHeader`, `TableBody`, `TableFooter`, `TableRow`, `TableHead`, `TableCell`, `TableCaption`, `TableSortButton` | none | no | See §2. |
+| `Slider`, `SliderValue` | `Slider.*` | yes | See §2. |
+| `NumberField` (+ parts) | `NumberField.*` | yes | See §2. |
+| `Combobox` (+ parts) | `Combobox.*` | yes | See §2. |
+| `Drawer` (+ parts) | `Drawer.*` | yes | See §2. |
+
+## 2. Details
+
+**Breadcrumb** (shadcn-shaped, server-safe)
+- `Breadcrumb`: `<nav aria-label="Breadcrumb">` (label overridable).
+- `BreadcrumbList`: `<ol>` `flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground`.
+- `BreadcrumbItem`: `<li>` `inline-flex items-center gap-1.5`.
+- `BreadcrumbLink`: `<a>` (supports `render` via Base UI `useRender` only if that is server-safe; otherwise an `asChild`-free design: accept `render?: React.ReactElement` and clone — implementer picks the server-safe option and records it) `rounded-sm transition-colors hover:text-foreground` + the toggle focus pattern + `cursor-pointer`.
+- `BreadcrumbPage`: `<span aria-current="page">` `font-medium text-foreground`.
+- `BreadcrumbSeparator`: `<li role="presentation" aria-hidden="true">` default chevron-right icon (inline SVG, `size-3.5`), children override.
+- `BreadcrumbEllipsis`: `<span role="presentation" aria-hidden="true">` with a "more" icon and a visually hidden "More" text; callers wrap it in a Menu trigger when collapsing.
+
+**Pagination** (server-safe)
+- `getPaginationRange({ page, pageCount, siblings = 1, boundaries = 1 }): Array<number | "ellipsis-start" | "ellipsis-end">` — pure, unit-tested (edges: pageCount 0/1, page at start/end, no ellipsis when the gap is exactly one page — show the page instead).
+- `Pagination`: `<nav aria-label="Pagination">` `mx-auto flex w-full justify-center`.
+- `PaginationContent`: `<ul>` `flex flex-row items-center gap-1`. `PaginationItem`: `<li>`.
+- `PaginationLink`: `<a>` styled with `buttonVariants({ variant: isActive ? "outline" : "ghost", color: "neutral", size: "icon" })`; `isActive` sets `aria-current="page"`. A `render` escape hatch for `<button>` / router links (same decision as BreadcrumbLink). Disabled: `aria-disabled="true"` + `data-disabled` (no `href`) — keeps focusability rules sane for links.
+- `PaginationPrevious` / `PaginationNext`: PaginationLink with `size="md"`-width, chevron + visible "Previous"/"Next" text (text hidden below `sm:` with an `aria-label` kept), `aria-label="Go to previous page"` / `"Go to next page"`.
+- `PaginationEllipsis`: `<span aria-hidden="true">` `flex size-10 items-center justify-center` + sr-only "More pages".
+
+**Table** (server-safe, shadcn-shaped)
+- `Table`: wrapper `<div data-slot="table-container" class="relative w-full overflow-x-auto">` + `<table class="w-full caption-bottom text-sm">`. `className` goes to the table; `containerClassName` to the wrapper.
+- `TableHeader` `<thead>` `[&_tr]:border-b`; `TableBody` `<tbody>` `[&_tr:last-child]:border-0`; `TableFooter` `<tfoot>` `border-t bg-muted/50 font-medium [&>tr]:last:border-b-0`.
+- `TableRow` `<tr>` `border-b border-border transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted` (+ `aria-selected` styling: `aria-selected:bg-muted`).
+- `TableHead` `<th>` `h-10 px-3 text-left align-middle font-medium text-muted-foreground whitespace-nowrap`; prop `sort?: "ascending" | "descending" | "none"` → `aria-sort` (omitted when undefined).
+- `TableCell` `<td>` `px-3 py-2.5 align-middle`. `TableCaption` `<caption>` `mt-4 text-sm text-muted-foreground`.
+- `TableSortButton`: a `<button type="button">` inside `TableHead` — `-ml-2 inline-flex h-8 cursor-pointer items-center gap-1 rounded-md px-2 hover:bg-muted hover:text-foreground` + toggle focus pattern; prop `direction?: "ascending" | "descending" | "none"` picks the icon (arrow-up / arrow-down / arrow-up-down, `aria-hidden`). No hooks; `onClick` is the caller's.
+- Density prop is YAGNI for now.
+
+**Slider**
+- `Slider` renders Root → Control → Track → Indicator + one `Thumb` per value (value array length; `defaultValue`/`value` number or number[]). Props pass through to Root; `color` (tone, default primary); `size` (`sm` track h-1 / thumb size-4, `md` default h-1.5 / size-5).
+- Root `relative flex w-full touch-none select-none flex-col gap-2 data-disabled:opacity-50`; Control `flex h-5 items-center data-[orientation=vertical]:h-full…`; Track `relative h-1.5 w-full grow overflow-hidden rounded-full bg-muted` (vertical: `w-1.5 h-full`); Indicator `bg-tone`; Thumb `block size-5 cursor-grab rounded-full border-2 border-tone bg-background shadow-sm active:cursor-grabbing data-disabled:cursor-not-allowed` + toggle focus pattern (focus lives on the thumb's input — implementer verifies where Base UI puts focus and targets it, e.g. `has-focus-visible:`).
+- Children slot above the control (like Progress): `SliderLabel` (Base UI `Slider.Label` if present, else `Field` naming) and `SliderValue` (`ms-auto text-sm tabular-nums text-muted-foreground`).
+- Each thumb needs an accessible name: `getAriaLabel` / `thumbLabels?: string[]` for ranges.
+- Forced colors: indicator `forced-colors:bg-[Highlight]`, track outline `forced-colors:outline forced-colors:outline-1 forced-colors:outline-[CanvasText]` (Progress parity), thumb border `forced-colors:border-[CanvasText]`.
+
+**NumberField**
+- Parts: `NumberField` (Root, all Base UI props), `NumberFieldGroup`, `NumberFieldInput`, `NumberFieldIncrement`, `NumberFieldDecrement`, `NumberFieldScrubArea` (optional label scrub).
+- Convenience: `NumberField` with no children renders Group → Decrement, Input, Increment (the common stepper). With children, it renders only the Root.
+- Group: `textFieldBase`-look on the group (`inline-flex items-stretch overflow-hidden`), focus-within ring instead of focus (`focus-within:outline-1 focus-within:outline-solid focus-within:outline-ring focus-within:border-ring`), sizes sm/md/lg via `textFieldSizes` heights. Input: borderless `min-w-0 flex-1 bg-transparent px-3 text-center tabular-nums outline-none`. Buttons: `flex aspect-square h-full cursor-pointer items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground data-disabled:cursor-not-allowed data-disabled:opacity-50` with a border between (`border-field-border`), minus / plus icons, `aria-label` "Decrease" / "Increase" (Base UI may supply — verify).
+- Works in `Field` (label names the input; invalid → danger border on the group), supports `format` (Intl.NumberFormatOptions), `min`/`max`/`step`, `readOnly`, `disabled`.
+
+**Combobox**
+- Parts: `Combobox` (Root), `ComboboxInput` (text-field look, with an optional trailing trigger + clear inside an `InputGroup`), `ComboboxTrigger`, `ComboboxClear`, `ComboboxContent` (Portal → Positioner → Popup, as Select: `popupSurface` + `popupMotion` + `min-w-(--anchor-width) max-h-[min(var(--available-height),20rem)] overflow-y-auto p-1`, `side` bottom, `align` start, `sideOffset` 6, `z-(--z-overlay)`), `ComboboxList`, `ComboboxItem` (`menuItemBase pl-8` + check indicator as Select), `ComboboxEmpty` (`px-2 py-6 text-center text-sm text-muted-foreground`), `ComboboxGroup`, `ComboboxGroupLabel`, `ComboboxSeparator`, `ComboboxStatus` (visually hidden or muted, for async), and for `multiple`: `ComboboxChips` (the text-field look container, `flex flex-wrap gap-1 min-h-10 p-1`) + `ComboboxChip` (Badge-like `rounded-md bg-muted px-1.5 text-xs`, `data-highlighted` ring) + `ComboboxChipRemove` (icon button, `aria-label="Remove"`).
+- Root wraps `onOpenChange` with `useLayeredEscape`.
+- Filtering: Base UI's built-in filter (items prop). Stories show plain strings, objects with `itemToStringLabel`, groups, multiple with chips, async with `ComboboxStatus`.
+- Works in `Field` (label names the input; invalid border) and inside a `Dialog`.
+
+**Drawer**
+- Parts: `Drawer` (Root; wraps `onOpenChange` with `useLayeredEscape`), `DrawerTrigger`, `DrawerContent` (Portal → Backdrop → Viewport → Popup, plus a close button like `DialogContent`'s, `showCloseButton` default true), `DrawerHeader`, `DrawerFooter`, `DrawerTitle`, `DrawerDescription`, `DrawerClose`.
+- `side` on `DrawerContent`: `right` (default), `left`, `bottom`, `top`. Map to Base UI's swipe direction (read the Root/Popup d.ts; if the swipe direction is a Root prop, `side` goes on `Drawer` instead — record the choice).
+- Popup: `fixed z-(--z-overlay) flex flex-col gap-4 bg-popover text-popover-foreground shadow-xl outline-hidden` + per side: right `inset-y-0 right-0 h-full w-3/4 max-w-sm border-l`, left mirror, bottom `inset-x-0 bottom-0 max-h-[85vh] rounded-t-xl border-t`, top mirror. Motion: slide from its edge using Base UI's swipe/transition vars (translate 100% on `data-starting-style` / `data-ending-style`), `duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none`; while swiping, no transition (Base UI data attribute, e.g. `data-swiping`).
+- Bottom drawers show a grab handle (`mx-auto mt-2 h-1.5 w-12 rounded-full bg-muted`, `aria-hidden`).
+- Backdrop: as Dialog's (`bg-black/50` + `backdropMotion`), fading with swipe progress if Base UI exposes a var.
+- Focus trap, initial focus, return focus, Escape, backdrop click close — Base UI's modal behaviour; tests assert them.
+
+## 3. Tests (every component)
+
+- Every component: `data-slot` on every part, className merge, axe in light and dark (violations and incomplete both `[]`), and (Task 0 onward) no permanent outline in forced colors for interactive parts.
+- Interactive parts: the Tab-focus test (2px solid outline, text-field-like parts 1px) and cursor.
+- **Skeleton:** `aria-hidden`, pulse class, reduced-motion stops the animation (CDP).
+- **Breadcrumb:** nav landmark named "Breadcrumb", `ol`/`li` structure, `aria-current="page"` on the page, separators hidden from AT, link focus ring.
+- **Pagination:** `getPaginationRange` table-driven cases; active link `aria-current="page"`; previous/next disabled at the ends (`aria-disabled`, no `href`); names "Go to previous/next page"; ellipsis hidden from AT with sr text.
+- **Table:** semantic structure (`table`, `thead`, `th` scope col by default), `aria-sort` only when `sort` is set, `TableSortButton` icon per direction and focus ring, horizontal scroll container doesn't overflow the page (`scrollWidth` check with a wide table in a narrow parent), caption.
+- **Slider:** role `slider` per thumb with `aria-valuenow/min/max`; arrows / PageUp / Home / End change the value; range slider has two thumbs with distinct names; `disabled`; the indicator spans the value (geometry within 1px); inside `Field` the label names it; FormData contains the value; forced-colors indicator colour.
+- **NumberField:** typing + blur commits and formats; ArrowUp/Down step; increment/decrement buttons (and their names); min/max clamp; `format` currency; in `Field` label + invalid; focus-within ring on the group (1px); FormData.
+- **Combobox:** typing filters the list; ArrowDown/Enter selects and fills the input; Escape closes (layered with a tooltip — first Escape closes only the tooltip); empty state renders; `multiple` adds chips, Backspace removes the last chip, the chip remove button works; clear button; in `Field` label + invalid; inside a `Dialog`; `aria-expanded`/`aria-controls` wiring; FormData.
+- **Drawer:** each `side` positions against its edge; opens with the trigger, focus moves inside, Escape closes and focus returns; backdrop click closes; close button name; title/description wire `aria-labelledby` / `aria-describedby`; layered Escape with a tooltip inside; reduced motion (CDP) has no transition; swipe-to-dismiss via pointer drag on a bottom drawer (if Base UI's swipe works under Playwright pointer events — if not, record why and cover with the data attribute contract instead).
+
+## 4. Docs
+
+- Stories for each component (`title: "Components/<Name>"`, autodocs).
+- A `Tessera/Examples/Orders` page composing: Breadcrumb (Home / Store / Orders), a toolbar with a Combobox customer filter and a Slider price range, a Table with a sortable "Total" column, Skeleton rows while "loading" (a toggle in the story), Pagination under the table, and a right Drawer with order details (NumberField for quantity adjustments) opened from a row's "View" button.
+- README: component list complete for Phase E; roadmap next: Phase F (Calendar, DatePicker, DateRangePicker, ToggleGroup, Toolbar, ScrollArea, Meter, HoverCard/PreviewCard, ContextMenu). Backlog updated.
