@@ -244,9 +244,28 @@ source files automatically (build output + `"use client"` directive checks).
   the button is focused. Outside React: `const toaster = createToaster()` at module level,
   `<Toaster toastManager={toaster}>`, then `toaster.add(…)` from anywhere — calls made before that
   Toaster mounts are dropped. Toasts sit on `--z-toast` (70), above dialogs and tooltips)
+- [x] Skeleton (a pulsing `bg-muted` placeholder, `aria-hidden`; shape it with `className`, e.g.
+  `size-12 rounded-full` for an avatar or `h-4 w-48` for a line of text. The pulse stops under
+  reduced motion and stays visible (`GrayText`) in forced colors. Server-safe)
+- [x] Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator,
+  BreadcrumbEllipsis (a `nav aria-label="Breadcrumb"` landmark around an `ol` of crumbs; the current
+  page is a `BreadcrumbPage` (`aria-current="page"`, not a link). `BreadcrumbSeparator` defaults to a
+  chevron, hidden from assistive technology (`children` overrides it); `BreadcrumbEllipsis` collapses
+  a run of crumbs — wrap it in a `MenuTrigger` to expand them. `BreadcrumbLink` takes a `render`
+  element (a router `Link`, cloned onto rather than Base UI's `useRender`, to stay server-safe) in
+  place of `<a>`. Server-safe)
+- [x] Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious,
+  PaginationNext, PaginationEllipsis, getPaginationRange (a `nav aria-label="Pagination"` landmark
+  around a `ul` of page links, each styled like an outline (active, `aria-current="page"`) or ghost
+  icon Button. A `disabled` link drops its `href` (`aria-disabled` instead) so it stays out of the tab
+  order. `PaginationLink` takes the same server-safe `render` escape hatch as `BreadcrumbLink`.
+  `getPaginationRange({ page, pageCount, siblings, boundaries })` is a pure helper that collapses a
+  long run of pages into `1 … 4 5 [6] 7 8 … 20` (never collapsing a single page — it shows that page
+  instead, since hiding it saves no space). Server-safe)
 
 Phase A (foundation), Phase B (forms), Phase C (overlays) and Phase D (navigation and feedback) are
-complete.
+complete. Phase E (data entry and display) is in progress: Skeleton, Breadcrumb and Pagination are
+done; Table, Slider, NumberField, Combobox and Drawer remain.
 
 Composition: when a part is rendered through another (`<Fieldset render={<RadioGroup className=…/>}>`),
 the outer part's own classes win over conflicting classes on the render element (Base UI merges the
@@ -288,7 +307,10 @@ Separators for billing; and a "Save changes" Button that shows a success toast f
 
 ## Roadmap
 
-Next, Phase E candidates: Combobox, Slider, NumberField, DatePicker, Table, Breadcrumb, Pagination,
-Skeleton, Sheet/Drawer.
+Finishing Phase E: Combobox, Slider, NumberField, Table, Drawer (Sheet is the same component, on
+Base UI's `Drawer.*`).
+
+Next, Phase F: Calendar, DatePicker, DateRangePicker, ToggleGroup, Toolbar, ScrollArea, Meter,
+HoverCard/PreviewCard, ContextMenu.
 
 Later: visual regression · React Compiler on output · publish to npm (`@tessera/ui` is free).

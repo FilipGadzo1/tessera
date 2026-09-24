@@ -47,6 +47,7 @@ Target:
 - `BreadcrumbPage`: `<span aria-current="page">` `font-medium text-foreground`.
 - `BreadcrumbSeparator`: `<li role="presentation" aria-hidden="true">` default chevron-right icon (inline SVG, `size-3.5`), children override.
 - `BreadcrumbEllipsis`: `<span role="presentation" aria-hidden="true">` with a "more" icon and a visually hidden "More" text; callers wrap it in a Menu trigger when collapsing.
+- *Amended in Task 1*: `BreadcrumbLink`'s `render` escape hatch is a plain `render?: React.ReactElement` cloned with `cloneElement` (merging `data-slot` and `className`, later Tailwind utilities win), not Base UI's `useRender`. `useRender` (`@base-ui/react/use-render`) delegates straight to the internal `useRenderElement` hook, so it is not hook-free/server-safe; using it would force `"use client"` onto Breadcrumb, contradicting its server-safe row above. `BreadcrumbEllipsis`'s container classes (`flex size-9 items-center justify-center`) aren't given verbatim above; picked a reasonable shadcn-shaped default since the row above only specifies content and semantics, not layout classes.
 
 **Pagination** (server-safe)
 - `getPaginationRange({ page, pageCount, siblings = 1, boundaries = 1 }): Array<number | "ellipsis-start" | "ellipsis-end">` — pure, unit-tested (edges: pageCount 0/1, page at start/end, no ellipsis when the gap is exactly one page — show the page instead).
@@ -55,6 +56,7 @@ Target:
 - `PaginationLink`: `<a>` styled with `buttonVariants({ variant: isActive ? "outline" : "ghost", color: "neutral", size: "icon" })`; `isActive` sets `aria-current="page"`. A `render` escape hatch for `<button>` / router links (same decision as BreadcrumbLink). Disabled: `aria-disabled="true"` + `data-disabled` (no `href`) — keeps focusability rules sane for links.
 - `PaginationPrevious` / `PaginationNext`: PaginationLink with `size="md"`-width, chevron + visible "Previous"/"Next" text (text hidden below `sm:` with an `aria-label` kept), `aria-label="Go to previous page"` / `"Go to next page"`.
 - `PaginationEllipsis`: `<span aria-hidden="true">` `flex size-10 items-center justify-center` + sr-only "More pages".
+- *Amended in Task 1*: `PaginationLink` and `BreadcrumbLink` share the same `render` decision (see the Breadcrumb amendment above) — a cloned `render?: React.ReactElement`, not `useRender`. `PaginationLink` also gained a `size` prop (`ButtonVariantProps["size"]`, default `"icon"`) so `PaginationPrevious`/`PaginationNext` can pass `size="md"` for the "size=`md`-width" pill this section describes: `md` and `icon` share the same `h-10` height, so the previous/next controls line up with the numbered links while getting the extra horizontal padding for their chevron + text.
 
 **Table** (server-safe, shadcn-shaped)
 - `Table`: wrapper `<div data-slot="table-container" class="relative w-full overflow-x-auto">` + `<table class="w-full caption-bottom text-sm">`. `className` goes to the table; `containerClassName` to the wrapper.

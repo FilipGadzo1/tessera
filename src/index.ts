@@ -46,6 +46,22 @@ export {
   badgeVariants,
 } from "./components/badge";
 export {
+  Breadcrumb,
+  BreadcrumbEllipsis,
+  type BreadcrumbEllipsisProps,
+  BreadcrumbItem,
+  type BreadcrumbItemProps,
+  BreadcrumbLink,
+  type BreadcrumbLinkProps,
+  BreadcrumbList,
+  type BreadcrumbListProps,
+  BreadcrumbPage,
+  type BreadcrumbPageProps,
+  type BreadcrumbProps,
+  BreadcrumbSeparator,
+  type BreadcrumbSeparatorProps,
+} from "./components/breadcrumb";
+export {
   Button,
   type ButtonColor,
   type ButtonProps,
@@ -144,6 +160,25 @@ export {
   type MenuTriggerProps,
 } from "./components/menu";
 export {
+  getPaginationRange,
+  Pagination,
+  PaginationContent,
+  type PaginationContentProps,
+  PaginationEllipsis,
+  type PaginationEllipsisProps,
+  PaginationItem,
+  type PaginationItemProps,
+  PaginationLink,
+  type PaginationLinkProps,
+  PaginationNext,
+  type PaginationNextProps,
+  PaginationPrevious,
+  type PaginationPreviousProps,
+  type PaginationProps,
+  type PaginationRangeItem,
+  type PaginationRangeOptions,
+} from "./components/pagination";
+export {
   Popover,
   PopoverClose,
   type PopoverCloseProps,
@@ -189,6 +224,7 @@ export {
   selectTriggerVariants,
 } from "./components/select";
 export { Separator, type SeparatorProps } from "./components/separator";
+export { Skeleton, type SkeletonProps } from "./components/skeleton";
 export { Switch, type SwitchProps } from "./components/switch";
 export {
   Tabs,
