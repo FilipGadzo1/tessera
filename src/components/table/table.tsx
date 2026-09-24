@@ -1,0 +1,212 @@
+import type { ComponentProps } from "react";
+import { cn } from "../../lib/cn";
+
+export interface TableProps extends ComponentProps<"table"> {
+  /** className for the scroll container wrapping the `<table>`. */
+  containerClassName?: string;
+}
+
+/**
+ * A `<table>` inside a horizontally-scrollable container, so wide tables don't overflow the page.
+ * `className` styles the table; `containerClassName` styles the wrapping `div`.
+ */
+export function Table({ className, containerClassName, ...props }: TableProps) {
+  return (
+    <div
+      data-slot="table-container"
+      className={cn("relative w-full overflow-x-auto", containerClassName)}
+    >
+      <table
+        {...props}
+        data-slot="table"
+        className={cn("w-full caption-bottom text-sm", className)}
+      />
+    </div>
+  );
+}
+
+export type TableHeaderProps = ComponentProps<"thead">;
+
+/** `<thead>`. Rows inside lose their bottom border on the last row via `TableBody`'s selector. */
+export function TableHeader({ className, ...props }: TableHeaderProps) {
+  return <thead {...props} data-slot="table-header" className={cn("[&_tr]:border-b", className)} />;
+}
+
+export type TableBodyProps = ComponentProps<"tbody">;
+
+/** `<tbody>`. Its last row has no bottom border. */
+export function TableBody({ className, ...props }: TableBodyProps) {
+  return (
+    <tbody
+      {...props}
+      data-slot="table-body"
+      className={cn("[&_tr:last-child]:border-0", className)}
+    />
+  );
+}
+
+export type TableFooterProps = ComponentProps<"tfoot">;
+
+/** `<tfoot>`, styled distinctly from the body (muted background, medium weight). */
+export function TableFooter({ className, ...props }: TableFooterProps) {
+  return (
+    <tfoot
+      {...props}
+      data-slot="table-footer"
+      className={cn("border-t bg-muted/50 font-medium [&>tr]:last:border-b-0", className)}
+    />
+  );
+}
+
+export type TableRowProps = ComponentProps<"tr">;
+
+/** `<tr>`. Hover highlight, plus a selected look via `data-state="selected"` or `aria-selected`. */
+export function TableRow({ className, ...props }: TableRowProps) {
+  return (
+    <tr
+      {...props}
+      data-slot="table-row"
+      className={cn(
+        "border-b border-border transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted aria-selected:bg-muted",
+        className,
+      )}
+    />
+  );
+}
+
+export interface TableHeadProps extends ComponentProps<"th"> {
+  /** Sets `aria-sort`; omitted (not rendered) when left `undefined`. */
+  sort?: "ascending" | "descending" | "none";
+}
+
+/** `<th>`, `scope="col"` by default (override for row headers). */
+export function TableHead({ className, sort, scope = "col", ...props }: TableHeadProps) {
+  return (
+    <th
+      {...props}
+      scope={scope}
+      aria-sort={sort}
+      data-slot="table-head"
+      className={cn(
+        "h-10 px-3 text-left align-middle font-medium text-muted-foreground whitespace-nowrap",
+        className,
+      )}
+    />
+  );
+}
+
+export type TableCellProps = ComponentProps<"td">;
+
+/** `<td>`. */
+export function TableCell({ className, ...props }: TableCellProps) {
+  return (
+    <td {...props} data-slot="table-cell" className={cn("px-3 py-2.5 align-middle", className)} />
+  );
+}
+
+export type TableCaptionProps = ComponentProps<"caption">;
+
+/** `<caption>`, placed below the table by `caption-bottom` on `Table`. */
+export function TableCaption({ className, ...props }: TableCaptionProps) {
+  return (
+    <caption
+      {...props}
+      data-slot="table-caption"
+      className={cn("mt-4 text-sm text-muted-foreground", className)}
+    />
+  );
+}
+
+function ArrowUpIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="size-4"
+    >
+      <path d="M12 19V5" />
+      <path d="m5 12 7-7 7 7" />
+    </svg>
+  );
+}
+
+function ArrowDownIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="size-4"
+    >
+      <path d="M12 5v14" />
+      <path d="m19 12-7 7-7-7" />
+    </svg>
+  );
+}
+
+function ArrowUpDownIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="size-4"
+    >
+      <path d="m21 16-4 4-4-4" />
+      <path d="M17 20V4" />
+      <path d="m3 8 4-4 4 4" />
+      <path d="M7 4v16" />
+    </svg>
+  );
+}
+
+export interface TableSortButtonProps extends ComponentProps<"button"> {
+  /** Picks the trailing icon (arrow-up / arrow-down / arrow-up-down). @default "none" */
+  direction?: "ascending" | "descending" | "none";
+}
+
+const tableSortButtonClasses =
+  "-ml-2 inline-flex h-8 cursor-pointer items-center gap-1 rounded-md px-2 hover:bg-muted hover:text-foreground outline-none outline-offset-2 outline-ring focus-visible:outline-2 focus-visible:outline-solid";
+
+/**
+ * A button for a `TableHead`'s sortable column label. No hooks: `onClick` and the current
+ * `direction` (paired with `aria-sort` on the surrounding `TableHead`) are the caller's.
+ */
+export function TableSortButton({
+  direction = "none",
+  className,
+  type = "button",
+  children,
+  ...props
+}: TableSortButtonProps) {
+  return (
+    <button
+      {...props}
+      type={type}
+      data-slot="table-sort-button"
+      className={cn(tableSortButtonClasses, className)}
+    >
+      {children}
+      {direction === "ascending" ? (
+        <ArrowUpIcon />
+      ) : direction === "descending" ? (
+        <ArrowDownIcon />
+      ) : (
+        <ArrowUpDownIcon />
+      )}
+    </button>
+  );
+}

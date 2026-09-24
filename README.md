@@ -262,10 +262,19 @@ source files automatically (build output + `"use client"` directive checks).
   `getPaginationRange({ page, pageCount, siblings, boundaries })` is a pure helper that collapses a
   long run of pages into `1 … 4 5 [6] 7 8 … 20` (never collapsing a single page — it shows that page
   instead, since hiding it saves no space). Server-safe)
+- [x] Table, TableHeader, TableBody, TableFooter, TableRow, TableHead, TableCell, TableCaption,
+  TableSortButton (a `<table>` inside a horizontally-scrolling container — wide tables scroll instead
+  of overflowing the page; `className` styles the `<table>`, `containerClassName` the wrapper.
+  `TableHead` is `scope="col"` by default (override for row headers) and takes a `sort` prop
+  (`"ascending" | "descending" | "none"`) that sets `aria-sort` (omitted when left `undefined`).
+  `TableRow` highlights on hover and looks selected via `data-state="selected"` or `aria-selected`.
+  `TableSortButton` is a presentational `<button>` for a sortable column header — no hooks, `onClick`
+  and the current `direction` are the caller's, and it swaps its trailing icon (arrow-up / arrow-down
+  / arrow-up-down) to match. Server-safe)
 
 Phase A (foundation), Phase B (forms), Phase C (overlays) and Phase D (navigation and feedback) are
-complete. Phase E (data entry and display) is in progress: Skeleton, Breadcrumb and Pagination are
-done; Table, Slider, NumberField, Combobox and Drawer remain.
+complete. Phase E (data entry and display) is in progress: Skeleton, Breadcrumb, Pagination and Table
+are done; Slider, NumberField, Combobox and Drawer remain.
 
 Composition: when a part is rendered through another (`<Fieldset render={<RadioGroup className=…/>}>`),
 the outer part's own classes win over conflicting classes on the render element (Base UI merges the
@@ -307,7 +316,7 @@ Separators for billing; and a "Save changes" Button that shows a success toast f
 
 ## Roadmap
 
-Finishing Phase E: Combobox, Slider, NumberField, Table, Drawer (Sheet is the same component, on
+Finishing Phase E: Combobox, Slider, NumberField, Drawer (Sheet is the same component, on
 Base UI's `Drawer.*`).
 
 Next, Phase F: Calendar, DatePicker, DateRangePicker, ToggleGroup, Toolbar, ScrollArea, Meter,

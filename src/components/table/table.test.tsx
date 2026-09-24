@@ -1,0 +1,192 @@
+import axe from "axe-core";
+import { afterEach, describe, expect, it } from "vitest";
+import { userEvent } from "vitest/browser";
+import { render } from "vitest-browser-react";
+import { emulateForcedColors, resetEmulatedMedia } from "../../../test/emulation";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableSortButton,
+} from "./table";
+
+function Invoices() {
+  return (
+    <Table>
+      <TableCaption>A list of recent invoices.</TableCaption>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Invoice</TableHead>
+          <TableHead>
+            <TableSortButton direction="ascending">Total</TableSortButton>
+          </TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        <TableRow>
+          <TableCell>INV001</TableCell>
+          <TableCell>$250.00</TableCell>
+        </TableRow>
+        <TableRow>
+          <TableCell>INV002</TableCell>
+          <TableCell>$150.00</TableCell>
+        </TableRow>
+      </TableBody>
+      <TableFooter>
+        <TableRow>
+          <TableCell>Total</TableCell>
+          <TableCell>$400.00</TableCell>
+        </TableRow>
+      </TableFooter>
+    </Table>
+  );
+}
+
+afterEach(async () => {
+  await resetEmulatedMedia();
+});
+
+describe("Table", () => {
+  it("renders a table/thead/tbody/tfoot structure with data-slot on every part", async () => {
+    const screen = await render(<Invoices />);
+    expect(screen.container.querySelector('[data-slot="table-container"]')?.tagName).toBe("DIV");
+    expect(screen.container.querySelector('[data-slot="table"]')?.tagName).toBe("TABLE");
+    expect(screen.container.querySelector('[data-slot="table-header"]')?.tagName).toBe("THEAD");
+    expect(screen.container.querySelector('[data-slot="table-body"]')?.tagName).toBe("TBODY");
+    expect(screen.container.querySelector('[data-slot="table-footer"]')?.tagName).toBe("TFOOT");
+    expect(screen.container.querySelector('[data-slot="table-caption"]')?.tagName).toBe("CAPTION");
+    const rows = screen.container.querySelectorAll('[data-slot="table-row"]');
+    expect(rows).toHaveLength(4);
+    for (const row of rows) expect(row.tagName).toBe("TR");
+    const heads = screen.container.querySelectorAll('[data-slot="table-head"]');
+    expect(heads).toHaveLength(2);
+    for (const head of heads) expect(head.tagName).toBe("TH");
+    const cells = screen.container.querySelectorAll('[data-slot="table-cell"]');
+    expect(cells).toHaveLength(6);
+    for (const cell of cells) expect(cell.tagName).toBe("TD");
+  });
+
+  it("scopes TableHead columns by default and lets callers override", async () => {
+    const screen = await render(
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Invoice</TableHead>
+            <TableHead scope="row">Total</TableHead>
+          </TableRow>
+        </TableHeader>
+      </Table>,
+    );
+    const heads = screen.container.querySelectorAll('[data-slot="table-head"]');
+    expect(heads[0]?.getAttribute("scope")).toBe("col");
+    expect(heads[1]?.getAttribute("scope")).toBe("row");
+  });
+
+  it("omits aria-sort when sort is undefined and sets it when given", async () => {
+    const screen = await render(
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Invoice</TableHead>
+            <TableHead sort="descending">Total</TableHead>
+          </TableRow>
+        </TableHeader>
+      </Table>,
+    );
+    const heads = screen.container.querySelectorAll('[data-slot="table-head"]');
+    expect(heads[0]?.hasAttribute("aria-sort")).toBe(false);
+    expect(heads[1]?.getAttribute("aria-sort")).toBe("descending");
+  });
+
+  it("renders a distinct icon per TableSortButton direction", async () => {
+    const { container: ascending } = await render(<TableSortButton direction="ascending" />);
+    const { container: descending } = await render(<TableSortButton direction="descending" />);
+    const { container: none } = await render(<TableSortButton direction="none" />);
+    const icons = [ascending, descending, none].map(
+      (c) => c.querySelector('[data-slot="table-sort-button"] svg')?.outerHTML,
+    );
+    expect(new Set(icons).size).toBe(3);
+    for (const c of [ascending, descending, none]) {
+      const svg = c.querySelector('[data-slot="table-sort-button"] svg');
+      expect(svg?.getAttribute("aria-hidden")).toBe("true");
+    }
+  });
+
+  it("passes through props and merges className", async () => {
+    const screen = await render(<TableSortButton className="max-w-40">Total</TableSortButton>);
+    const button = screen.getByRole("button", { name: /Total/ });
+    await expect.element(button).toHaveClass("max-w-40");
+    await expect.element(button).toHaveClass("cursor-pointer");
+    await expect.element(button).toHaveAttribute("type", "button");
+  });
+
+  it("keeps a wide table's horizontal scroll inside its container", async () => {
+    const screen = await render(
+      <div style={{ width: "200px" }}>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {Array.from({ length: 20 }, (_, i) => `Column ${i}`).map((label) => (
+                <TableHead key={label}>{label}</TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+        </Table>
+      </div>,
+    );
+    const outer = screen.container.querySelector("div");
+    const scrollContainer = screen.container.querySelector(
+      '[data-slot="table-container"]',
+    ) as HTMLElement;
+    expect(scrollContainer.className).toContain("overflow-x-auto");
+    // The scroll container's own box stays within its parent's width; the overflow is contained,
+    // not pushed onto the page (scrollWidth of the parent must not grow past what it was given).
+    expect(outer?.scrollWidth).toBeLessThanOrEqual(200);
+  });
+
+  it("shows a solid 2px outline on Tab focus of a sort button, none before", async () => {
+    const screen = await render(<TableSortButton>Total</TableSortButton>);
+    const button = screen.getByRole("button", { name: /Total/ }).element();
+    expect(getComputedStyle(button).outlineStyle).toBe("none");
+    await userEvent.tab();
+    expect(document.activeElement).toBe(button);
+    const style = getComputedStyle(button);
+    expect(style.outlineStyle).toBe("solid");
+    expect(style.outlineWidth).toBe("2px");
+  });
+
+  it("shows no permanent outline in forced colors, only on focus", async () => {
+    await emulateForcedColors(true);
+    expect(matchMedia("(forced-colors: active)").matches).toBe(true);
+    const screen = await render(<TableSortButton>Total</TableSortButton>);
+    const button = screen.getByRole("button", { name: /Total/ }).element();
+    expect(getComputedStyle(button).outlineStyle).toBe("none");
+    await userEvent.tab();
+    expect(document.activeElement).toBe(button);
+    const style = getComputedStyle(button);
+    expect(style.outlineStyle).toBe("solid");
+    expect(Number.parseFloat(style.outlineWidth)).toBeGreaterThanOrEqual(1);
+  });
+
+  it.each(["light", "dark"] as const)("has no axe violations in the %s theme", async (theme) => {
+    const screen = await render(
+      <div
+        className={
+          theme === "dark"
+            ? "dark bg-background p-4 text-foreground"
+            : "bg-background p-4 text-foreground"
+        }
+      >
+        <Invoices />
+      </div>,
+    );
+    const results = await axe.run(screen.container);
+    expect(results.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+    expect(results.incomplete.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+  });
+});
