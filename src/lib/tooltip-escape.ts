@@ -5,10 +5,10 @@ import { useCallback } from "react";
  *
  * Base UI's tooltip is not part of the floating tree that lets the innermost overlay take Escape,
  * and every overlay listens for Escape on `document`. So a Tessera Tooltip registers itself here
- * while it is open, and the Tessera overlay roots (Dialog, AlertDialog, Popover, Menu) cancel an
- * Escape close while one is open: the tooltip's own Escape handling closes it, and the outer
- * overlay closes on the next Escape. Nothing stops the event: an app's `keydown` listener still
- * receives it.
+ * while it is open, and the Tessera overlay roots (Dialog, AlertDialog, Popover, Menu, MenuSub,
+ * Select; later Drawer, Combobox) cancel an Escape close while one is open: the tooltip's own
+ * Escape handling closes it, and the outer overlay closes on the next Escape. Nothing stops the
+ * event: an app's `keydown` listener still receives it.
  */
 
 const openTooltips = new Set<symbol>();
@@ -71,7 +71,7 @@ export function yieldEscapeToTooltip(open: boolean, eventDetails: OpenChangeDeta
  * forwarded to the caller.
  *
  * Every Tessera overlay root with Escape dismissal (Dialog, AlertDialog, Popover, Menu, MenuSub,
- * and later Select, Drawer, Combobox, …) must wrap its `onOpenChange` with this — otherwise an
+ * Select; later Drawer, Combobox, …) must wrap its `onOpenChange` with this — otherwise an
  * Escape meant for an open Tooltip also closes that overlay.
  */
 export function useLayeredEscape<Details extends OpenChangeDetails>(

@@ -50,7 +50,8 @@ export type TooltipProps = BaseTooltip.Root.Props;
 /**
  * Groups a trigger and its content. Renders no element.
  *
- * Escape closes an open tooltip first, even inside a Tessera Dialog, AlertDialog, Popover or Menu:
+ * Escape closes an open tooltip first, even inside a Tessera Dialog, AlertDialog, Popover, Menu,
+ * MenuSub or Select:
  * the outer overlay stays open until the next Escape. The event is not swallowed; app `keydown`
  * listeners still receive it.
  */
@@ -74,8 +75,11 @@ export function Tooltip({ onOpenChange, ...props }: TooltipProps) {
         }
         lastEscapeRef.current = eventDetails.event;
       }
-      setUncontrolledOpen(nextOpen);
       onOpenChange?.(nextOpen, eventDetails);
+      // Track the final state: a caller that cancels the change keeps the tooltip as it was, so
+      // it must stay registered (or unregistered) for layered Escape.
+      if (eventDetails.isCanceled) return;
+      setUncontrolledOpen(nextOpen);
     },
     [onOpenChange],
   );

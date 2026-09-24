@@ -30,6 +30,18 @@ const toastWith = (text: string) =>
   toasts().find((toast) => toast.textContent?.includes(text)) ?? null;
 const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
 
+/**
+ * Base UI pauses toast timers while the window is blurred. Headless Chromium keeps the test page
+ * focused; a local headed run with another window in front would not, and the timer tests would
+ * then time out waiting for a dismissal that never comes. Fail fast with the reason instead.
+ */
+function expectWindowFocused() {
+  expect(
+    document.hasFocus(),
+    "the test page must have focus: blurred windows pause toast timers",
+  ).toBe(true);
+}
+
 /** Waits (polling, no fixed sleep) until nothing in the document is animating. */
 async function animationsSettled() {
   await nextFrame();
@@ -119,6 +131,7 @@ describe("Toast", () => {
 
   it("auto-dismisses after its timeout, and timeout 0 keeps it", async () => {
     const { toast } = await renderToaster();
+    expectWindowFocused();
     // The pointer must not rest on the viewport: hovering pauses the timers.
     toast().add({ title: "Sticky", timeout: 0 });
     toast().add({ title: "Brief", timeout: 200 });
@@ -130,6 +143,7 @@ describe("Toast", () => {
 
   it("uses the Toaster's timeout as the default", async () => {
     const { toast } = await renderToaster({ timeout: 200 });
+    expectWindowFocused();
     toast().add({ title: "Default timeout" });
     await expect.poll(() => toastWith("Default timeout")).not.toBeNull();
     await expect.poll(() => toastWith("Default timeout"), { timeout: 3000 }).toBeNull();
@@ -398,6 +412,93 @@ describe("Toast", () => {
     const style = getComputedStyle(root);
     expect(style.outlineStyle).toBe("solid");
     expect(style.outlineWidth).toBe("2px");
+  });
+
+  /*
+   * Collapsed, Base UI keeps each Close button `aria-hidden` (and the content behind the front
+   * toast faded out) yet leaves it in the Tab order. That is by design: keyboard focus entering
+   * the viewport expands the stack and lifts `aria-hidden` before the button is reached. Tessera
+   * adds no tabIndex/inert override; these two tests pin the behaviour.
+   */
+  describe("collapsed stack Close buttons", () => {
+    const closeOf = (toast: HTMLElement) =>
+      toast.querySelector('[data-slot="toast-close"] button') as HTMLElement;
+    const contentOf = (toast: HTMLElement) =>
+      toast.querySelector('[data-slot="toast-content"]') as HTMLElement;
+
+    async function collapsedStack() {
+      const { toast } = await renderToaster(
+        {},
+        <div className="bg-background p-4 text-foreground">
+          <button type="button" data-testid="before">
+            Before
+          </button>
+        </div>,
+      );
+      toast().add({ title: "Older", description: "Sent earlier.", timeout: 0 });
+      toast().add({
+        title: "Newer",
+        description: "Sent just now.",
+        timeout: 0,
+        actionProps: { children: "Undo" },
+      });
+      await expect.poll(() => toasts().length).toBe(2);
+      await animationsSettled();
+      const region = viewport() as HTMLElement;
+      expect(region.hasAttribute("data-expanded")).toBe(false);
+      const older = toastWith("Older") as HTMLElement;
+      const newer = toastWith("Newer") as HTMLElement;
+      expect(closeOf(older).getAttribute("aria-hidden")).toBe("true");
+      expect(closeOf(newer).getAttribute("aria-hidden")).toBe("true");
+      // Behind the front toast, the content is faded out while collapsed.
+      expect(getComputedStyle(contentOf(older)).opacity).toBe("0");
+      return { region, older, newer };
+    }
+
+    it("expands and un-hides before Tab from a preceding button reaches a Close", async () => {
+      const { region, older, newer } = await collapsedStack();
+      await userEvent.click(page.getByTestId("before"));
+      const reached: HTMLElement[] = [];
+      for (let i = 0; i < 8 && reached.length < 2; i++) {
+        await userEvent.tab();
+        const active = document.activeElement as HTMLElement;
+        const toast = [newer, older].find((t) => closeOf(t) === active);
+        if (!toast) continue;
+        reached.push(toast);
+        // At the moment the Close has focus: the stack is expanded, the button is exposed and
+        // its toast's content is (fading) visible.
+        expect(region.hasAttribute("data-expanded")).toBe(true);
+        expect(active.getAttribute("aria-hidden") ?? "false").toBe("false");
+        expect(getComputedStyle(contentOf(toast)).pointerEvents).not.toBe("none");
+        await expect.poll(() => getComputedStyle(contentOf(toast)).opacity).toBe("1");
+      }
+      expect(reached).toEqual([newer, older]);
+    });
+
+    it.each(["light", "dark"] as const)(
+      "reports only aria-hidden-focus on the Close buttons at rest (%s)",
+      async (theme) => {
+        if (theme === "dark") document.documentElement.classList.add("dark");
+        try {
+          const { older, newer } = await collapsedStack();
+          const { violations, incomplete } = await auditOpenOverlay();
+          expect(violations).toEqual([]);
+          const flagged = incomplete.map((entry) => {
+            const [rule, target] = entry.split(": ");
+            return { rule, element: document.querySelector(target as string) };
+          });
+          expect(flagged).toEqual([
+            { rule: "aria-hidden-focus", element: expect.anything() },
+            { rule: "aria-hidden-focus", element: expect.anything() },
+          ]);
+          expect(new Set(flagged.map((f) => f.element))).toEqual(
+            new Set([closeOf(newer), closeOf(older)]),
+          );
+        } finally {
+          document.documentElement.classList.remove("dark");
+        }
+      },
+    );
   });
 
   it("merges className onto the viewport", async () => {

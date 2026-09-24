@@ -12,8 +12,17 @@ import {
 } from "../alert-dialog";
 import { Button } from "../button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "../dialog";
-import { Menu, MenuContent, MenuItem, MenuTrigger } from "../menu";
+import {
+  Menu,
+  MenuContent,
+  MenuItem,
+  MenuSub,
+  MenuSubContent,
+  MenuSubTrigger,
+  MenuTrigger,
+} from "../menu";
 import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from "../popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../select";
 import { Tooltip, TooltipContent, type TooltipProps, TooltipTrigger } from "./tooltip";
 
 /**
@@ -27,6 +36,7 @@ type Outer = "dialog" | "alert-dialog" | "popover" | "menu";
 
 const tooltipSpy = vi.fn<NonNullable<TooltipProps["onOpenChange"]>>();
 const outerSpy = vi.fn();
+const selectSpy = vi.fn();
 const appKeys: string[] = [];
 const windowKeys: string[] = [];
 function appListener(event: KeyboardEvent) {
@@ -39,6 +49,7 @@ function windowListener(event: KeyboardEvent) {
 beforeEach(() => {
   tooltipSpy.mockReset();
   outerSpy.mockReset();
+  selectSpy.mockReset();
   appKeys.length = 0;
   windowKeys.length = 0;
   document.addEventListener("keydown", appListener);
@@ -189,6 +200,32 @@ describe("Tooltip Escape inside another overlay", () => {
     },
   );
 
+  it("dialog: a tooltip close cancelled by the caller keeps the tooltip registered as open", async () => {
+    let cancelNext = true;
+    tooltipSpy.mockImplementation((open, eventDetails) => {
+      if (!open && eventDetails.reason === "escape-key" && cancelNext) eventDetails.cancel();
+    });
+    await render(<Fixture outer="dialog" />);
+    await openOuter("dialog");
+    await openTooltipByHover("dialog");
+
+    // 1st Escape: the caller cancels the tooltip's close, so both stay open.
+    await userEvent.keyboard("{Escape}");
+    await expect.element(page.getByRole("tooltip")).toBeVisible();
+    expect(outerPopup("dialog")).not.toBeNull();
+    cancelNext = false;
+
+    // 2nd Escape: the tooltip is still open, so it (not the dialog) takes this one.
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(tooltipPopup).toBeNull();
+    expect(outerPopup("dialog")).not.toBeNull();
+    expect(outerSpy.mock.calls.filter(([open]) => open === false)).toHaveLength(0);
+
+    // 3rd Escape closes the dialog.
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => outerPopup("dialog")).toBeNull();
+  });
+
   it("standalone: Escape closes the tooltip and reaches document and window listeners", async () => {
     await render(
       <div className="p-16">
@@ -209,6 +246,137 @@ describe("Tooltip Escape inside another overlay", () => {
   it("dialog: Escape with no tooltip open still closes the dialog at once", async () => {
     await render(<Fixture outer="dialog" />);
     await openOuter("dialog");
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => outerPopup("dialog")).toBeNull();
+    expect(outerSpy).toHaveBeenLastCalledWith(
+      false,
+      expect.objectContaining({ reason: "escape-key" }),
+    );
+  });
+
+  it("menu submenu: a tooltip in MenuSubContent closes first, then the submenu, then the menu", async () => {
+    const subSpy = vi.fn();
+    await render(
+      <Menu onOpenChange={outerSpy}>
+        <MenuTrigger render={<Button variant="outline" />}>Open outer</MenuTrigger>
+        <MenuContent>
+          <MenuItem>Duplicate</MenuItem>
+          <MenuSub onOpenChange={subSpy}>
+            <MenuSubTrigger>Share</MenuSubTrigger>
+            <MenuSubContent>
+              <MenuItem>Email</MenuItem>
+              <HelpTooltip
+                trigger={
+                  <TooltipTrigger delay={0} closeDelay={0} render={<MenuItem />}>
+                    Help
+                  </TooltipTrigger>
+                }
+              />
+            </MenuSubContent>
+          </MenuSub>
+        </MenuContent>
+      </Menu>,
+    );
+    await openOuter("menu");
+    await userEvent.keyboard("{ArrowDown}{ArrowDown}{ArrowRight}");
+    const sub = () => document.querySelector<HTMLElement>("[data-slot=menu-sub-content]");
+    await expect.poll(sub).not.toBeNull();
+    await waitForPopupSettled(sub() as HTMLElement);
+    await userEvent.hover(page.getByRole("menuitem", { name: "Help" }));
+    await expect.element(page.getByRole("tooltip")).toBeVisible();
+    await waitForPopupSettled(tooltipPopup() as HTMLElement);
+
+    // 1st Escape: only the tooltip; the submenu and the root menu stay open; the app hears it.
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(tooltipPopup).toBeNull();
+    expect(sub()).not.toBeNull();
+    expect(outerPopup("menu")).not.toBeNull();
+    expect(appKeys).toEqual(["Escape"]);
+    expect(subSpy.mock.calls.filter(([open]) => open === false)).toHaveLength(0);
+    expect(outerSpy.mock.calls.filter(([open]) => open === false)).toHaveLength(0);
+
+    // 2nd Escape: the submenu only (Base UI closes the innermost menu).
+    const menuCount = () => document.querySelectorAll('[role="menu"]').length;
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(menuCount).toBe(1);
+    await expect.poll(sub).toBeNull();
+    expect(outerPopup("menu")).not.toBeNull();
+    expect(subSpy).toHaveBeenLastCalledWith(
+      false,
+      expect.objectContaining({ reason: "escape-key" }),
+    );
+    expect(outerSpy.mock.calls.filter(([open]) => open === false)).toHaveLength(0);
+
+    // 3rd Escape: the root menu.
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(menuCount).toBe(0);
+    expect(outerSpy).toHaveBeenLastCalledWith(
+      false,
+      expect.objectContaining({ reason: "escape-key" }),
+    );
+  });
+
+  it("dialog > select > tooltip: three Escapes close tooltip, select, dialog in turn", async () => {
+    await render(
+      <Dialog onOpenChange={outerSpy}>
+        <DialogTrigger render={<Button variant="outline" />}>Open outer</DialogTrigger>
+        <DialogContent>
+          <DialogTitle>Outer</DialogTitle>
+          <DialogDescription>Holds a select.</DialogDescription>
+          <Select<string> items={{ kiwi: "Kiwi", lime: "Lime" }} onOpenChange={selectSpy}>
+            <SelectTrigger aria-label="Fruit">
+              <SelectValue placeholder="Pick a fruit" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="lime">Lime</SelectItem>
+              <SelectItem value="kiwi">
+                Kiwi
+                <Tooltip onOpenChange={tooltipSpy}>
+                  <TooltipTrigger delay={0} closeDelay={0} render={<span data-testid="info" />}>
+                    (seasonal)
+                  </TooltipTrigger>
+                  <TooltipContent>Available from October</TooltipContent>
+                </Tooltip>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </DialogContent>
+      </Dialog>,
+    );
+    await openOuter("dialog");
+    await userEvent.click(page.getByRole("combobox", { name: "Fruit" }));
+    await expect.element(page.getByRole("listbox")).toBeVisible();
+    await waitForPopupSettled(
+      document.querySelector<HTMLElement>("[data-slot=select-content]") as HTMLElement,
+    );
+    await userEvent.hover(page.getByTestId("info"));
+    await expect.element(page.getByRole("tooltip")).toBeVisible();
+    await waitForPopupSettled(tooltipPopup() as HTMLElement);
+    const closes = (spy: typeof outerSpy) => spy.mock.calls.filter(([open]) => !open).length;
+
+    // 1st Escape: the tooltip only; the app's document listener hears it.
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(tooltipPopup).toBeNull();
+    await expect.element(page.getByRole("listbox")).toBeVisible();
+    expect(outerPopup("dialog")).not.toBeNull();
+    expect(appKeys).toEqual(["Escape"]);
+    expect(closes(selectSpy)).toBe(0);
+    expect(closes(outerSpy)).toBe(0);
+
+    // 2nd Escape: the select only. Base UI stops the Escape it handles itself (as for every
+    // overlay's own close), so the app's document listener does not hear this one.
+    await userEvent.keyboard("{Escape}");
+    await expect.element(page.getByRole("listbox")).not.toBeInTheDocument();
+    await expect.element(page.getByRole("combobox", { name: "Fruit" })).toHaveFocus();
+    expect(outerPopup("dialog")).not.toBeNull();
+    expect(appKeys).toEqual(["Escape"]);
+    expect(selectSpy).toHaveBeenLastCalledWith(
+      false,
+      expect.objectContaining({ reason: "escape-key" }),
+    );
+    expect(closes(outerSpy)).toBe(0);
+
+    // 3rd Escape: the dialog.
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => outerPopup("dialog")).toBeNull();
     expect(outerSpy).toHaveBeenLastCalledWith(
