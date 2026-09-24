@@ -47,12 +47,12 @@
   - Focus: `outline-hidden outline-offset-2 outline-ring focus-visible:outline-2 focus-visible:outline-solid`.
   - Invalid: `data-invalid:border-danger` (the Switch track gets `data-invalid:outline-1 data-invalid:outline-solid data-invalid:outline-danger data-invalid:focus-visible:outline-2`, so while focused the ring keeps 2px width in the danger color).
   - Hover while unchecked (Checkbox and Radio; the Switch has its own track rule above): `not-data-disabled:not-data-checked:not-data-indeterminate:not-data-invalid:hover:border-field-border-hover` (never overrides checked, indeterminate or invalid borders).
-- **Label / FieldLabel:** `text-sm font-medium leading-snug text-foreground` plus `data-disabled:opacity-50` (FieldLabel reflects the Field's disabled state).
+- **Label / FieldLabel:** `text-sm font-medium leading-snug text-foreground`. FieldLabel adds `data-disabled:text-muted-foreground` (it reflects the Field's disabled state by dimming its text color, not its opacity, so a control nested in the label keeps its own 50% opacity instead of compounding to ~25%).
 - **FieldDescription:** `text-sm text-muted-foreground`.
 - **FieldError:** `text-sm text-danger`.
 - **Field:** `flex flex-col gap-1.5`.
 - **Fieldset:** `flex flex-col gap-3`. **FieldsetLegend:** `text-sm font-medium text-foreground`.
-- **RadioGroup:** `flex flex-col gap-2` (a horizontal layout is up to the caller's className).
+- **RadioGroup:** `flex flex-col gap-2` (standalone, a horizontal layout is up to the caller's className; composed through a Fieldset, wrap the options in a `flex flex-row` element — see the Composition rule in §3).
 
 ## 3. Behavior
 
@@ -60,6 +60,7 @@ Every component passes Base UI props through, including `render` and `className`
 
 - `data-slot` is set on every part: `field`, `field-item`, `field-label`, `field-description`, `field-error`, `fieldset`, `fieldset-legend`, `input`, `textarea`, `checkbox`, `checkbox-indicator`, `switch`, `switch-thumb`, `radio-group`, `radio`, `radio-indicator`, `label`.
 - `FieldError` shows only while the field is invalid, which is Base UI's default. `match` passes through.
+- Composition rule: when a Tessera part is composed via `render={<X className=…/>}`, the outer part's own base classes override conflicting classes on X (Base UI merges the render element's className first, then the outer part's resolved classes; tailwind-merge keeps the last). So parts used as render hosts (and Phase C triggers) must carry no conflicting base layout/color classes; lay out children with a wrapper element instead (e.g. a `flex flex-row` div around the radios inside `<Fieldset render={<RadioGroup />}>`).
 - Every interactive component gets a Tab-focus test that asserts the computed `outline-style` is `solid` and the width is correct (1px for text fields, 2px for the others). The cursor is checked via computed style.
 
 ## 4. Stories and docs

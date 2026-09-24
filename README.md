@@ -127,8 +127,15 @@ source files automatically (build output + `"use client"` directive checks).
   `<Fieldset render={<RadioGroup />}><FieldsetLegend>…</FieldsetLegend>…</Fieldset>`; inside a Field,
   wrap each option in FieldItem)
 - [x] Fieldset, FieldsetLegend (groups radios or Fields; a disabled Fieldset disables its RadioGroup;
-  to dim labels as well, set `disabled` on the surrounding `Field`)
+  to mute the label text as well, set `disabled` on the surrounding `Field` — FieldLabel dims its text
+  color, and the control keeps its own 50% opacity)
 - [ ] Next up: Tooltip, Popover, Dialog, Menu (Phase C) · Tabs, Select, Accordion, Toast, Avatar, Separator, Progress (Phase D)
+
+Composition: when a part is rendered through another (`<Fieldset render={<RadioGroup className=…/>}>`),
+the outer part's own classes win over conflicting classes on the render element (Base UI merges the
+render element's className first; tailwind-merge keeps the last). Lay out children with a wrapper
+instead — e.g. a horizontal radio group puts the radios in `<div className="flex flex-row gap-6">`
+after the FieldsetLegend.
 
 Forms: there is no Tessera `Form` yet — use Base UI's `Form` (`@base-ui/react/form`) around named
 Fields for submit-time validation. The Storybook story **Tessera/Examples/Sign-up form**
