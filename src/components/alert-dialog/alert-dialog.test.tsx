@@ -80,6 +80,8 @@ describe("AlertDialog", () => {
     expect(document.activeElement).toBe(confirm);
     await userEvent.tab();
     expect(document.activeElement).toBe(cancel);
+    await userEvent.tab({ shift: true });
+    expect(document.activeElement).toBe(confirm);
     expect(popup.contains(document.activeElement)).toBe(true);
   });
 

@@ -19,6 +19,13 @@ import {
 export type DialogProps = BaseDialog.Root.Props;
 
 /**
+ * Base UI conveys modality by hiding everything outside the popup (`aria-hidden`) but sets no
+ * `aria-modal`; Tessera adds it for modal dialogs (`modal` true or "trap-focus", the cases where
+ * Base UI hides the outside), so the content needs the root's `modal` value.
+ */
+const DialogModalContext = createContext<DialogProps["modal"]>(true);
+
+/**
  * Groups a trigger and its content. Renders no element. Modal by default: focus is trapped, page
  * scroll is locked and outside pointer interaction is blocked. Controlled via `open` / `onOpenChange`.
  */
@@ -29,13 +36,6 @@ export function Dialog(props: DialogProps) {
     </DialogModalContext.Provider>
   );
 }
-
-/**
- * Base UI conveys modality by hiding everything outside the popup (`aria-hidden`) but sets no
- * `aria-modal`; Tessera adds it for modal dialogs (`modal` true or "trap-focus", the cases where
- * Base UI hides the outside), so the content needs the root's `modal` value.
- */
-const DialogModalContext = createContext<DialogProps["modal"]>(true);
 
 export type DialogTriggerProps = BaseDialog.Trigger.Props;
 

@@ -36,6 +36,30 @@ describe("auditOpenOverlay", () => {
     expect(incomplete).toEqual(["aria-valid-attr-value: button"]);
   });
 
+  // aria-valid-attr-value skips aria-errormessage, so behind aria-controls only the
+  // controlsWithinPopup review remains; the audit must still keep it.
+  it("still reports a trigger whose aria-errormessage is broken, even behind aria-controls", async () => {
+    mount(
+      `<button type="button" aria-errormessage="missing" aria-haspopup="dialog" aria-expanded="true" aria-controls="panel">Open</button>
+       <div id="panel">Panel</div>`,
+    );
+    const { incomplete } = await auditOpenOverlay();
+    expect(incomplete).toEqual(["aria-valid-attr-value: button"]);
+  });
+
+  // A broken aria-details / aria-flowto is a hard violation in axe, never masked by the review.
+  it.each(["aria-details", "aria-flowto"])(
+    "still reports a trigger whose %s is broken",
+    async (attribute) => {
+      mount(
+        `<button type="button" ${attribute}="missing" aria-haspopup="dialog" aria-expanded="true" aria-controls="panel">Open</button>
+         <div id="panel">Panel</div>`,
+      );
+      const { violations } = await auditOpenOverlay();
+      expect(violations.some((v) => v.startsWith("aria-valid-attr-value"))).toBe(true);
+    },
+  );
+
   it("still reports a trigger whose aria-controls is broken", async () => {
     mount(
       `<button type="button" aria-haspopup="dialog" aria-expanded="true" aria-controls="missing">Open</button>`,

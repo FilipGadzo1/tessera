@@ -63,6 +63,9 @@ const idrefAttributes = [
   "aria-labelledby",
   "aria-owns",
   "aria-activedescendant",
+  "aria-errormessage",
+  "aria-details",
+  "aria-flowto",
 ];
 
 function idrefsResolve(node: axe.NodeResult) {
