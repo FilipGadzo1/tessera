@@ -1,10 +1,8 @@
 import axe from "axe-core";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { userEvent } from "vitest/browser";
+import { cdp, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { Tabs, TabsList, type TabsListProps, TabsPanel, type TabsProps, TabsTab } from "./tabs";
-
-const settle = () => new Promise((resolve) => setTimeout(resolve, 250));
 
 function Account({
   variant,
@@ -35,18 +33,30 @@ function Account({
 const indicatorOf = (list: Element) =>
   list.querySelector('[data-slot="tabs-indicator"]') as HTMLElement | null;
 
-/** Resolves once the indicator has no running transitions and matches the tab's box (or times out). */
-async function settledIndicator(list: Element, tab: Element) {
+const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+
+/** Waits (polling, no fixed sleep) until nothing in the document is animating. */
+async function animationsSettled() {
+  await nextFrame();
+  await expect.poll(() => document.getAnimations().length, { timeout: 2000 }).toBe(0);
+}
+
+/**
+ * Resolves once the indicator is shown, has no running transitions and matches the tab along
+ * `axis` (x: left + width, y: top + height) within 1px — or returns the last indicator on timeout.
+ */
+async function settledIndicator(list: Element, tab: Element, axis: "x" | "y" = "x") {
+  const [start, size] = axis === "x" ? (["left", "width"] as const) : (["top", "height"] as const);
   const deadline = performance.now() + 2000;
   for (;;) {
     const indicator = indicatorOf(list);
     if (indicator && !indicator.hidden && indicator.getAnimations().length === 0) {
       const a = indicator.getBoundingClientRect();
       const b = tab.getBoundingClientRect();
-      if (Math.abs(a.left - b.left) <= 1 && Math.abs(a.width - b.width) <= 1) return indicator;
+      if (Math.abs(a[start] - b[start]) <= 1 && Math.abs(a[size] - b[size]) <= 1) return indicator;
     }
     if (performance.now() > deadline) return indicator;
-    await new Promise((resolve) => requestAnimationFrame(resolve));
+    await nextFrame();
   }
 }
 
@@ -67,8 +77,7 @@ describe("Tabs", () => {
     await expect
       .element(screen.getByRole("tabpanel", { name: "Profile" }))
       .toHaveAttribute("data-slot", "tabs-panel");
-    await settle();
-    expect(indicatorOf(list.element())).not.toBeNull();
+    await expect.poll(() => indicatorOf(list.element())).not.toBeNull();
   });
 
   it("wires aria-selected, aria-controls and the panel's aria-labelledby", async () => {
@@ -223,24 +232,45 @@ describe("Tabs", () => {
       const billing = screen.getByRole("tab", { name: "Billing" });
       await billing.click();
       const tab = billing.element();
-      const deadline = performance.now() + 2000;
-      let a = new DOMRect();
-      for (;;) {
-        const indicator = indicatorOf(list);
-        if (indicator && indicator.getAnimations().length === 0) {
-          a = indicator.getBoundingClientRect();
-          const b = tab.getBoundingClientRect();
-          if (Math.abs(a.top - b.top) <= 1 && Math.abs(a.height - b.height) <= 1) break;
-        }
-        if (performance.now() > deadline) break;
-        await new Promise((resolve) => requestAnimationFrame(resolve));
-      }
+      const indicator = await settledIndicator(list, tab, "y");
+      expect(indicator).not.toBeNull();
+      const a = (indicator as HTMLElement).getBoundingClientRect();
       const b = tab.getBoundingClientRect();
       expect(Math.abs(a.top - b.top)).toBeLessThanOrEqual(1);
       expect(Math.abs(a.height - b.height)).toBeLessThanOrEqual(1);
       expect(a.width).toBe(2);
       // Just inside the 1px left border.
       expect(Math.abs(a.left - (list.getBoundingClientRect().left + 1))).toBeLessThanOrEqual(1);
+      expect(getComputedStyle(indicator as HTMLElement).transitionProperty).toBe("top, height");
+    });
+
+    /*
+     * Real media emulation through the Chrome DevTools Protocol (vitest/browser `cdp()`, Chromium
+     * + Playwright provider): `prefers-reduced-motion: reduce` actually matches, so this checks the
+     * cascade (specificity of the vertical variant vs motion-reduce), not just the class list.
+     */
+    describe("under prefers-reduced-motion: reduce", () => {
+      const emulate = (value: "reduce" | "") =>
+        cdp().send("Emulation.setEmulatedMedia", {
+          features: [{ name: "prefers-reduced-motion", value }],
+        });
+      afterEach(async () => {
+        await emulate("");
+      });
+
+      it.each(["horizontal", "vertical"] as const)(
+        "has no %s indicator transition",
+        async (orientation) => {
+          await emulate("reduce");
+          expect(matchMedia("(prefers-reduced-motion: reduce)").matches).toBe(true);
+          const screen = await render(<Account orientation={orientation} />);
+          const list = screen.getByRole("tablist").element();
+          await expect.poll(() => indicatorOf(list)).not.toBeNull();
+          expect(getComputedStyle(indicatorOf(list) as HTMLElement).transitionProperty).toBe(
+            "none",
+          );
+        },
+      );
     });
   });
 
@@ -252,14 +282,13 @@ describe("Tabs", () => {
         <div data-testid="muted" className="text-muted-foreground" />
       </div>,
     );
-    await settle();
     const color = (el: Element) => getComputedStyle(el).color;
-    expect(color(screen.getByRole("tab", { name: "Profile" }).element())).toBe(
-      color(screen.getByTestId("fg").element()),
-    );
-    expect(color(screen.getByRole("tab", { name: "Billing" }).element())).toBe(
-      color(screen.getByTestId("muted").element()),
-    );
+    const fg = color(screen.getByTestId("fg").element());
+    const muted = color(screen.getByTestId("muted").element());
+    await expect.poll(() => color(screen.getByRole("tab", { name: "Profile" }).element())).toBe(fg);
+    await expect
+      .poll(() => color(screen.getByRole("tab", { name: "Billing" }).element()))
+      .toBe(muted);
   });
 
   it("styles the segmented variant: muted track, raised active tab, no indicator", async () => {
@@ -272,7 +301,7 @@ describe("Tabs", () => {
     );
     const list = screen.getByRole("tablist");
     await expect.element(list).toHaveAttribute("data-variant", "segmented");
-    await settle();
+    await animationsSettled();
     const ref = getComputedStyle(screen.getByTestId("background").element());
     expect(getComputedStyle(list.element()).backgroundColor).toBe(
       getComputedStyle(screen.getByTestId("muted").element()).backgroundColor,
@@ -353,7 +382,7 @@ describe("Tabs", () => {
           <Account orientation="vertical" />
         </div>,
       );
-      await settle();
+      await animationsSettled();
       const results = await axe.run(screen.container);
       expect(results.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
       expect(results.incomplete.map((v) => `${v.id}: ${v.nodes.map((n) => n.target)}`)).toEqual([]);

@@ -63,7 +63,7 @@ export function tabsTabVariants(options: TabsVariantProps & { className?: string
 /** The underline variant's sliding indicator (Base UI sets the `--active-tab-*` vars). */
 export const tabsIndicatorClasses = cn(
   "absolute bottom-0 left-(--active-tab-left) h-0.5 w-(--active-tab-width) rounded-full bg-primary transition-[left,width] duration-200 ease-out motion-reduce:transition-none",
-  "data-[orientation=vertical]:top-(--active-tab-top) data-[orientation=vertical]:bottom-auto data-[orientation=vertical]:left-0 data-[orientation=vertical]:h-(--active-tab-height) data-[orientation=vertical]:w-0.5 data-[orientation=vertical]:transition-[top,height]",
+  "data-[orientation=vertical]:top-(--active-tab-top) data-[orientation=vertical]:bottom-auto data-[orientation=vertical]:left-0 data-[orientation=vertical]:h-(--active-tab-height) data-[orientation=vertical]:w-0.5 data-[orientation=vertical]:transition-[top,height] data-[orientation=vertical]:motion-reduce:transition-none",
 );
 
 /** Tabs root: side by side (list, then panel) when vertical. */

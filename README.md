@@ -192,7 +192,10 @@ source files automatically (build output + `"use client"` directive checks).
   jump; activation is manual (Enter/Space) unless TabsList has `activateOnFocus`. A disabled tab stays
   focusable (`aria-disabled`) but can never be activated. `orientation="vertical"` on Tabs puts the
   list beside the panels, with Up/Down arrows. Name the list with `aria-label`. The panel is focusable,
-  so Tab from the active tab lands on it. `tabsListVariants` / `tabsTabVariants` give the classes)
+  so Tab from the active tab lands on it. Vertical layout classes are set with
+  `data-[orientation=vertical]:` (e.g. the list's `gap-1`, the panel's `pt-0`) and outrank a plain
+  className, so in vertical tabs prefix your overrides too: `className="data-[orientation=vertical]:gap-2"`.
+  `tabsListVariants` / `tabsTabVariants` give the classes)
 
 Phase A (foundation), Phase B (forms) and Phase C (overlays) are complete.
 
