@@ -237,6 +237,12 @@ const needleGroups = [
     reason: "overlay z-index tokens (theme.css) or z-(--z-*) utilities from dist/ are missing",
     needles: ["--z-overlay:", "--z-tooltip:", /z-index:\s*var\(--z-tooltip\)/],
   },
+  {
+    // Tailwind escapes the parentheses of `z-(--z-overlay)` in the selector: `.z-\(--z-overlay\)`.
+    reason:
+      "overlay surface utilities (popover surface, overlay z-index) were not scanned from dist/",
+    needles: [".bg-popover", ".text-popover-foreground", ".z-\\(--z-overlay\\)"],
+  },
 ];
 for (const { reason, needles } of needleGroups) {
   for (const needle of needles) {

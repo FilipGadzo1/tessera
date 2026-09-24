@@ -1,7 +1,7 @@
 # Tessera backlog
 
-Open follow-ups from the foundation, Phase A (2026-09-23) and Phase B (2026-09-24) reviews. None
-block current use.
+Open follow-ups from the foundation, Phase A (2026-09-23), Phase B and Phase C (2026-09-24) reviews.
+None block current use.
 
 ## Components
 - Soft / outline / ghost Button variants have no distinct `active` (pressed) color yet — only solid does.
@@ -25,6 +25,12 @@ block current use.
 - RadioGroup has no story literally named `InField` (the Playground covers the Field composition).
 - Sign-up example: the Card width is set via a wrapper element.
 - `toneClass` is not exported publicly — export it when a consumer needs toned custom components.
+- Project card example: member avatars are initials in tinted `<span>`s (and the Card width is set
+  with a class) until an Avatar component lands (Phase D).
+- Project card example: `MenuShortcut` hints (⌘L, F2) are decorative — no key handler is wired.
+- Overlays: no Tessera helper for dialogs opened from a Menu item; each call site controls `open` and
+  passes `finalFocus` (consider a documented pattern or a `DialogTrigger`-less helper).
+- Tooltip: no `TooltipArrow` part (the spec chose no arrow); add one if a design needs it.
 
 ## Theming
 - No `.light` scope: a region cannot switch back to light inside `.dark` (documented limit).
@@ -46,4 +52,5 @@ block current use.
 Follow the phases in the design-system spec §6
 (`docs/superpowers/specs/2026-09-23-tessera-design-system-v2.md`): Phase B forms (Label, Field, Input,
 Textarea, Checkbox, Switch, RadioGroup — use the `field*` / `switch-track` tokens), Phase C overlays,
-Phase D navigation and feedback. Phase B is done; next is Phase C (Tooltip, Popover, Dialog, Menu).
+Phase D navigation and feedback. Phases B and C are done; next is Phase D (Tabs, Select, Accordion,
+Toast, Avatar, Separator, Progress).

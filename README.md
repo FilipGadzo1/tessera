@@ -159,6 +159,9 @@ source files automatically (build output + `"use client"` directive checks).
   closes the menu, Escape closes it and focus returns to the trigger. `<MenuItem variant="danger">`
   marks a destructive action; checkbox and radio items stay open on toggle. A submenu opens on hover,
   click or ArrowRight and closes with ArrowLeft. `<MenuShortcut>⌘E</MenuShortcut>` is a plain hint)
+
+Phase A (foundation), Phase B (forms) and Phase C (overlays) are complete.
+
 - [ ] Next up: Tabs, Select, Accordion, Toast, Avatar, Separator, Progress (Phase D)
 
 Composition: when a part is rendered through another (`<Fieldset render={<RadioGroup className=…/>}>`),
@@ -178,6 +181,13 @@ Overlays (Tooltip, Popover, Dialog, AlertDialog, Menu) portal into `document.bod
   (Tooltip, Popover, Menu) take the positioning props `side`, `align`, `sideOffset` (default 6),
   `alignOffset`, `collisionPadding` (MenuSubContent defaults to `sideOffset` 0, `alignOffset` -5 so
   its first item lines up with its trigger); dialogs are centred and take none.
+- A dialog opened from a Menu item has no trigger of its own: control it with `open` /
+  `onOpenChange` and pass `finalFocus` (a ref, or a function returning an element) to its
+  `*Content` so focus returns somewhere sensible — usually the Menu trigger.
+
+The Storybook story **Tessera/Examples/Project card** (`src/docs/examples/project-card.tsx`) composes
+every overlay: Tooltips on icon Buttons, a members Popover, and a Menu that opens a rename Dialog and
+a delete AlertDialog.
 
 Forms: there is no Tessera `Form` yet — use Base UI's `Form` (`@base-ui/react/form`) around named
 Fields for submit-time validation. The Storybook story **Tessera/Examples/Sign-up form**

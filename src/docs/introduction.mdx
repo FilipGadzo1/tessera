@@ -45,6 +45,17 @@ Label, Field (FieldLabel, FieldDescription, FieldError, FieldItem), Fieldset, In
 Checkbox, Switch and RadioGroup. Wrap named Fields in Base UI's `Form` (`@base-ui/react/form`) for
 submit-time validation — see **Examples / Sign-up form**.
 
+## Overlays
+
+Tooltip, Popover, Dialog, AlertDialog and Menu. Triggers carry no styles — compose them with
+`render={<Button … />}`. See **Examples / Project card** for all of them in one card.
+
+Overlays portal into `document.body`, so they follow the theme on `<html>` (the toolbar switches
+set it there). A theme scope on an inner element does not reach a portalled overlay: pass
+`container` (an element inside the scope) to the `*Content` part. Overlays sit on `--z-overlay`
+(50) and `--z-tooltip` (60); give your app root `isolation: isolate` so its own z-indexes stay
+below them.
+
 ## Stack
 
 React 19 · Base UI · Tailwind CSS v4 · cva + tailwind-merge · tsdown · Vitest browser mode ·

@@ -25,6 +25,8 @@ export default defineConfig({
       "@base-ui/react/dialog",
       "@base-ui/react/alert-dialog",
       "@base-ui/react/menu",
+      // Icons used by the docs examples (src/docs/examples).
+      "lucide-react",
     ],
   },
   test: {

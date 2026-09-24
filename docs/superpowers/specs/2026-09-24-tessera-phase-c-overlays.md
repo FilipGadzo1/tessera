@@ -69,6 +69,7 @@ Each overlay ships three kinds of part:
   - Separator: `-mx-1 my-1 h-px bg-border`.
   - GroupLabel: `px-2 py-1.5 text-xs font-medium text-muted-foreground`.
   - Shortcut: `ml-auto text-xs tracking-widest text-muted-foreground`, server-safe `<span>`.
+- **Submenu alignment:** `MenuSubContent` defaults to `alignOffset = -5`. At -5 the submenu's first item lines up with its trigger, which accounts for the popup's 1px border plus `p-1`. A test measures this.
 - **data-slot on every part:**
   - Tooltip: `tooltip-content`.
   - Popover: `popover-content`, `popover-title`, `popover-description`.
@@ -98,5 +99,3 @@ Each overlay ships three kinds of part:
 - **Theming:** with `.dark` on `<html>`, the popup background computes to the dark `--popover`. A `container` inside a `data-primary="lapis"` scope makes the popup inherit lapis. Tests must clean up `<html>` classes and attributes afterwards.
 - **Axe:** run in the open state in light and dark mode (dark via `.dark` on `<html>` during the test), asserting that both violations and incomplete are empty.
 - **Portal:** the popup element is a descendant of `document.body` and not of the render container, unless `container` is passed.
-
-- **Submenu alignment:** `MenuSubContent` defaults to `alignOffset = -5`. At -5 the submenu's first item lines up with its trigger, which accounts for the popup's 1px border plus `p-1`. A test measures this.

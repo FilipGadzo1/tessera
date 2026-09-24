@@ -150,6 +150,16 @@ describe("Menu", () => {
     await expect.poll(highlighted).toEqual(["Edit⌘E"]);
   });
 
+  it("opens with Space on the focused trigger", async () => {
+    await render(<Actions />);
+    await userEvent.tab();
+    expect(document.activeElement).toBe(trigger().element());
+    await userEvent.keyboard(" ");
+    await expect.element(menu()).toBeVisible();
+    await expect.element(trigger()).toHaveAttribute("aria-expanded", "true");
+    await expect.poll(highlighted).toEqual(["Edit⌘E"]);
+  });
+
   it("moves the highlight with ArrowDown / ArrowUp, painting it with bg-accent", async () => {
     const screen = await render(
       <div>
@@ -428,7 +438,7 @@ describe("Menu", () => {
   });
 
   it.each(["light", "dark"] as const)(
-    "has no axe violations while open, including an open submenu (%s)",
+    "has no axe violations while open, with the danger item highlighted and a submenu open (%s)",
     async (theme) => {
       if (theme === "dark") document.documentElement.classList.add("dark");
       try {
@@ -452,6 +462,12 @@ describe("Menu", () => {
           </div>,
         );
         await openByClick();
+        // Audit the danger item while highlighted (bg-danger-soft / text-danger-soft-foreground).
+        await userEvent.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}");
+        await expect.poll(highlighted).toEqual(["Delete"]);
+        const highlightedDanger = await auditOpenOverlay();
+        expect(highlightedDanger.violations).toEqual([]);
+        expect(highlightedDanger.incomplete).toEqual([]);
         await userEvent.keyboard("{End}{ArrowRight}");
         await expect.poll(() => menus().length).toBe(2);
         await waitForPopupSettled(menus()[1] as HTMLElement);
