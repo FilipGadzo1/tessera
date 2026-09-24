@@ -7,7 +7,7 @@ const itemClasses = "border-b border-border";
 
 const triggerClasses = [
   "flex w-full cursor-pointer items-center justify-between gap-4 py-4 text-left text-sm font-medium not-data-disabled:hover:underline underline-offset-4",
-  "outline-hidden outline-offset-2 outline-ring focus-visible:outline-2 focus-visible:outline-solid",
+  "outline-none outline-offset-2 outline-ring focus-visible:outline-2 focus-visible:outline-solid",
   "data-disabled:cursor-not-allowed data-disabled:opacity-50",
 ].join(" ");
 

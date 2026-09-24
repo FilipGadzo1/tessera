@@ -8,7 +8,7 @@ export const inputDefaults = { size: "md" } as const;
 export const textFieldBase: string[] = [
   "w-full min-w-0 rounded-md border border-field-border bg-field text-foreground shadow-xs placeholder:text-muted-foreground",
   "not-data-disabled:not-data-invalid:not-aria-invalid:not-focus:hover:border-field-border-hover",
-  "outline-hidden focus:outline-1 focus:outline-solid focus:outline-ring focus:border-ring",
+  "outline-none focus:outline-1 focus:outline-solid focus:outline-ring focus:border-ring forced-colors:focus:outline-[Highlight]",
   "data-invalid:border-danger data-invalid:focus:outline-danger aria-invalid:border-danger aria-invalid:focus:outline-danger",
   "disabled:cursor-not-allowed disabled:opacity-50 read-only:bg-muted",
   "transition-[color,background-color,border-color,outline-color,box-shadow,translate] duration-150 ease-out motion-reduce:transition-none",

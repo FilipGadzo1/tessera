@@ -21,7 +21,7 @@ const trackClasses = cn(
   "data-checked:bg-primary",
   "not-data-disabled:not-data-checked:hover:bg-field-border-hover not-data-disabled:data-checked:hover:bg-primary-hover",
   "cursor-pointer data-disabled:cursor-not-allowed data-disabled:opacity-50",
-  "outline-hidden outline-offset-2 outline-ring focus-visible:outline-2 focus-visible:outline-solid",
+  "outline-none outline-offset-2 outline-ring focus-visible:outline-2 focus-visible:outline-solid",
   "data-invalid:outline-1 data-invalid:outline-solid data-invalid:outline-danger data-invalid:focus-visible:outline-2",
   "transition-[translate,background-color] duration-150 ease-out motion-reduce:transition-none",
 );

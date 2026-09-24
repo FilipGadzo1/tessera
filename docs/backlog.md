@@ -110,10 +110,6 @@ None block current use.
   the Close button's `aria-label="Close"` is hardcoded (no i18n prop); Base UI pauses toast timers
   while the window is blurred (the timer tests assert `document.hasFocus()` so a headed run with
   another window in front fails fast instead of timing out).
-- Forced colors: Tailwind's `outline-hidden` leaves a transparent 2px outline in forced colors,
-  which Chromium paints as CanvasText, so every Tessera control using the toggle focus pattern shows
-  a permanent outline there and the focus ring is not distinguishable by outline alone (found while
-  adding the Progress/Tabs forced-colors affordances; library-wide, not changed in Phase D).
 
 ## Theming
 - No `.light` scope: a region cannot switch back to light inside `.dark` (documented limit).

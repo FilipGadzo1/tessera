@@ -25,7 +25,7 @@ const tabsListCva = cva("", {
 });
 
 const tabFocus =
-  "outline-hidden outline-offset-2 outline-ring focus-visible:outline-2 focus-visible:outline-solid";
+  "outline-none outline-offset-2 outline-ring focus-visible:outline-2 focus-visible:outline-solid";
 
 const tabsTabCva = cva("", {
   variants: {
@@ -37,7 +37,7 @@ const tabsTabCva = cva("", {
       ],
       segmented: [
         "inline-flex h-full flex-1 cursor-pointer items-center justify-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground not-data-disabled:hover:text-foreground data-active:bg-background data-active:text-foreground data-active:shadow-xs data-disabled:cursor-not-allowed data-disabled:opacity-50",
-        "forced-colors:data-active:bg-[Highlight] forced-colors:data-active:text-[HighlightText]",
+        "forced-colors:data-active:bg-[Highlight] forced-colors:data-active:text-[HighlightText] forced-colors:data-active:hover:text-[HighlightText]",
         tabFocus,
         "data-[orientation=vertical]:h-8 data-[orientation=vertical]:flex-none data-[orientation=vertical]:justify-start",
       ],
@@ -71,6 +71,6 @@ export const tabsIndicatorClasses = cn(
 export const tabsRootClasses = "data-[orientation=vertical]:flex data-[orientation=vertical]:gap-6";
 
 export const tabsPanelClasses = cn(
-  "outline-hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-ring pt-4",
+  "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-ring pt-4",
   "data-[orientation=vertical]:min-w-0 data-[orientation=vertical]:flex-1 data-[orientation=vertical]:pt-0",
 );

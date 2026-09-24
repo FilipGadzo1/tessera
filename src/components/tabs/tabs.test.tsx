@@ -1,7 +1,8 @@
 import axe from "axe-core";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cdp, userEvent } from "vitest/browser";
+import { userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
+import { emulateForcedColors, emulateReducedMotion, systemColor } from "../../../test/emulation";
 import { Tabs, TabsList, type TabsListProps, TabsPanel, type TabsProps, TabsTab } from "./tabs";
 
 function Account({
@@ -250,18 +251,14 @@ describe("Tabs", () => {
      * cascade (specificity of the vertical variant vs motion-reduce), not just the class list.
      */
     describe("under prefers-reduced-motion: reduce", () => {
-      const emulate = (value: "reduce" | "") =>
-        cdp().send("Emulation.setEmulatedMedia", {
-          features: [{ name: "prefers-reduced-motion", value }],
-        });
       afterEach(async () => {
-        await emulate("");
+        await emulateReducedMotion(false);
       });
 
       it.each(["horizontal", "vertical"] as const)(
         "has no %s indicator transition",
         async (orientation) => {
-          await emulate("reduce");
+          await emulateReducedMotion(true);
           expect(matchMedia("(prefers-reduced-motion: reduce)").matches).toBe(true);
           const screen = await render(<Account orientation={orientation} />);
           const list = screen.getByRole("tablist").element();
@@ -348,50 +345,37 @@ describe("Tabs", () => {
    * indicator and the raised segmented tab would vanish. Emulated for real via CDP.
    */
   describe("in forced colors", () => {
-    const emulate = (value: "active" | "") =>
-      cdp().send("Emulation.setEmulatedMedia", {
-        features: [{ name: "forced-colors", value }],
-      });
-    const system = (color: string) => {
-      const probe = document.createElement("div");
-      probe.style.color = color;
-      document.body.append(probe);
-      const value = getComputedStyle(probe).color;
-      probe.remove();
-      return value;
-    };
     afterEach(async () => {
-      await emulate("");
+      await emulateForcedColors(false);
     });
 
     it.each(["horizontal", "vertical"] as const)(
       "paints the %s underline indicator in Highlight",
       async (orientation) => {
-        await emulate("active");
+        await emulateForcedColors(true);
         expect(matchMedia("(forced-colors: active)").matches).toBe(true);
         const screen = await render(<Account orientation={orientation} />);
         const list = screen.getByRole("tablist").element();
         await expect.poll(() => indicatorOf(list)).not.toBeNull();
         const bg = getComputedStyle(indicatorOf(list) as HTMLElement).backgroundColor;
-        expect(bg).toBe(system("Highlight"));
-        expect(bg).not.toBe(system("Canvas"));
+        expect(bg).toBe(systemColor("Highlight"));
+        expect(bg).not.toBe(systemColor("Canvas"));
       },
     );
 
     it("marks the active segmented tab with Highlight and keeps the focus ring", async () => {
-      await emulate("active");
+      await emulateForcedColors(true);
       const screen = await render(<Account variant="segmented" />);
       const profile = screen.getByRole("tab", { name: "Profile" }).element();
       const billing = screen.getByRole("tab", { name: "Billing" }).element();
-      const highlight = system("Highlight");
+      const highlight = systemColor("Highlight");
       let active = getComputedStyle(profile);
       expect(active.backgroundColor).toBe(highlight);
-      expect(active.backgroundColor).not.toBe(system("Canvas"));
-      expect(active.color).toBe(system("HighlightText"));
+      expect(active.backgroundColor).not.toBe(systemColor("Canvas"));
+      expect(active.color).toBe(systemColor("HighlightText"));
       expect(getComputedStyle(billing).backgroundColor).not.toBe(highlight);
-      // The focus ring still shows, 2px outside the Highlight fill. (No "none before focus" check:
-      // Tailwind's `outline-hidden` deliberately leaves a transparent 2px outline in forced colors,
-      // which Chromium forces to CanvasText — see docs/backlog.md.)
+      // No outline until focused, then the focus ring shows 2px outside the Highlight fill.
+      expect(active.outlineStyle).toBe("none");
       await userEvent.tab();
       expect(document.activeElement).toBe(profile);
       active = getComputedStyle(profile);
