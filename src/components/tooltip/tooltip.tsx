@@ -18,6 +18,7 @@ import {
 import { cn } from "../../lib/cn";
 import { mergeClassName } from "../../lib/merge-class-name";
 import { popupMotion } from "../../lib/overlay-classes";
+import { registerOpenTooltip } from "../../lib/tooltip-escape";
 
 /**
  * The transparent border is invisible normally but painted in a system colour in forced-colors
@@ -49,52 +50,45 @@ export type TooltipProps = BaseTooltip.Root.Props;
 /**
  * Groups a trigger and its content. Renders no element.
  *
- * Escape closes an open tooltip first, even inside another overlay (a Dialog, Popover or Menu):
- * the outer overlay stays open until the next Escape.
+ * Escape closes an open tooltip first, even inside a Tessera Dialog, AlertDialog, Popover or Menu:
+ * the outer overlay stays open until the next Escape. The event is not swallowed; app `keydown`
+ * listeners still receive it.
  */
-export function Tooltip({ actionsRef, onOpenChange, ...props }: TooltipProps) {
+export function Tooltip({ onOpenChange, ...props }: TooltipProps) {
   const [describedBy, setDescribedBy] = useState<string | undefined>(undefined);
   const context = useMemo(() => ({ describedBy, setDescribedBy }), [describedBy]);
   const [uncontrolledOpen, setUncontrolledOpen] = useState(props.defaultOpen ?? false);
   const open = props.open ?? uncontrolledOpen;
-  const ownActionsRef = useRef<BaseTooltip.Root.Actions | null>(null);
-  const actions = actionsRef ?? ownActionsRef;
+  const lastEscapeRef = useRef<Event | null>(null);
 
   const handleOpenChange = useCallback<NonNullable<TooltipProps["onOpenChange"]>>(
     (nextOpen, eventDetails) => {
+      if (!nextOpen && eventDetails.reason === "escape-key") {
+        // Let Escape carry on to outer overlays (which yield to the tooltip, see
+        // `useLayeredEscape`) and to app listeners. With the tooltip's trigger focused, Base UI
+        // handles the same keydown on the trigger and again on `document`: close only once.
+        eventDetails.allowPropagation();
+        if (eventDetails.event === lastEscapeRef.current) {
+          eventDetails.cancel();
+          return;
+        }
+        lastEscapeRef.current = eventDetails.event;
+      }
       setUncontrolledOpen(nextOpen);
       onOpenChange?.(nextOpen, eventDetails);
     },
     [onOpenChange],
   );
 
-  // Base UI's tooltip is not part of the floating tree that other overlays use to let the
-  // innermost one handle Escape, and every overlay listens for Escape on `document`. With the
-  // pointer resting on a trigger inside an open Dialog, one Escape would close the tooltip and
-  // the dialog together (the dialog's listener was added first). So while the tooltip is open,
-  // Escape is caught on `window` in the capture phase, before any `document` listener, and closes
-  // only the tooltip. A keydown on the tooltip's own trigger (keyboard focus) is left to Base UI,
-  // which already stops it from reaching the outer overlay.
+  // While open, outer Tessera overlays cancel their own Escape close (see `useLayeredEscape`).
   useEffect(() => {
     if (!open || props.disabled) return;
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key !== "Escape" || event.defaultPrevented || event.isComposing) return;
-      const target = event.target;
-      const onOwnTrigger =
-        target instanceof Element &&
-        describedBy !== undefined &&
-        (target.getAttribute("aria-describedby")?.split(/\s+/).includes(describedBy) ?? false);
-      if (onOwnTrigger) return;
-      event.stopPropagation();
-      actions.current?.close();
-    }
-    window.addEventListener("keydown", handleKeyDown, true);
-    return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [open, props.disabled, describedBy, actions]);
+    return registerOpenTooltip();
+  }, [open, props.disabled]);
 
   return (
     <TooltipDescriptionContext.Provider value={context}>
-      <BaseTooltip.Root {...props} actionsRef={actions} onOpenChange={handleOpenChange} />
+      <BaseTooltip.Root {...props} onOpenChange={handleOpenChange} />
     </TooltipDescriptionContext.Provider>
   );
 }

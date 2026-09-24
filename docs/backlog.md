@@ -53,6 +53,17 @@ None block current use.
   (Portal → Positioner → Popup, as `MenuPopupLayer`) for reuse.
 - Select: decide `alignItemWithTrigger` (Base UI default, overlaps the trigger) vs the overlays'
   `sideOffset = 6`.
+- Tooltip Escape (Task 0, done): layered via a registry of open Tessera tooltips
+  (`src/lib/tooltip-escape.ts`). Dialog, AlertDialog, Popover, Menu and MenuSub roots cancel an
+  Escape close (`eventDetails.cancel()` + `allowPropagation()`, not forwarded to the caller's
+  `onOpenChange`) while a tooltip is open or was open at keydown (a window-capture listener records
+  the event without stopping it); the tooltip closes itself with reason `"escape-key"`. Remaining
+  trade-offs: any new overlay root with Escape dismissal (Phase D Select, future Drawer / Combobox)
+  must wrap its `onOpenChange` with `useLayeredEscape`, and a raw Base UI overlay around a Tessera
+  Tooltip still closes on the same Escape (with the tooltip's trigger focused, too — the tooltip now
+  lets the event propagate). A controlled Tooltip whose owner ignores `onOpenChange(false)` keeps
+  outer overlays from closing on Escape while it stays open. The outer overlay's own Escape close
+  still stops propagation (Base UI default), so app listeners don't see that second Escape.
 
 ## Theming
 - No `.light` scope: a region cannot switch back to light inside `.dark` (documented limit).

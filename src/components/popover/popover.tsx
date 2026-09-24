@@ -4,6 +4,7 @@ import { Popover as BasePopover } from "@base-ui/react/popover";
 import { cn } from "../../lib/cn";
 import { mergeClassName } from "../../lib/merge-class-name";
 import { popupMotion, popupSurface } from "../../lib/overlay-classes";
+import { useLayeredEscape } from "../../lib/tooltip-escape";
 
 const popoverContentBase = "w-72 p-4 flex flex-col gap-2";
 const popoverTitleBase = "text-base font-semibold leading-snug";
@@ -12,8 +13,9 @@ const popoverDescriptionBase = "text-sm text-muted-foreground";
 export type PopoverProps = BasePopover.Root.Props;
 
 /** Groups a trigger and its content. Renders no element. Controlled via `open` / `onOpenChange`. */
-export function Popover(props: PopoverProps) {
-  return <BasePopover.Root {...props} />;
+export function Popover({ onOpenChange, ...props }: PopoverProps) {
+  const handleOpenChange = useLayeredEscape(onOpenChange);
+  return <BasePopover.Root {...props} onOpenChange={handleOpenChange} />;
 }
 
 export type PopoverTriggerProps = BasePopover.Trigger.Props;

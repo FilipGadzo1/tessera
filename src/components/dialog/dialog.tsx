@@ -4,6 +4,7 @@ import { Dialog as BaseDialog } from "@base-ui/react/dialog";
 import { type ComponentProps, createContext, useContext } from "react";
 import { cn } from "../../lib/cn";
 import { mergeClassName } from "../../lib/merge-class-name";
+import { useLayeredEscape } from "../../lib/tooltip-escape";
 import { Button } from "../button";
 import {
   type DialogVariantProps,
@@ -29,10 +30,11 @@ const DialogModalContext = createContext<DialogProps["modal"]>(true);
  * Groups a trigger and its content. Renders no element. Modal by default: focus is trapped, page
  * scroll is locked and outside pointer interaction is blocked. Controlled via `open` / `onOpenChange`.
  */
-export function Dialog(props: DialogProps) {
+export function Dialog({ onOpenChange, ...props }: DialogProps) {
+  const handleOpenChange = useLayeredEscape(onOpenChange);
   return (
     <DialogModalContext.Provider value={props.modal ?? true}>
-      <BaseDialog.Root {...props} />
+      <BaseDialog.Root {...props} onOpenChange={handleOpenChange} />
     </DialogModalContext.Provider>
   );
 }

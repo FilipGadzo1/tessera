@@ -4,6 +4,7 @@ import { AlertDialog as BaseAlertDialog } from "@base-ui/react/alert-dialog";
 import type { ComponentProps } from "react";
 import { cn } from "../../lib/cn";
 import { mergeClassName } from "../../lib/merge-class-name";
+import { useLayeredEscape } from "../../lib/tooltip-escape";
 import {
   type DialogVariantProps,
   dialogBackdropClasses,
@@ -22,8 +23,9 @@ export type AlertDialogProps = BaseAlertDialog.Root.Props;
  * Always modal; a backdrop click does not close it (Escape does). Controlled via `open` /
  * `onOpenChange`.
  */
-export function AlertDialog(props: AlertDialogProps) {
-  return <BaseAlertDialog.Root {...props} />;
+export function AlertDialog({ onOpenChange, ...props }: AlertDialogProps) {
+  const handleOpenChange = useLayeredEscape(onOpenChange);
+  return <BaseAlertDialog.Root {...props} onOpenChange={handleOpenChange} />;
 }
 
 export type AlertDialogTriggerProps = BaseAlertDialog.Trigger.Props;

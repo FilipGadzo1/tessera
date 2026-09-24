@@ -133,7 +133,12 @@ source files automatically (build output + `"use client"` directive checks).
   Compose the trigger: `<TooltipTrigger render={<Button size="icon" aria-label="Add" />}>`. Hover delay
   is set on the trigger or a TooltipProvider (`delay`, default 600 ms). The content gets
   `role="tooltip"` and the trigger `aria-describedby` while it is open — still give icon-only triggers
-  an `aria-label`: tooltips don't reach touch users)
+  an `aria-label`: tooltips don't reach touch users. Escape closes an open tooltip first, whether
+  it opened on hover or focus, even inside a Tessera Dialog, AlertDialog, Popover or Menu: the
+  outer overlay stays open until the next Escape. That first Escape is not swallowed — your
+  `document` / `window` keydown listeners receive it. The outer overlay's own Escape close keeps
+  Base UI's default of stopping the event it handles. Only Tessera overlay roots yield to the
+  tooltip: inside a raw Base UI overlay, one Escape closes both)
 - [x] Popover (Popover, PopoverTrigger, PopoverContent, PopoverTitle, PopoverDescription, PopoverClose;
   a `role="dialog"` panel on the popover surface, named by PopoverTitle and described by
   PopoverDescription. Compose the trigger and close: `<PopoverTrigger render={<Button variant="outline" />}>`.

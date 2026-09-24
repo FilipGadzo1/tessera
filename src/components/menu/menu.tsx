@@ -5,6 +5,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { cn } from "../../lib/cn";
 import { mergeClassName } from "../../lib/merge-class-name";
 import { menuItemBase, popupMotion, popupSurface } from "../../lib/overlay-classes";
+import { useLayeredEscape } from "../../lib/tooltip-escape";
 
 const menuContentBase = "min-w-(--anchor-width) max-h-(--available-height) overflow-y-auto p-1";
 /**
@@ -31,8 +32,9 @@ export type MenuProps = BaseMenu.Root.Props;
  * Groups a trigger and its content. Renders no element. Modal by default: outside pointer
  * interaction is blocked while open. Controlled via `open` / `onOpenChange`.
  */
-export function Menu(props: MenuProps) {
-  return <BaseMenu.Root {...props} />;
+export function Menu({ onOpenChange, ...props }: MenuProps) {
+  const handleOpenChange = useLayeredEscape(onOpenChange);
+  return <BaseMenu.Root {...props} onOpenChange={handleOpenChange} />;
 }
 
 export type MenuTriggerProps = BaseMenu.Trigger.Props;
@@ -242,8 +244,9 @@ export function MenuSeparator({ className, ...props }: MenuSeparatorProps) {
 export type MenuSubProps = BaseMenu.SubmenuRoot.Props;
 
 /** Groups a `MenuSubTrigger` and its `MenuSubContent`. Renders no element. */
-export function MenuSub(props: MenuSubProps) {
-  return <BaseMenu.SubmenuRoot {...props} />;
+export function MenuSub({ onOpenChange, ...props }: MenuSubProps) {
+  const handleOpenChange = useLayeredEscape(onOpenChange);
+  return <BaseMenu.SubmenuRoot {...props} onOpenChange={handleOpenChange} />;
 }
 
 export type MenuSubTriggerProps = BaseMenu.SubmenuTrigger.Props;
