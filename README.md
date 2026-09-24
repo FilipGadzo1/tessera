@@ -134,7 +134,7 @@ source files automatically (build output + `"use client"` directive checks).
   is set on the trigger or a TooltipProvider (`delay`, default 600 ms). The content gets
   `role="tooltip"` and the trigger `aria-describedby` while it is open — still give icon-only triggers
   an `aria-label`: tooltips don't reach touch users. Escape closes an open tooltip first, whether
-  it opened on hover or focus, even inside a Tessera Dialog, AlertDialog, Popover or Menu: the
+  it opened on hover or focus, even inside a Tessera Dialog, AlertDialog, Popover, Menu or Select: the
   outer overlay stays open until the next Escape. That first Escape is not swallowed — your
   `document` / `window` keydown listeners receive it — but it arrives with `defaultPrevented ===
   true` (the tooltip handled it), so a listener that starts with `if (e.defaultPrevented) return`
@@ -205,11 +205,25 @@ source files automatically (build output + `"use client"` directive checks).
   `role="region"` named by its trigger and animates its height (instant under reduced motion).
   `hiddenUntilFound` on Accordion keeps closed panels in the DOM as `hidden="until-found"`, so the
   browser's find-in-page opens the matching section; `keepMounted` keeps them mounted but hidden.
-  A disabled item stays focusable (`aria-disabled`) but never opens)
+  A disabled item stays focusable (`aria-disabled`) but never opens. The panel keeps 4px of room on
+  each side so focus rings of flush-left/right content aren't clipped)
+- [x] Select, SelectTrigger, SelectValue, SelectContent, SelectItem, SelectGroup, SelectGroupLabel,
+  SelectSeparator (`<Select items={{ en: "English", de: "Deutsch" }} name="language">` around a
+  SelectTrigger holding `<SelectValue placeholder="Pick a language" />`, and a SelectContent of
+  SelectItems. Pass `items` (value → label) so the trigger shows labels, not raw values. The trigger
+  is a `role="combobox"` styled like Input, with the same `size` (`sm` / `md` default / `lg`) and a
+  chevron; inside a `Field` the FieldLabel names it and an invalid Field gives it the danger border.
+  The list drops down below the trigger (`side` bottom, `align` start, `sideOffset` 6, at least as
+  wide as the trigger); `alignItemWithTrigger` on SelectContent opts into the macOS-style overlap.
+  Opens on click, Enter, Space or ArrowDown; typing jumps to a matching item, Enter selects, closes
+  and returns focus to the trigger. The selected item gets a check mark and `aria-selected`; a
+  disabled item can't be chosen. `multiple` keeps the list open and joins labels with commas;
+  SelectValue also takes a render function `{(value) => …}`. The value is submitted through a
+  hidden input named by `name`. `selectTriggerVariants({ size })` gives the trigger classes)
 
 Phase A (foundation), Phase B (forms) and Phase C (overlays) are complete.
 
-- [ ] Next up: Select, Toast (Phase D)
+- [ ] Next up: Toast (Phase D)
 
 Composition: when a part is rendered through another (`<Fieldset render={<RadioGroup className=…/>}>`),
 the outer part's own classes win over conflicting classes on the render element (Base UI merges the
@@ -217,7 +231,7 @@ render element's className first; tailwind-merge keeps the last). Lay out childr
 instead — e.g. a horizontal radio group puts the radios in `<div className="flex flex-row gap-6">`
 after the FieldsetLegend.
 
-Overlays (Tooltip, Popover, Dialog, AlertDialog, Menu) portal into `document.body`:
+Overlays (Tooltip, Popover, Dialog, AlertDialog, Menu, Select) portal into `document.body`:
 
 - Put theme scopes (`.dark`, `data-primary`, `data-surface`) on `<html>` so overlays pick them up.
 - A scope on an inner element does not reach a portalled overlay — pass `container` (an element
@@ -225,10 +239,10 @@ Overlays (Tooltip, Popover, Dialog, AlertDialog, Menu) portal into `document.bod
 - Add `isolation: isolate` to your app root so app z-indexes can't rise above overlays. Overlays
   use `--z-overlay` (50) and `--z-tooltip` (60), overridable in an unlayered `:root`.
 - Triggers carry no styles: compose them with `render={<Button … />}`. Anchored `*Content` parts
-  (Tooltip, Popover, Menu) take the positioning props `side`, `align`, `sideOffset` (default 6),
+  (Tooltip, Popover, Menu, Select) take the positioning props `side`, `align`, `sideOffset` (default 6),
   `alignOffset`, `collisionPadding` (MenuSubContent defaults to `sideOffset` 0, `alignOffset` -5 so
   its first item lines up with its trigger); dialogs are centred and take none.
-- Menus, Popovers and Tooltips work inside a modal Dialog: they stack above it, stay interactive,
+- Menus, Selects, Popovers and Tooltips work inside a modal Dialog: they stack above it, stay interactive,
   and Escape closes the innermost overlay first.
 - A dialog opened from a Menu item has no trigger of its own: control it with `open` /
   `onOpenChange` and pass `finalFocus` (a ref, or a function returning an element) to its

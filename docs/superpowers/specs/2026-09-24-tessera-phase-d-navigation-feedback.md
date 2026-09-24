@@ -61,6 +61,7 @@ Keep whichever approach passes all the tests: the tooltip is closed first, with 
   - Trigger gains `data-disabled:cursor-not-allowed data-disabled:opacity-50` (design-system-v2 §4 cursor rule: disabled gets `cursor-not-allowed`). Base UI 1.8 keeps a disabled item's trigger focusable (`focusableWhenDisabled: true`, `aria-disabled="true"`); it never opens.
   - Parts and slots: `accordion`, `accordion-item`, `accordion-header` (the `h1`–`h6` from `headingLevel`, rendered through `Accordion.Header`'s `render`), `accordion-trigger`, `accordion-chevron` (an inline `aria-hidden` SVG), `accordion-panel`, and `accordion-panel-content` (the inner `pb-4` wrapper). `AccordionTrigger`'s other props (and `className`) go to the button, not the heading. The root adds no classes.
   - Base UI sets the trigger's `aria-controls` only while the panel is open; the panel is a `role="region"` labelled by the trigger.
+- *Amended in Task 4 (Accordion review):* the panel gains `-mx-1 px-1`. Its `overflow-hidden` (needed for the height animation) clipped the 2px outline at 2px offset of focusables flush with the panel's left or right edge; the negative margin plus padding gives 4px of ring room on both sides while the content keeps lining up with the trigger. A test tabs to flush-left and flush-right buttons and checks the ring box stays inside the panel's clip rect. The top edge gets no room: vertical padding on a `h-0`-animated, border-box panel would leave a 4px sliver while collapsed, so content that opens with a focusable should start with its own spacing.
 
 **Select**
 - Trigger: the text-field look from `textFieldBase` plus `inline-flex items-center justify-between gap-2 cursor-pointer text-left`, sizes sm/md/lg matching Input, and a chevron-down `Select.Icon` (`text-muted-foreground`).
@@ -69,6 +70,15 @@ Keep whichever approach passes all the tests: the tooltip is closed first, with 
 - Item: `menuItemBase` + `pl-8`, with an `ItemIndicator` check at the left (like `MenuRadioItem`); `data-selected` has `font-medium`.
 - Works inside `Field`: `FieldLabel` names it, and invalid shows the danger border. It works inside a `Dialog` (test required).
 - Supports `multiple`. `SelectValue` accepts a render function.
+- *Amended in Task 4 (implementation details the spec left open):*
+  - Trigger `read-only:bg-muted` → `data-readonly:bg-muted`. The trigger is a `<button>`, and every non-editable element matches `:read-only`, so `textFieldBase` as-is painted every trigger muted (a test compares the trigger background with Input's; reverting fails it). Base UI sets `data-readonly` on a `readOnly` select.
+  - Sizes come from a shared `textFieldSizes` map exported by `input-variants.ts` (Input uses the same map). The trigger is a cva exported as `selectTriggerVariants` / `SelectTriggerVariantProps` / `selectDefaults`, and carries `data-size`.
+  - `SelectValue`: `min-w-0 truncate data-placeholder:text-muted-foreground` — `min-w-0 truncate` so a long value ends in an ellipsis instead of pushing the chevron out. `Select.Icon`: `flex shrink-0 text-muted-foreground [&_svg]:size-4`, `aria-hidden`.
+  - Item: `menuItemBase pl-8 data-selected:font-medium`; indicator `absolute left-2 flex size-4 items-center justify-center` (as Menu's); children render inside `Select.ItemText`. Group label and separator reuse Menu's strings (`px-2 py-1.5 text-xs font-medium text-muted-foreground`, `-mx-1 my-1 h-px bg-border`). Base UI renders the separator `role="presentation"` (a listbox may only own options and groups).
+  - `SelectValue` shows the raw value unless the root gets `items` (value → label) or `itemToStringLabel`; the README and stories always pass `items`.
+  - Parts and slots: `select-trigger`, `select-value`, `select-icon`, `select-content` (Popup), `select-list`, `select-item`, `select-item-indicator`, `select-item-text`, `select-group`, `select-group-label`, `select-separator`.
+  - The root wraps `onOpenChange` with `useLayeredEscape` (§0): with a hover-opened Tooltip inside the open list, the first Escape closes only the tooltip (an app `document` listener still receives it), the second closes the select; a test covers it and fails without the wrapper.
+  - Reduced motion: no stateful transitions beyond `popupMotion` and `textFieldBase`, whose `data-*` variants set only opacity/scale, so their base `motion-reduce:transition-none` wins; no extra CDP test.
 
 **Toast**
 - `Toaster`: `Toast.Provider` + `Toast.Portal` + `Toast.Viewport` rendering the current toasts.

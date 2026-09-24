@@ -14,13 +14,16 @@ export const textFieldBase: string[] = [
   "transition-[color,background-color,border-color,outline-color,box-shadow,translate] duration-150 ease-out motion-reduce:transition-none",
 ];
 
+/** Height, inline padding and text size per `size` (shared with the Select trigger). */
+export const textFieldSizes = {
+  sm: "h-8 px-2.5 text-sm",
+  md: "h-10 px-3 text-sm",
+  lg: "h-12 px-4 text-base",
+} as const;
+
 const inputCva = cva(textFieldBase, {
   variants: {
-    size: {
-      sm: "h-8 px-2.5 text-sm",
-      md: "h-10 px-3 text-sm",
-      lg: "h-12 px-4 text-base",
-    },
+    size: textFieldSizes,
   },
   defaultVariants: inputDefaults,
 });

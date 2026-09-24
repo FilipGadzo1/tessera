@@ -22,9 +22,12 @@ const chevronClasses =
 /*
  * Base UI sets `--accordion-panel-height` to the measured content height (px while animating,
  * `auto` once open) and adds `data-starting-style` / `data-ending-style` around the transition.
+ * `overflow-hidden` (for the height animation) would clip the focus ring of content flush with
+ * the panel's side edges, so `-mx-1 px-1` gives 4px of ring room (2px outline + 2px offset) while
+ * the content stays aligned with the trigger.
  */
 const panelClasses =
-  "h-(--accordion-panel-height) overflow-hidden text-sm transition-[height] duration-200 ease-out data-starting-style:h-0 data-ending-style:h-0 motion-reduce:transition-none";
+  "-mx-1 h-(--accordion-panel-height) overflow-hidden px-1 text-sm transition-[height] duration-200 ease-out data-starting-style:h-0 data-ending-style:h-0 motion-reduce:transition-none";
 
 /**
  * Base UI Accordion.Root props: `defaultValue` / `value` + `onValueChange` (arrays of item values),

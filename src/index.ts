@@ -167,6 +167,27 @@ export {
   type ProgressValueProps,
 } from "./components/progress";
 export { Radio, RadioGroup, type RadioGroupProps, type RadioProps } from "./components/radio-group";
+export {
+  Select,
+  SelectContent,
+  type SelectContentProps,
+  SelectGroup,
+  SelectGroupLabel,
+  type SelectGroupLabelProps,
+  type SelectGroupProps,
+  SelectItem,
+  type SelectItemProps,
+  type SelectProps,
+  SelectSeparator,
+  type SelectSeparatorProps,
+  SelectTrigger,
+  type SelectTriggerProps,
+  type SelectTriggerVariantProps,
+  SelectValue,
+  type SelectValueProps,
+  selectDefaults,
+  selectTriggerVariants,
+} from "./components/select";
 export { Separator, type SeparatorProps } from "./components/separator";
 export { Switch, type SwitchProps } from "./components/switch";
 export {

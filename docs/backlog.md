@@ -49,16 +49,18 @@ None block current use.
 
 ### Phase D notes (from the Phase C review)
 - Toast: add a `--z-toast` token and extend the verify-consumer z-token needle to it.
-- Select: reuse `popupSurface` / `menuItemBase`; consider exporting the internal popup layer
-  (Portal → Positioner → Popup, as `MenuPopupLayer`) for reuse.
-- Select: decide `alignItemWithTrigger` (Base UI default, overlaps the trigger) vs the overlays'
-  `sideOffset = 6`.
+- Select (Task 4, done): reuses `popupSurface` / `popupMotion` / `menuItemBase`; the popup layer
+  stays inline in SelectContent (Base UI's Select parts are their own components, so a shared
+  `MenuPopupLayer` would not fit). `alignItemWithTrigger` defaults to `false` (drop-down below the
+  trigger, `sideOffset` 6); callers can opt back in. The root wraps `onOpenChange` with
+  `useLayeredEscape`. Open: a Tessera `SelectLabel` (Base UI `Select.Label`) for use outside a
+  Field, and scroll arrows (`Select.ScrollUpArrow` / `ScrollDownArrow`) for very long lists.
 - Tooltip Escape (Task 0, done): layered via a registry of open Tessera tooltips
   (`src/lib/tooltip-escape.ts`). Dialog, AlertDialog, Popover, Menu and MenuSub roots cancel an
   Escape close (`eventDetails.cancel()` + `allowPropagation()`, not forwarded to the caller's
   `onOpenChange`) while a tooltip is open or was open at keydown (a window-capture listener records
   the event without stopping it); the tooltip closes itself with reason `"escape-key"`. Remaining
-  trade-offs: any new overlay root with Escape dismissal (Phase D Select, future Drawer / Combobox)
+  trade-offs: any new overlay root with Escape dismissal (Select does; future Drawer / Combobox)
   must wrap its `onOpenChange` with `useLayeredEscape`, and a raw Base UI overlay around a Tessera
   Tooltip still closes on the same Escape (with the tooltip's trigger focused, too — the tooltip now
   lets the event propagate). A controlled Tooltip whose owner ignores `onOpenChange(false)` keeps

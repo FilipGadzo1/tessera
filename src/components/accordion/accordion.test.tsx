@@ -2,6 +2,7 @@ import axe from "axe-core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cdp, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
+import { Button } from "../button";
 import {
   Accordion,
   AccordionItem,
@@ -341,6 +342,52 @@ describe("Accordion", () => {
     const panel = panelOf(t) as HTMLElement;
     expect(panel.classList.contains("text-base")).toBe(true);
     expect(panel.classList.contains("text-sm")).toBe(false);
+  });
+
+  /*
+   * The panel clips its content (`overflow-hidden`, needed for the height animation), so it keeps
+   * 4px of ring room on each side (`-mx-1 px-1`): a flush-left or flush-right focusable's
+   * 2px outline at a 2px offset stays fully visible, and the content still lines up with the
+   * trigger text.
+   */
+  it("leaves room for the focus ring of flush-left and flush-right content", async () => {
+    const screen = await render(
+      <div className="p-8">
+        <Accordion defaultValue={["email"]}>
+          <AccordionItem value="email">
+            <AccordionTrigger>Email</AccordionTrigger>
+            <AccordionPanel>
+              <div className="flex justify-between">
+                <Button variant="outline">Left</Button>
+                <Button variant="outline">Right</Button>
+              </div>
+            </AccordionPanel>
+          </AccordionItem>
+        </Accordion>
+      </div>,
+    );
+    await animationsSettled();
+    const trigger = screen.getByRole("button", { name: "Email" }).element();
+    const panel = panelOf(trigger) as HTMLElement;
+    const clip = panel.getBoundingClientRect();
+    const triggerBox = trigger.getBoundingClientRect();
+    for (const name of ["Left", "Right"]) {
+      const button = screen.getByRole("button", { name }).element() as HTMLElement;
+      await userEvent.tab();
+      while (document.activeElement !== button) await userEvent.tab();
+      const style = getComputedStyle(button);
+      expect(style.outlineStyle).toBe("solid");
+      const reach = Number.parseFloat(style.outlineWidth) + Number.parseFloat(style.outlineOffset);
+      expect(reach).toBe(4);
+      const box = button.getBoundingClientRect();
+      expect(box.left - reach).toBeGreaterThanOrEqual(clip.left);
+      expect(box.right + reach).toBeLessThanOrEqual(clip.right);
+    }
+    // Content still aligns with the trigger's edges.
+    const left = screen.getByRole("button", { name: "Left" }).element().getBoundingClientRect();
+    const right = screen.getByRole("button", { name: "Right" }).element().getBoundingClientRect();
+    expect(Math.round(left.left)).toBe(Math.round(triggerBox.left));
+    expect(Math.round(right.right)).toBe(Math.round(triggerBox.right));
   });
 
   it.each(["light", "dark"] as const)("has no axe violations in the %s theme", async (theme) => {
