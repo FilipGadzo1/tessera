@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { CSSProperties } from "react";
 
 const STEPS = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950] as const;
 const SURFACE_STEPS = [0, ...STEPS] as const;
@@ -24,8 +25,9 @@ const GROUPS = [
   },
 ] as const;
 
-/** Deterministic hand-laid tilt in degrees, so the mosaic reads as set stone, not a grid. */
-const tilt = (row: number, column: number) => (((row * 7 + column * 13) % 5) - 2) * 0.5;
+/** Deterministic hover tilt in degrees (never 0), so a lifted tile reads as a loose stone. */
+const TILTS = [-2, -1, 1, 2] as const;
+const tilt = (row: number, column: number) => TILTS[(row * 7 + column * 13) % TILTS.length];
 
 function Tile({
   palette,
@@ -43,8 +45,10 @@ function Tile({
   return (
     <div
       title={token}
-      className="group relative aspect-square flex-1 rounded-[3px] transition-transform duration-200 ease-out hover:z-10 hover:scale-125 motion-reduce:transition-none"
-      style={{ background: `var(${token})`, rotate: `${tilt(row, column)}deg` }}
+      className="group relative aspect-square flex-1 rounded-[3px] transition-[rotate,scale] duration-200 ease-out hover:z-10 hover:scale-125 hover:rotate-(--tile-tilt) motion-reduce:transition-none"
+      style={
+        { background: `var(${token})`, "--tile-tilt": `${tilt(row, column)}deg` } as CSSProperties
+      }
     >
       <span
         className="absolute bottom-1 left-1.5 font-mono text-[10px] opacity-0 transition-opacity group-hover:opacity-100"
