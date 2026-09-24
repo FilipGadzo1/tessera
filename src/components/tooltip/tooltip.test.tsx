@@ -230,6 +230,30 @@ describe("Tooltip", () => {
     await expect.element(trigger).toHaveAttribute("aria-describedby", `b a ${popup.id}`);
   });
 
+  it("does not repeat an id given on both the trigger and the render element", async () => {
+    await render(
+      <div>
+        <span id="a">A</span>
+        <span id="b">B</span>
+        <Tooltip>
+          <TooltipTrigger
+            delay={0}
+            closeDelay={0}
+            aria-describedby="a b"
+            render={<Button aria-describedby="a" />}
+          >
+            Save
+          </TooltipTrigger>
+          <TooltipContent>Tip</TooltipContent>
+        </Tooltip>
+      </div>,
+    );
+    const trigger = page.getByRole("button", { name: "Save" });
+    await expect.element(trigger).toHaveAttribute("aria-describedby", "a b");
+    const popup = await openByHover(trigger);
+    await expect.element(trigger).toHaveAttribute("aria-describedby", `a b ${popup.id}`);
+  });
+
   it("forwards ref to the popup element (and null on close)", async () => {
     const received: (HTMLDivElement | null)[] = [];
     await render(<Basic ref={(element) => void received.push(element)} />);

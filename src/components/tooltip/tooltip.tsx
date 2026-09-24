@@ -62,11 +62,12 @@ export function TooltipTrigger({ render, ...props }: TooltipTriggerProps) {
   const describedBy = useContext(TooltipDescriptionContext)?.describedBy;
   // An element `render` (e.g. `<Button aria-describedby="hint" />`) wins over the trigger's own
   // props when Base UI merges them, so read its aria-describedby too and write the merged list back.
+  // A function-form `render` is not merged here; Base UI's own prop merging applies to it.
   const renderElement = isValidElement<{ "aria-describedby"?: string }>(render) ? render : null;
-  const ariaDescribedBy =
-    [renderElement?.props["aria-describedby"], props["aria-describedby"], describedBy]
-      .filter(Boolean)
-      .join(" ") || undefined;
+  const ids = [renderElement?.props["aria-describedby"], props["aria-describedby"], describedBy]
+    .flatMap((value) => value?.split(/\s+/) ?? [])
+    .filter(Boolean);
+  const ariaDescribedBy = [...new Set(ids)].join(" ") || undefined;
   return (
     <BaseTooltip.Trigger
       {...props}

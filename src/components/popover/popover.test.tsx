@@ -114,6 +114,14 @@ describe("Popover", () => {
     await expect.element(dialog()).toBeVisible();
   });
 
+  it("opens with Space on the focused trigger", async () => {
+    await render(<Basic />);
+    await userEvent.tab();
+    expect(document.activeElement).toBe(trigger().element());
+    await userEvent.keyboard(" ");
+    await expect.element(dialog()).toBeVisible();
+  });
+
   // Base UI's default `initialFocus` (PopoverPopup.d.ts): focus moves to the first tabbable element
   // in the popup, or to the popup itself when it has none (and on touch opens).
   it("moves focus to the first tabbable element in the popup on open", async () => {

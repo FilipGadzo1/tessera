@@ -28,7 +28,7 @@ export default defineConfig({
     ],
   },
   test: {
-    include: ["src/**/*.test.{ts,tsx}"],
+    include: ["src/**/*.test.{ts,tsx}", "test/**/*.test.{ts,tsx}"],
     setupFiles: ["./test/setup.ts"],
     browser: {
       enabled: true,
