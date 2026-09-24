@@ -105,7 +105,10 @@ export function ProjectCard({ defaultName = "Mosaic", tooltipDelay }: ProjectCar
   const [name, setName] = useState(defaultName);
   const [draft, setDraft] = useState(defaultName);
   const [starred, setStarred] = useState(false);
+  // Two separate confirmations: the Share button's tooltip, and an inline notice for the menu's
+  // "Copy link" (the menu closes on click, so it cannot confirm in place).
   const [copied, setCopied] = useState(false);
+  const [menuCopied, setMenuCopied] = useState(false);
   const [members, setMembers] = useState(initialMembers);
   const [invite, setInvite] = useState("");
   const [renameOpen, setRenameOpen] = useState(false);
@@ -123,6 +126,13 @@ export function ProjectCard({ defaultName = "Mosaic", tooltipDelay }: ProjectCar
       menuTriggerRef.current?.focus();
     }
   }, [deleted]);
+
+  // The inline notice clears itself after a moment.
+  useEffect(() => {
+    if (!menuCopied) return;
+    const timer = setTimeout(() => setMenuCopied(false), 2000);
+    return () => clearTimeout(timer);
+  }, [menuCopied]);
 
   function openRename() {
     setDraft(name);
@@ -145,10 +155,19 @@ export function ProjectCard({ defaultName = "Mosaic", tooltipDelay }: ProjectCar
     setInvite("");
   }
 
-  function copyLink() {
+  function writeLink() {
     // The Storybook iframe may deny clipboard access; the example only needs the feedback.
     navigator.clipboard?.writeText(`https://example.com/projects/${name}`).catch(() => {});
+  }
+
+  function copyFromShare() {
+    writeLink();
     setCopied(true);
+  }
+
+  function copyFromMenu() {
+    writeLink();
+    setMenuCopied(true);
   }
 
   function undo() {
@@ -243,6 +262,10 @@ export function ProjectCard({ defaultName = "Mosaic", tooltipDelay }: ProjectCar
                     {name}
                   </CardTitle>
                   <Badge color="success">Active</Badge>
+                  {/* Always mounted, so screen readers announce the notice when it appears. */}
+                  <span role="status" className="inline-flex">
+                    {menuCopied && <Badge color="info">Link copied</Badge>}
+                  </span>
                 </div>
                 <CardDescription>Marketing site design system · edited 2h ago</CardDescription>
               </div>
@@ -262,7 +285,7 @@ export function ProjectCard({ defaultName = "Mosaic", tooltipDelay }: ProjectCar
                   <Ellipsis aria-hidden="true" />
                 </MenuTrigger>
                 <MenuContent align="end">
-                  <MenuItem onClick={copyLink}>
+                  <MenuItem onClick={copyFromMenu}>
                     Copy link
                     <MenuShortcut>⌘L</MenuShortcut>
                   </MenuItem>
@@ -368,14 +391,16 @@ export function ProjectCard({ defaultName = "Mosaic", tooltipDelay }: ProjectCar
                 </TooltipContent>
               </Tooltip>
               <Tooltip onOpenChange={(open) => !open && setCopied(false)}>
+                {/* Stays open on click so the tooltip can confirm "Link copied". */}
                 <TooltipTrigger
+                  closeOnClick={false}
                   render={
                     <Button
                       variant="ghost"
                       color="neutral"
                       size="icon-sm"
                       aria-label="Share project"
-                      onClick={copyLink}
+                      onClick={copyFromShare}
                     />
                   }
                 >

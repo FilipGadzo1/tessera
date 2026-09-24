@@ -38,7 +38,10 @@ describe("ProjectCard example", () => {
     await userEvent.keyboard("{Enter}");
     await expect.element(page.getByRole("menu")).toBeVisible();
     await userEvent.keyboard("{ArrowDown}");
-    await expect.poll(highlighted).toEqual(["Rename…F2"]);
+    // The F2 shortcut is aria-hidden: the item's accessible name is just "Rename…".
+    const rename = page.getByRole("menuitem", { name: "Rename…", exact: true });
+    await expect.poll(highlighted).toHaveLength(1);
+    await expect.poll(() => document.querySelector("[data-highlighted]")).toBe(rename.element());
     await userEvent.keyboard("{Enter}");
 
     const dialog = page.getByRole("dialog", { name: "Rename project" });
@@ -56,7 +59,7 @@ describe("ProjectCard example", () => {
   it("keeps the old name when the rename is cancelled with Escape", async () => {
     await render(<ProjectCard />);
     await userEvent.click(menuTrigger());
-    await userEvent.click(page.getByRole("menuitem", { name: /Rename/ }));
+    await userEvent.click(page.getByRole("menuitem", { name: "Rename…", exact: true }));
     await expect.element(page.getByRole("dialog", { name: "Rename project" })).toBeVisible();
     await userEvent.keyboard("{Control>}a{/Control}Nope{Escape}");
     await expect.element(page.getByRole("dialog")).not.toBeInTheDocument();
@@ -117,6 +120,25 @@ describe("ProjectCard example", () => {
     await expect.element(star).toHaveAttribute("aria-pressed", "false");
     await userEvent.click(star);
     await expect.element(star).toHaveAttribute("aria-pressed", "true");
+    await userEvent.hover(page.getByRole("button", { name: "Share project" }));
+    await expect.element(page.getByRole("tooltip")).toHaveTextContent("Copy a share link");
+  });
+
+  it("confirms a Share click in the Share tooltip, which stays open", async () => {
+    await render(<ProjectCard tooltipDelay={0} />);
+    const share = page.getByRole("button", { name: "Share project" });
+    await userEvent.hover(share);
+    await expect.element(page.getByRole("tooltip")).toHaveTextContent("Copy a share link");
+    await userEvent.click(share);
+    await expect.element(page.getByRole("tooltip")).toHaveTextContent("Link copied");
+  });
+
+  it("confirms the menu's Copy link inline, without leaving the Share tooltip stale", async () => {
+    await render(<ProjectCard tooltipDelay={0} />);
+    await userEvent.click(menuTrigger());
+    await userEvent.click(page.getByRole("menuitem", { name: "Copy link", exact: true }));
+    await expect.element(page.getByRole("menu")).not.toBeInTheDocument();
+    await expect.element(page.getByRole("status")).toHaveTextContent("Link copied");
     await userEvent.hover(page.getByRole("button", { name: "Share project" }));
     await expect.element(page.getByRole("tooltip")).toHaveTextContent("Copy a share link");
   });
