@@ -101,6 +101,8 @@ function ArchiveButton() {
           const id = toast.add({
             title: "Conversation archived",
             description: "It moved to the Archive folder.",
+            // Actionable toasts need time to act on (WCAG 2.2.1): keep them until closed.
+            timeout: 0,
             actionProps: {
               children: "Undo",
               onClick: () => {
@@ -119,8 +121,8 @@ function ArchiveButton() {
 }
 
 /**
- * `actionProps` adds an action Button. A toast with an action defaults to `priority: "high"`: it
- * is announced as an alert instead of politely.
+ * `actionProps` adds an action Button. The toast stays polite (`priority: "low"`) and uses
+ * `timeout: 0`, so there is time to act (WCAG 2.2.1); it closes with Undo, Close or Escape.
  */
 export const WithAction: Story = {
   render: (args) => (

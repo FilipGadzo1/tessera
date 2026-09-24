@@ -36,6 +36,29 @@ async function animationsSettled() {
   await expect.poll(() => document.getAnimations().length, { timeout: 3000 }).toBe(0);
 }
 
+/** Resolves any CSS colour (oklch included) to sRGB bytes via a canvas. */
+function rgb(color: string): [number, number, number] {
+  const ctx = document.createElement("canvas").getContext("2d") as CanvasRenderingContext2D;
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, 1, 1);
+  const data = ctx.getImageData(0, 0, 1, 1).data;
+  return [data[0] ?? 0, data[1] ?? 0, data[2] ?? 0];
+}
+function luminance(color: string) {
+  const linear = (c: number) => {
+    const v = c / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  const [r, g, b] = rgb(color);
+  return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
+}
+/** WCAG contrast ratio between two CSS colours. */
+function contrast(a: string, b: string) {
+  const la = luminance(a);
+  const lb = luminance(b);
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+}
+
 afterEach(() => {
   document.documentElement.classList.remove("dark");
 });
@@ -219,38 +242,30 @@ describe("Toast", () => {
   });
 
   /*
-   * Base UI announces `priority: "high"` toasts urgently: a visually hidden `role="alert"` copy of
-   * the title and description, while the toast itself becomes a `role="alertdialog"` hidden from
-   * the accessibility tree until focused (so it is not read twice). Base UI never raises the
-   * priority by itself; Tessera's `useToast()` / `createToaster()` default a toast with an action
-   * to `"high"`, since the user may need to act before it disappears.
+   * Toasts stay at Base UI's default `priority: "low"` (polite), with or without an action; Tessera
+   * never raises it. An explicit `priority: "high"` is announced urgently: a visually hidden
+   * `role="alert"` copy of the title and description (without the action), while the toast itself
+   * becomes a `role="alertdialog"` hidden from the accessibility tree until keyboard focus enters
+   * the viewport (so it is not read twice).
    */
   describe("priority", () => {
     const alerts = () =>
       [...document.body.querySelectorAll('[role="alert"]')].map((alert) => alert.textContent);
 
-    it("gives a toast with an action high-priority semantics", async () => {
+    it("keeps a toast with an action at low priority, its action inside the live region", async () => {
       const { toast } = await renderToaster();
-      toast().add({ title: "Connection lost", timeout: 0, actionProps: { children: "Retry" } });
-      await expect.poll(() => toastWith("Connection lost")).not.toBeNull();
-      const root = toastWith("Connection lost") as HTMLElement;
-      expect(root.getAttribute("role")).toBe("alertdialog");
-      expect(root.getAttribute("aria-hidden")).toBe("true");
-      expect(alerts()).toEqual(["Connection lost"]);
-    });
-
-    it("drops aria-hidden on a high-priority toast once keyboard focus enters it", async () => {
-      const { toast } = await renderToaster();
-      toast().add({ title: "Connection lost", timeout: 0, actionProps: { children: "Retry" } });
-      await expect.poll(() => toastWith("Connection lost")).not.toBeNull();
-      const root = toastWith("Connection lost") as HTMLElement;
-      expect(root.getAttribute("aria-hidden")).toBe("true");
-      await userEvent.keyboard("{F6}");
-      await userEvent.tab();
-      await expect.poll(() => document.activeElement).toBe(root);
-      await expect.poll(() => root.hasAttribute("aria-hidden")).toBe(false);
-      // Focused, the duplicate alert is gone and the toast itself is read.
+      toast().add({ title: "Message archived", timeout: 0, actionProps: { children: "Undo" } });
+      await expect.poll(() => toastWith("Message archived")).not.toBeNull();
+      const root = toastWith("Message archived") as HTMLElement;
+      expect(root.getAttribute("role")).toBe("dialog");
+      expect(root.hasAttribute("aria-hidden")).toBe(false);
       expect(alerts()).toEqual([]);
+      const action = root.querySelector('[data-slot="toast-action"] button') as HTMLElement;
+      expect(action.textContent).toBe("Undo");
+      const region = viewport() as HTMLElement;
+      expect(region.getAttribute("aria-live")).toBe("polite");
+      expect(region.contains(action)).toBe(true);
+      expect(action.closest('[aria-hidden="true"]')).toBeNull();
     });
 
     it("leaves a toast without an action at low priority", async () => {
@@ -262,16 +277,33 @@ describe("Toast", () => {
       expect(alerts()).toEqual([]);
     });
 
-    it("keeps an explicit priority", async () => {
+    it("gives an explicit high-priority toast Base UI's urgent semantics", async () => {
       const { toast } = await renderToaster();
       toast().add({
-        title: "Low with action",
+        title: "Connection lost",
         timeout: 0,
-        priority: "low",
-        actionProps: { children: "View" },
+        priority: "high",
+        actionProps: { children: "Retry" },
       });
-      await expect.poll(() => toastWith("Low with action")).not.toBeNull();
-      expect(toastWith("Low with action")?.getAttribute("role")).toBe("dialog");
+      await expect.poll(() => toastWith("Connection lost")).not.toBeNull();
+      const root = toastWith("Connection lost") as HTMLElement;
+      expect(root.getAttribute("role")).toBe("alertdialog");
+      expect(root.getAttribute("aria-hidden")).toBe("true");
+      // The alert copy carries title and description only, not the action label.
+      expect(alerts()).toEqual(["Connection lost"]);
+    });
+
+    it("drops aria-hidden on a high-priority toast once keyboard focus enters it", async () => {
+      const { toast } = await renderToaster();
+      toast().add({ title: "Connection lost", timeout: 0, priority: "high" });
+      await expect.poll(() => toastWith("Connection lost")).not.toBeNull();
+      const root = toastWith("Connection lost") as HTMLElement;
+      expect(root.getAttribute("aria-hidden")).toBe("true");
+      await userEvent.keyboard("{F6}");
+      await userEvent.tab();
+      await expect.poll(() => document.activeElement).toBe(root);
+      await expect.poll(() => root.hasAttribute("aria-hidden")).toBe(false);
+      // Focused, the duplicate alert is gone and the toast itself is read.
       expect(alerts()).toEqual([]);
     });
   });
@@ -286,7 +318,7 @@ describe("Toast", () => {
     toaster.update(id, { title: "Build finished", type: "success" });
     await expect.poll(() => toastWith("Build finished")?.dataset.type).toBe("success");
     toaster.add({ title: "Deploy failed", timeout: 0, actionProps: { children: "Logs" } });
-    await expect.poll(() => toastWith("Deploy failed")?.getAttribute("role")).toBe("alertdialog");
+    await expect.poll(() => toastWith("Deploy failed")?.getAttribute("role")).toBe("dialog");
     toaster.close(id);
     await expect.poll(() => toastWith("Build finished")).toBeNull();
   });
@@ -432,17 +464,59 @@ describe("Toast", () => {
       await animationsSettled();
       const { violations, incomplete } = await auditOpenOverlay();
       expect(violations).toEqual([]);
-      // Base UI keeps a high-priority toast `aria-hidden` (its visually hidden `role="alert"` copy
-      // is what gets announced) yet focusable, and lifts `aria-hidden` as soon as keyboard focus
-      // enters the viewport ("drops aria-hidden … keyboard focus" above). axe can't see that, so it
-      // flags `aria-hidden-focus` for review on exactly those toasts; everything else must be clean.
-      const highPriority = [...document.body.querySelectorAll('[data-slot="toast"]')].filter(
-        (toast) => toast.getAttribute("role") === "alertdialog",
-      );
-      expect(highPriority).toHaveLength(1);
-      expect(incomplete).toEqual(['aria-hidden-focus: div[role="alertdialog"]']);
+      expect(incomplete).toEqual([]);
     } finally {
       document.documentElement.classList.remove("dark");
     }
   });
+
+  /*
+   * Base UI keeps an explicit high-priority toast `aria-hidden` (its visually hidden `role="alert"`
+   * copy is what gets announced) yet focusable, and lifts `aria-hidden` once keyboard focus enters
+   * the viewport (tested above). axe can't see that, so it flags exactly that toast as
+   * `aria-hidden-focus` "needs review"; nothing else may be reported.
+   */
+  it("reports only the documented aria-hidden-focus review for an explicit high-priority toast", async () => {
+    const { toast } = await renderToaster();
+    toast().add({ title: "Plain notice", timeout: 0 });
+    toast().add({
+      title: "Connection lost",
+      description: "Reconnecting.",
+      timeout: 0,
+      priority: "high",
+    });
+    await expect.poll(() => toasts().length).toBe(2);
+    await userEvent.hover(page.elementLocator(toastWith("Connection lost") as HTMLElement));
+    await expect.poll(() => viewport()?.hasAttribute("data-expanded")).toBe(true);
+    await animationsSettled();
+    const { violations, incomplete } = await auditOpenOverlay();
+    expect(violations).toEqual([]);
+    expect(incomplete).toEqual(['aria-hidden-focus: div[role="alertdialog"]']);
+  });
+
+  // The icon is non-text UI (WCAG 1.4.11): its tone ink needs >= 3:1 on the popover surface.
+  // Warning is the weakest tone; every toned icon is checked.
+  it.each(["light", "dark"] as const)(
+    "gives every toned icon >= 3:1 against the popover surface in the %s theme",
+    async (theme) => {
+      if (theme === "dark") document.documentElement.classList.add("dark");
+      try {
+        const { toast } = await renderToaster({ limit: 10 });
+        const types = ["success", "warning", "danger", "info"];
+        for (const type of types) toast().add({ title: `A ${type} toast`, type, timeout: 0 });
+        await expect.poll(() => toasts().length).toBe(4);
+        for (const type of types) {
+          const root = toastWith(`A ${type} toast`) as HTMLElement;
+          const icon = root.querySelector('[data-slot="toast-icon"]') as SVGElement;
+          const ratio = contrast(
+            getComputedStyle(icon).color,
+            getComputedStyle(root).backgroundColor,
+          );
+          expect(ratio, `${type} icon`).toBeGreaterThanOrEqual(3);
+        }
+      } finally {
+        document.documentElement.classList.remove("dark");
+      }
+    },
+  );
 });

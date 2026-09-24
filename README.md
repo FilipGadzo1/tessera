@@ -226,8 +226,11 @@ source files automatically (build output + `"use client"` directive checks).
 - [x] Toaster, useToast, createToaster (wrap the app in `<Toaster>`; anywhere inside,
   `const toast = useToast()` then `toast.add({ title, description, type })`. `type` is `default`,
   `success`, `warning`, `danger` or `info`: toned types get a leading icon and a left accent.
-  `actionProps: { children: "Undo", onClick }` adds an action Button; a toast with an action
-  defaults to `priority: "high"` (announced as an alert), pass `priority: "low"` to opt out.
+  `actionProps: { children: "Undo", onClick }` adds an action Button — give such toasts
+  `timeout: 0` or a longer timeout so people have time to act (WCAG 2.2.1). Toasts are announced
+  politely (`priority: "low"`, the default); use `priority: "high"` only for urgent messages
+  (failed save, lost connection) — it is announced assertively and hidden from browse mode until
+  focused (F6).
   `toast.close(id)`, `toast.update(id, …)`, and `toast.promise(promise, { loading, success, error })`
   (a spinner, then success or `error` — styled as danger) come from Base UI's toast manager.
   Toaster props: `position` (`bottom-right` default, `top-right`, `bottom-center`, `top-center`),

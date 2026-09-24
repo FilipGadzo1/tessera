@@ -52,9 +52,10 @@ None block current use.
   `--toast-*` stacking utilities). Open: per-toast `className` / custom content (today a toast
   renders title, description, action and close only; `data` is unused), a typed `ToastType` on
   `add()` (it takes Base UI's `type?: string`), and a toast anchored to an element
-  (`Toast.Positioner` / `positionerProps`). Base UI keeps a high-priority toast `aria-hidden` but
-  focusable until keyboard focus enters the viewport; axe reports that as `aria-hidden-focus`
-  "needs review" (the Toast axe test allows exactly that entry).
+  (`Toast.Positioner` / `positionerProps`). Base UI keeps an explicit `priority: "high"` toast
+  `aria-hidden` but focusable until keyboard focus enters the viewport; axe reports that as
+  `aria-hidden-focus` "needs review" (a dedicated axe test allows exactly that entry; the main
+  Toast axe test is fully clean). Tessera never raises priority automatically (fix round 1, R6).
 - Accordion panel ring room (Task 5): `overflow-clip-margin` is unsupported in Safari, so flush
   focus rings there are clipped at the panel's sides (no layout cost either way).
 - Select (Task 4, done): reuses `popupSurface` / `popupMotion` / `menuItemBase`; the popup layer

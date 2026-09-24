@@ -431,9 +431,10 @@ describe("Accordion", () => {
       expect(Math.round(box[side])).toBe(Math.round(panelBox[side]));
       await nextFrame();
       const pixels = await sampleScreenshot(frame.element(), [
-        // The outline's outermost pixel column, at the button's vertical middle.
+        // The middle of the 2px outline (its inner pixel column, 1px in from the outer edge — clear
+        // of antialiasing at any DPR), at the button's vertical middle. Still outside the panel.
         {
-          x: side === "left" ? box.left - reach + 0.5 : box.right + reach - 0.5,
+          x: side === "left" ? box.left - reach + 1.5 : box.right + reach - 1.5,
           y: box.top + box.height / 2,
         },
         { x: swatch.left + swatch.width / 2, y: swatch.top + swatch.height / 2 },

@@ -3,11 +3,10 @@
 import {
   Toast as BaseToast,
   type ToastManager,
-  type ToastManagerAddOptions,
   type ToastObject,
   type UseToastManagerReturnValue,
 } from "@base-ui/react/toast";
-import { type ReactNode, useMemo } from "react";
+import type { ReactNode } from "react";
 import { cn } from "../../lib/cn";
 import { popupSurface } from "../../lib/overlay-classes";
 import { type ToneColor, toneClass } from "../../lib/tone";
@@ -113,15 +112,6 @@ const typeTones: Record<string, ToneColor> = {
   info: "info",
 };
 
-/** A toast with an action defaults to `priority: "high"`: the user may need to act on it. */
-function withActionPriority<T extends { actionProps?: unknown; priority?: "low" | "high" }>(
-  options: T,
-): T {
-  return options.actionProps !== undefined && options.priority === undefined
-    ? { ...options, priority: "high" }
-    : options;
-}
-
 export interface ToasterProps {
   /** Where toasts appear. @default "bottom-right" */
   position?: ToastPosition;
@@ -214,30 +204,22 @@ function ToastItem({ toast, position }: { toast: ToastObject<object>; position: 
   );
 }
 
-/** Returns the toast manager of the enclosing `Toaster`: `add`, `close`, `update`, `promise`, `toasts`. */
+/**
+ * Returns the toast manager of the enclosing `Toaster` (Base UI's `useToastManager`): `add`,
+ * `close`, `update`, `promise`, `toasts`. Toasts default to `priority: "low"` (announced politely);
+ * pass `priority: "high"` only for urgent messages.
+ */
 export function useToast<Data extends object = object>(): UseToastManagerReturnValue<Data> {
-  const manager = BaseToast.useToastManager<Data>();
-  return useMemo(
-    () => ({
-      ...manager,
-      add: <T extends Data = Data>(options: ToastManagerAddOptions<T>) =>
-        manager.add(withActionPriority(options)),
-    }),
-    [manager],
-  );
+  return BaseToast.useToastManager<Data>();
 }
 
 /**
- * Creates a toast manager for use outside React (API clients, stores). Pass it to
- * `<Toaster toastManager={toaster}>`; toasts added before that Toaster mounts are dropped.
+ * Creates a toast manager for use outside React (API clients, stores), wrapping Base UI's
+ * `createToastManager`. Pass it to `<Toaster toastManager={toaster}>`; toasts added before that
+ * Toaster mounts are dropped.
  */
 export function createToaster<Data extends object = object>(): ToastManager<Data> {
-  const manager = BaseToast.createToastManager<Data>();
-  return {
-    ...manager,
-    add: <T extends Data = Data>(options: ToastManagerAddOptions<T>) =>
-      manager.add(withActionPriority(options)),
-  };
+  return BaseToast.createToastManager<Data>();
 }
 
 const svgProps = {
@@ -249,6 +231,10 @@ const svgProps = {
   strokeLinejoin: "round",
 } as const;
 
+/*
+ * The loading spinner keeps spinning under reduced motion, like Button's: it is essential status
+ * motion (spec §2 Toast).
+ */
 function ToastIcon({ type, toned }: { type: string | undefined; toned: boolean }) {
   if (type === "loading") {
     return (
