@@ -1,6 +1,7 @@
 "use client";
 
 import { Button as BaseButton } from "@base-ui/react/button";
+import { mergeClassName } from "../../lib/merge-class-name";
 import { type ButtonVariantProps, buttonDefaults, buttonVariants } from "./button-variants";
 
 export interface ButtonProps extends Omit<BaseButton.Props, "color">, ButtonVariantProps {
@@ -34,14 +35,7 @@ export function Button({
       aria-busy={loading || props["aria-busy"]}
       disabled={disabled || loading}
       focusableWhenDisabled={loading || focusableWhenDisabled}
-      className={(state) =>
-        buttonVariants({
-          variant,
-          color,
-          size,
-          className: typeof className === "function" ? className(state) : className,
-        })
-      }
+      className={mergeClassName(buttonVariants({ variant, color, size }), className)}
     >
       {loading && <ButtonSpinner />}
       {!spinnerOnly && children}

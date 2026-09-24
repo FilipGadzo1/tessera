@@ -2,9 +2,10 @@
 
 import { Switch as BaseSwitch } from "@base-ui/react/switch";
 import { cn } from "../../lib/cn";
+import { mergeClassName } from "../../lib/merge-class-name";
 
 /** Base UI Switch.Root props. Tessera renders the thumb, so `children` is ignored. */
-export type SwitchProps = BaseSwitch.Root.Props;
+export type SwitchProps = Omit<BaseSwitch.Root.Props, "children">;
 
 /*
  * Outlines: the track has no border, so invalid is a 1px danger outline. Tailwind emits
@@ -37,9 +38,7 @@ export function Switch({ className, ...props }: SwitchProps) {
     <BaseSwitch.Root
       {...props}
       data-slot="switch"
-      className={(state) =>
-        cn(trackClasses, typeof className === "function" ? className(state) : className)
-      }
+      className={mergeClassName(trackClasses, className)}
     >
       <BaseSwitch.Thumb data-slot="switch-thumb" className={thumbClasses} />
     </BaseSwitch.Root>

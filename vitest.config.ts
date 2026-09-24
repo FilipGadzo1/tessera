@@ -7,6 +7,8 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   // Pre-bundle every Base UI entry the library uses. Otherwise the first run after a cache wipe
   // re-optimizes deps mid-run when a new subpath is imported, reloading React and failing tests.
+  // Add every new @base-ui/react/* subpath here when a component starts importing it (Phase C:
+  // tooltip, popover, dialog, menu, …) — otherwise cold runs reload and flake.
   optimizeDeps: {
     include: [
       "@base-ui/react/button",
@@ -18,6 +20,10 @@ export default defineConfig({
       "@base-ui/react/radio",
       "@base-ui/react/radio-group",
       "@base-ui/react/form",
+      "@base-ui/react/tooltip",
+      "@base-ui/react/popover",
+      "@base-ui/react/dialog",
+      "@base-ui/react/menu",
     ],
   },
   test: {

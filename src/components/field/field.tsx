@@ -2,20 +2,13 @@
 
 import { Field as BaseField } from "@base-ui/react/field";
 import { createContext, useContext } from "react";
-import { cn } from "../../lib/cn";
+import { mergeClassName } from "../../lib/merge-class-name";
 
 export type FieldProps = BaseField.Root.Props;
 export type FieldLabelProps = BaseField.Label.Props;
 export type FieldDescriptionProps = BaseField.Description.Props;
 export type FieldErrorProps = BaseField.Error.Props;
 export type FieldItemProps = BaseField.Item.Props;
-
-type ClassName<State> = string | ((state: State) => string | undefined) | undefined;
-
-/** Resolves a string-or-state-function className and merges it after the component classes. */
-function mergeClassName<State>(base: string, className: ClassName<State>) {
-  return (state: State) => cn(base, typeof className === "function" ? className(state) : className);
-}
 
 /**
  * Base UI's Field.Error only follows computed validity (native constraints, `validate`, Form
@@ -36,14 +29,14 @@ export function Field({ className, ...props }: FieldProps) {
   );
 }
 
-/** Labels the Field's control; dims while the Field is disabled. */
+/** Labels the Field's control; its text dims (muted color, not opacity) while the Field is disabled. */
 export function FieldLabel({ className, ...props }: FieldLabelProps) {
   return (
     <BaseField.Label
       {...props}
       data-slot="field-label"
       className={mergeClassName(
-        "text-sm font-medium leading-snug text-foreground data-disabled:opacity-50",
+        "text-sm font-medium leading-snug text-foreground data-disabled:text-muted-foreground",
         className,
       )}
     />

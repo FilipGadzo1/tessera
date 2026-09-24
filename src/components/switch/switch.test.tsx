@@ -43,6 +43,15 @@ describe("Switch", () => {
     await expect.element(toggle).toHaveAttribute("data-unchecked");
   });
 
+  it("ignores children (type-level: SwitchProps omits children)", async () => {
+    const screen = await render(
+      // @ts-expect-error -- Tessera renders the thumb; children are not accepted.
+      <Switch aria-label="Kids">ignored</Switch>,
+    );
+    await expect.element(screen.getByRole("switch", { name: "Kids" })).toBeInTheDocument();
+    expect(screen.container.textContent).not.toContain("ignored");
+  });
+
   it("toggles when the label text is clicked", async () => {
     const screen = await render(<Labelled label="Notifications" />);
     const toggle = screen.getByRole("switch", { name: "Notifications" });

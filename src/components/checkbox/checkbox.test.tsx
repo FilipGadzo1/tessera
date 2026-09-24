@@ -39,6 +39,15 @@ describe("Checkbox", () => {
     await expect.element(checkbox).toHaveAttribute("data-unchecked");
   });
 
+  it("ignores children (type-level: CheckboxProps omits children)", async () => {
+    const screen = await render(
+      // @ts-expect-error -- Tessera renders the indicator; children are not accepted.
+      <Checkbox aria-label="Kids">ignored</Checkbox>,
+    );
+    await expect.element(screen.getByRole("checkbox", { name: "Kids" })).toBeInTheDocument();
+    expect(screen.container.textContent).not.toContain("ignored");
+  });
+
   it("toggles when the label text is clicked", async () => {
     const screen = await render(<Labelled label="Accept terms" />);
     const checkbox = screen.getByRole("checkbox", { name: "Accept terms" });

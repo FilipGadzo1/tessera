@@ -17,6 +17,15 @@ describe("SignUpForm example", () => {
     expect(screen.container.querySelector("pre")).toBeNull();
   });
 
+  it("focuses the first invalid control (Name) after submitting empty", async () => {
+    const screen = await render(<SignUpForm />);
+    await screen.getByRole("button", { name: "Create account" }).click();
+    await expect.element(screen.getByText("Enter your name")).toBeVisible();
+    await expect
+      .poll(() => document.activeElement)
+      .toBe(screen.getByRole("textbox", { name: "Name" }).element());
+  });
+
   it("rejects an email without @", async () => {
     const screen = await render(<SignUpForm />);
     await userEvent.type(screen.getByRole("textbox", { name: "Email" }), "ada.example.com");

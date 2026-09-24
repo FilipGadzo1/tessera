@@ -1,6 +1,7 @@
 "use client";
 
 import { Input as BaseInput } from "@base-ui/react/input";
+import { mergeClassName } from "../../lib/merge-class-name";
 import { type InputVariantProps, inputDefaults, inputVariants } from "./input-variants";
 
 /** `size` is Tessera's height scale; the native `<input size>` attribute is omitted. */
@@ -13,12 +14,7 @@ export function Input({ size, className, ...props }: InputProps) {
       {...props}
       data-slot="input"
       data-size={size ?? inputDefaults.size}
-      className={(state) =>
-        inputVariants({
-          size,
-          className: typeof className === "function" ? className(state) : className,
-        })
-      }
+      className={mergeClassName(inputVariants({ size }), className)}
     />
   );
 }

@@ -2,6 +2,7 @@ import axe from "axe-core";
 import { describe, expect, it } from "vitest";
 import { userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
+import { Checkbox } from "../checkbox";
 import { Input } from "../input";
 import {
   Field,
@@ -82,6 +83,24 @@ describe("Field", () => {
     await expect.element(screen.getByText(ERROR)).not.toBeInTheDocument();
   });
 
+  it("unmounts the error and drops its id from aria-describedby when invalid is removed", async () => {
+    const screen = await render(<EmailField invalid />);
+    const input = screen.getByRole("textbox", { name: "Email" });
+    const error = screen.getByText(ERROR);
+    await expect.element(error).toBeVisible();
+    const errorId = error.element().id;
+    expect(errorId).not.toBe("");
+    expect((input.element().getAttribute("aria-describedby") ?? "").split(" ")).toContain(errorId);
+
+    await screen.rerender(<EmailField />);
+    await expect.element(screen.getByText(ERROR)).not.toBeInTheDocument();
+    expect(document.querySelector("[data-slot='field-error']")).toBeNull();
+    await expect
+      .poll(() => (input.element().getAttribute("aria-describedby") ?? "").split(" "))
+      .not.toContain(errorId);
+    await expect.element(input).toHaveAccessibleDescription(DESCRIPTION);
+  });
+
   it("lets an explicit match override the Field's invalid prop", async () => {
     const screen = await render(
       <Field invalid>
@@ -118,13 +137,45 @@ describe("Field", () => {
   });
 
   it("disables the input and dims the label when disabled", async () => {
-    const screen = await render(<EmailField disabled />);
+    const screen = await render(
+      <div>
+        <EmailField disabled />
+        <span data-testid="muted-ref" className="text-muted-foreground" />
+      </div>,
+    );
     const input = screen.getByRole("textbox", { name: "Email" });
     await expect.element(input).toBeDisabled();
     const label = screen.getByText("Email");
     await expect.element(label).toHaveAttribute("data-disabled");
-    expect(getComputedStyle(label.element()).opacity).toBe("0.5");
+    expect(getComputedStyle(label.element()).opacity).toBe("1");
+    expect(getComputedStyle(label.element()).color).toBe(
+      getComputedStyle(screen.getByTestId("muted-ref").element()).color,
+    );
     expect(getComputedStyle(input.element()).cursor).toBe("not-allowed");
+  });
+
+  it("dims a disabled label's text without compounding a nested control's opacity", async () => {
+    const screen = await render(
+      <div>
+        <Field disabled>
+          <FieldLabel className="flex items-center gap-2">
+            <Checkbox />
+            Email me
+          </FieldLabel>
+        </Field>
+        <span data-testid="muted-ref" className="text-muted-foreground" />
+      </div>,
+    );
+    const checkbox = screen.getByRole("checkbox", { name: "Email me" }).element();
+    let opacity = 1;
+    for (let el: Element | null = checkbox; el; el = el.parentElement) {
+      opacity *= Number(getComputedStyle(el).opacity);
+    }
+    expect(opacity).toBe(0.5);
+    const label = checkbox.closest("[data-slot='field-label']") as HTMLElement;
+    expect(getComputedStyle(label).color).toBe(
+      getComputedStyle(screen.getByTestId("muted-ref").element()).color,
+    );
   });
 
   it("shows a solid 1px outline on the input on Tab focus", async () => {

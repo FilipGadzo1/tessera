@@ -78,26 +78,31 @@ export const States: Story = {
   ),
 };
 
-/** A horizontal layout comes from the caller's className. */
+/**
+ * A horizontal layout wraps the options in a row. A `flex-row` className on the RadioGroup would
+ * lose to the Fieldset's own `flex-col` (and would put the legend in the row too).
+ */
 export const Horizontal: Story = {
   render: () => (
-    <Fieldset render={<RadioGroup defaultValue="monthly" className="flex-row gap-6" />}>
+    <Fieldset render={<RadioGroup defaultValue="monthly" />}>
       <FieldsetLegend>Billing</FieldsetLegend>
-      <Label className="flex items-center gap-2">
-        <Radio value="monthly" />
-        Monthly
-      </Label>
-      <Label className="flex items-center gap-2">
-        <Radio value="yearly" />
-        Yearly
-      </Label>
+      <div className="flex flex-row gap-6">
+        <Label className="flex items-center gap-2">
+          <Radio value="monthly" />
+          Monthly
+        </Label>
+        <Label className="flex items-center gap-2">
+          <Radio value="yearly" />
+          Yearly
+        </Label>
+      </div>
     </Fieldset>
   ),
 };
 
 /**
- * A disabled Fieldset disables its RadioGroup. `disabled` on the surrounding Field also dims the
- * option labels, so set it there.
+ * A disabled Fieldset disables its RadioGroup. `disabled` on the surrounding Field also mutes the
+ * option label text, so set it there.
  */
 export const Disabled: Story = {
   render: () => (

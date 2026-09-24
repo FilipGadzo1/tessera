@@ -1,4 +1,5 @@
 import axe from "axe-core";
+import type { ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
@@ -6,6 +7,7 @@ import { Field, FieldError, FieldItem, FieldLabel } from "../field";
 import { Fieldset, FieldsetLegend } from "../fieldset";
 import { Label } from "../label";
 import { Radio, RadioGroup, type RadioGroupProps } from "./radio-group";
+import { Horizontal } from "./radio-group.stories";
 
 const settle = () => new Promise((resolve) => setTimeout(resolve, 250));
 
@@ -57,6 +59,33 @@ describe("RadioGroup", () => {
       .element(screen.getByText("Payment"))
       .toHaveAttribute("data-slot", "fieldset-legend");
     expect(card.element().closest('[data-slot="field-item"]')).not.toBeNull();
+  });
+
+  it("lays out the Horizontal story's options in one row, below the legend", async () => {
+    const story = Horizontal.render as unknown as () => ReactElement;
+    const screen = await render(story());
+    const monthly = screen
+      .getByRole("radio", { name: "Monthly" })
+      .element()
+      .getBoundingClientRect();
+    const yearly = screen.getByRole("radio", { name: "Yearly" }).element().getBoundingClientRect();
+    expect(yearly.top).toBe(monthly.top);
+    expect(yearly.left).toBeGreaterThan(monthly.right);
+    const legend = screen.getByText("Billing").element().getBoundingClientRect();
+    expect(legend.bottom).toBeLessThanOrEqual(monthly.top);
+  });
+
+  it("ignores children (type-level: RadioProps omits children)", async () => {
+    const screen = await render(
+      <RadioGroup aria-label="Kids">
+        {/* @ts-expect-error -- Tessera renders the indicator; children are not accepted. */}
+        <Radio value="a" aria-label="A">
+          ignored
+        </Radio>
+      </RadioGroup>,
+    );
+    await expect.element(screen.getByRole("radio", { name: "A" })).toBeInTheDocument();
+    expect(screen.container.textContent).not.toContain("ignored");
   });
 
   it("names radios by a wrapping Label when used without a Field", async () => {

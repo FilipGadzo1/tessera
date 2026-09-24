@@ -3,11 +3,12 @@
 import { Radio as BaseRadio } from "@base-ui/react/radio";
 import { RadioGroup as BaseRadioGroup } from "@base-ui/react/radio-group";
 import { cn } from "../../lib/cn";
+import { mergeClassName } from "../../lib/merge-class-name";
 
 /** Base UI RadioGroup props. Name it with `aria-label(ledby)` or render it through a Fieldset. */
 export type RadioGroupProps<Value = unknown> = BaseRadioGroup.Props<Value>;
 /** Base UI Radio.Root props. Tessera renders the indicator dot, so `children` is ignored. */
-export type RadioProps<Value = unknown> = BaseRadio.Root.Props<Value>;
+export type RadioProps<Value = unknown> = Omit<BaseRadio.Root.Props<Value>, "children">;
 
 const radioClasses = cn(
   "inline-flex shrink-0 items-center justify-center",
@@ -20,15 +21,18 @@ const radioClasses = cn(
   "transition-[color,background-color,border-color,outline-color,box-shadow,translate] duration-150 ease-out motion-reduce:transition-none",
 );
 
-/** A set of radios sharing one value. Vertical by default; pass `flex-row` for a row. */
+/**
+ * A set of radios sharing one value, stacked vertically. Standalone, pass `className="flex-row"`
+ * for a row. Composed via `<Fieldset render={<RadioGroup />}>`, the Fieldset's own classes win
+ * over the RadioGroup's className and the legend sits in the same flex container, so wrap the
+ * options instead: `<div className="flex flex-row gap-6">…</div>` after the FieldsetLegend.
+ */
 export function RadioGroup<Value>({ className, ...props }: RadioGroupProps<Value>) {
   return (
     <BaseRadioGroup
       {...props}
       data-slot="radio-group"
-      className={(state) =>
-        cn("flex flex-col gap-2", typeof className === "function" ? className(state) : className)
-      }
+      className={mergeClassName("flex flex-col gap-2", className)}
     />
   );
 }
@@ -39,9 +43,7 @@ export function Radio<Value>({ className, ...props }: RadioProps<Value>) {
     <BaseRadio.Root
       {...props}
       data-slot="radio"
-      className={(state) =>
-        cn(radioClasses, typeof className === "function" ? className(state) : className)
-      }
+      className={mergeClassName(radioClasses, className)}
     >
       <BaseRadio.Indicator
         data-slot="radio-indicator"

@@ -1,7 +1,7 @@
 "use client";
 
 import { Fieldset as BaseFieldset } from "@base-ui/react/fieldset";
-import { cn } from "../../lib/cn";
+import { mergeClassName } from "../../lib/merge-class-name";
 
 export type FieldsetProps = BaseFieldset.Root.Props;
 export type FieldsetLegendProps = BaseFieldset.Legend.Props;
@@ -15,9 +15,7 @@ export function Fieldset({ className, ...props }: FieldsetProps) {
     <BaseFieldset.Root
       {...props}
       data-slot="fieldset"
-      className={(state) =>
-        cn("flex flex-col gap-3", typeof className === "function" ? className(state) : className)
-      }
+      className={mergeClassName("flex flex-col gap-3", className)}
     />
   );
 }
@@ -28,12 +26,7 @@ export function FieldsetLegend({ className, ...props }: FieldsetLegendProps) {
     <BaseFieldset.Legend
       {...props}
       data-slot="fieldset-legend"
-      className={(state) =>
-        cn(
-          "text-sm font-medium text-foreground",
-          typeof className === "function" ? className(state) : className,
-        )
-      }
+      className={mergeClassName("text-sm font-medium text-foreground", className)}
     />
   );
 }

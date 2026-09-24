@@ -2,9 +2,10 @@
 
 import { Checkbox as BaseCheckbox } from "@base-ui/react/checkbox";
 import { cn } from "../../lib/cn";
+import { mergeClassName } from "../../lib/merge-class-name";
 
 /** Base UI Checkbox.Root props. Tessera renders the indicator, so `children` is ignored. */
-export type CheckboxProps = BaseCheckbox.Root.Props;
+export type CheckboxProps = Omit<BaseCheckbox.Root.Props, "children">;
 
 const checkboxClasses = cn(
   "inline-flex shrink-0 items-center justify-center",
@@ -60,9 +61,7 @@ export function Checkbox({ className, ...props }: CheckboxProps) {
     <BaseCheckbox.Root
       {...props}
       data-slot="checkbox"
-      className={(state) =>
-        cn(checkboxClasses, typeof className === "function" ? className(state) : className)
-      }
+      className={mergeClassName(checkboxClasses, className)}
     >
       <BaseCheckbox.Indicator
         data-slot="checkbox-indicator"

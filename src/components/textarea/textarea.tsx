@@ -3,6 +3,12 @@
 import { Input as BaseInput } from "@base-ui/react/input";
 import type * as React from "react";
 import { cn } from "../../lib/cn";
+import {
+  type ClassNameProp,
+  mergeClassName,
+  mergeStyle,
+  type StyleProp,
+} from "../../lib/merge-class-name";
 import { textFieldBase } from "../input/input-variants";
 
 /**
@@ -25,9 +31,9 @@ export interface TextareaProps
   /** Called with the new string value whenever it changes. */
   onValueChange?: BaseInput.Props["onValueChange"];
   /** CSS classes, or a function of the Base UI field-control state returning them. */
-  className?: BaseInput.Props["className"];
+  className?: ClassNameProp<BaseInput.State>;
   /** Inline style, or a function of the Base UI field-control state returning it. */
-  style?: BaseInput.Props["style"];
+  style?: StyleProp<BaseInput.State>;
 }
 
 const textareaClasses = cn(
@@ -52,13 +58,8 @@ export function Textarea({ className, style, rows, ...props }: TextareaProps) {
       {...(props as unknown as BaseInput.Props)}
       render={<textarea rows={rows} />}
       data-slot="textarea"
-      className={(state) =>
-        cn(textareaClasses, typeof className === "function" ? className(state) : className)
-      }
-      style={(state) => ({
-        ...rowsMinHeight(rows),
-        ...(typeof style === "function" ? style(state) : style),
-      })}
+      className={mergeClassName(textareaClasses, className)}
+      style={mergeStyle(rowsMinHeight(rows), style)}
     />
   );
 }
