@@ -53,18 +53,30 @@ export function Slider<Value extends number | readonly number[] = number>({
   ...props
 }: SliderProps<Value>) {
   const thumbCount = thumbCountOf(value ?? defaultValue);
-  const getAriaLabel = thumbLabels ? (index: number) => thumbLabels[index] ?? "" : undefined;
   // A plain `aria-label`/`aria-labelledby` names the single thumb directly (Base UI's Root only
   // uses its own `aria-label` prop for the wrapping `role="group"`, not the thumb's `<input>`);
-  // for a range slider without `thumbLabels`, thumbs fall back to a `SliderLabel`/Field label.
-  const soloThumbAriaLabel = !getAriaLabel && thumbCount === 1 ? ariaLabel : undefined;
-  const soloThumbAriaLabelledBy = !getAriaLabel && thumbCount === 1 ? ariaLabelledBy : undefined;
+  // for a range slider without `thumbLabels`, derive a per-thumb name from `aria-label` (two
+  // thumbs: "<label> minimum"/"<label> maximum"; more: "<label> 1", "<label> 2", …) so the group
+  // doesn't end up with multiple unnamed sliders. `aria-labelledby` alone (no `aria-label`) can't
+  // be split this way, so a range slider without `thumbLabels` and only `aria-labelledby` falls
+  // back to Base UI's default: every thumb shares that name via the `Slider.Label`/Field id.
+  const derivedThumbLabel = (index: number): string => {
+    if (thumbLabels) return thumbLabels[index] ?? "";
+    if (ariaLabel == null) return "";
+    if (thumbCount === 2) return index === 0 ? `${ariaLabel} minimum` : `${ariaLabel} maximum`;
+    return `${ariaLabel} ${index + 1}`;
+  };
+  const getAriaLabel =
+    thumbCount > 1 && (thumbLabels != null || ariaLabel != null) ? derivedThumbLabel : undefined;
+  const soloThumbAriaLabel = thumbCount === 1 ? ariaLabel : undefined;
+  const soloThumbAriaLabelledBy = thumbCount === 1 ? ariaLabelledBy : undefined;
 
   return (
     <BaseSlider.Root
       {...props}
       value={value}
       defaultValue={defaultValue}
+      aria-label={ariaLabel}
       aria-labelledby={ariaLabelledBy}
       data-slot="slider"
       data-color={color}
@@ -84,7 +96,7 @@ export function Slider<Value extends number | readonly number[] = number>({
       )}
       <BaseSlider.Control
         data-slot="slider-control"
-        className="flex h-5 items-center data-[orientation=vertical]:h-full data-[orientation=vertical]:w-5 data-[orientation=vertical]:flex-col"
+        className="relative flex h-5 items-center data-[orientation=vertical]:h-full data-[orientation=vertical]:w-5 data-[orientation=vertical]:flex-col"
       >
         <BaseSlider.Track
           data-slot="slider-track"
@@ -97,24 +109,24 @@ export function Slider<Value extends number | readonly number[] = number>({
             data-slot="slider-indicator"
             className="bg-tone forced-colors:bg-[Highlight]"
           />
-          {Array.from({ length: thumbCount }, (_, index) => (
-            <BaseSlider.Thumb
-              // biome-ignore lint/suspicious/noArrayIndexKey: thumbs are identified by their fixed index into the value array (also the `index` prop); that count doesn't reorder at runtime.
-              key={index}
-              index={index}
-              data-slot="slider-thumb"
-              getAriaLabel={getAriaLabel}
-              aria-label={soloThumbAriaLabel}
-              aria-labelledby={soloThumbAriaLabelledBy}
-              className={cn(
-                "block cursor-grab rounded-full border-2 border-tone bg-background shadow-sm active:cursor-grabbing data-disabled:cursor-not-allowed",
-                "outline-none outline-offset-2 outline-ring has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-solid",
-                "forced-colors:border-[CanvasText] forced-colors:has-[:focus-visible]:outline-[Highlight]",
-                thumbSizes[size],
-              )}
-            />
-          ))}
         </BaseSlider.Track>
+        {Array.from({ length: thumbCount }, (_, index) => (
+          <BaseSlider.Thumb
+            // biome-ignore lint/suspicious/noArrayIndexKey: thumbs are identified by their fixed index into the value array (also the `index` prop); that count doesn't reorder at runtime.
+            key={index}
+            index={index}
+            data-slot="slider-thumb"
+            getAriaLabel={getAriaLabel}
+            aria-label={soloThumbAriaLabel}
+            aria-labelledby={soloThumbAriaLabelledBy}
+            className={cn(
+              "block cursor-grab rounded-full border-2 border-tone bg-background shadow-sm active:cursor-grabbing data-disabled:cursor-not-allowed",
+              "outline-none outline-offset-2 outline-ring has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-solid",
+              "forced-colors:border-[CanvasText] forced-colors:has-[:focus-visible]:outline-[Highlight]",
+              thumbSizes[size],
+            )}
+          />
+        ))}
       </BaseSlider.Control>
     </BaseSlider.Root>
   );
