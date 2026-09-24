@@ -48,8 +48,11 @@ export function DialogTrigger(props: DialogTriggerProps) {
 }
 
 export interface DialogContentProps extends BaseDialog.Popup.Props {
-  /** Maximum width: sm `max-w-sm`, md `max-w-lg`, lg `max-w-2xl`. @default "md" */
-  size?: DialogVariantProps["size"];
+  /**
+   * Maximum width: sm `max-w-sm`, md `max-w-lg`, lg `max-w-2xl`. @default "md"
+   * (`null` is excluded: cva would read it as "no size" and leave the popup uncapped.)
+   */
+  size?: NonNullable<DialogVariantProps["size"]>;
   /** Renders a ghost icon Button (named "Close") in the top-right corner. @default true */
   showCloseButton?: boolean;
   /**
@@ -74,6 +77,8 @@ export function DialogContent({
   ...props
 }: DialogContentProps) {
   const modal = useContext(DialogModalContext);
+  // A JS caller can still pass null; treat it like undefined.
+  const resolvedSize = size ?? dialogDefaults.size;
   return (
     <BaseDialog.Portal container={container}>
       <BaseDialog.Backdrop data-slot="dialog-backdrop" className={dialogBackdropClasses} />
@@ -81,8 +86,8 @@ export function DialogContent({
         {...props}
         aria-modal={modal !== false ? true : undefined}
         data-slot="dialog-content"
-        data-size={size ?? dialogDefaults.size}
-        className={mergeClassName(dialogVariants({ size }), className)}
+        data-size={resolvedSize}
+        className={mergeClassName(dialogVariants({ size: resolvedSize }), className)}
       >
         {children}
         {showCloseButton && (

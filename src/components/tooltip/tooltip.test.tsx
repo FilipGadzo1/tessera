@@ -119,6 +119,17 @@ describe("Tooltip", () => {
     expect(getComputedStyle(positioner).zIndex).toBe("60");
   });
 
+  it("has a 1px transparent border (a visible edge in forced-colors mode)", async () => {
+    await render(<Basic />);
+    const popup = await openByHover();
+    expect(popup.classList.contains("border")).toBe(true);
+    expect(popup.classList.contains("border-transparent")).toBe(true);
+    const style = getComputedStyle(popup);
+    expect(style.borderTopWidth).toBe("1px");
+    expect(style.borderTopStyle).toBe("solid");
+    expect(style.borderTopColor).toBe("rgba(0, 0, 0, 0)");
+  });
+
   it("follows .dark on <html> (portalled content inherits the root theme)", async () => {
     const screen = await render(
       <div>

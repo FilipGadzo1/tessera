@@ -37,8 +37,11 @@ export function AlertDialogTrigger(props: AlertDialogTriggerProps) {
 }
 
 export interface AlertDialogContentProps extends BaseAlertDialog.Popup.Props {
-  /** Maximum width: sm `max-w-sm`, md `max-w-lg`, lg `max-w-2xl`. @default "md" */
-  size?: DialogVariantProps["size"];
+  /**
+   * Maximum width: sm `max-w-sm`, md `max-w-lg`, lg `max-w-2xl`. @default "md"
+   * (`null` is excluded: cva would read it as "no size" and leave the popup uncapped.)
+   */
+  size?: NonNullable<DialogVariantProps["size"]>;
   /**
    * Element to portal into (default `document.body`). Pass an element inside a nested theme scope
    * (`data-primary`, `data-surface`, `.dark` on an inner element) so the dialog inherits it.
@@ -58,6 +61,8 @@ export function AlertDialogContent({
   className,
   ...props
 }: AlertDialogContentProps) {
+  // A JS caller can still pass null; treat it like undefined.
+  const resolvedSize = size ?? dialogDefaults.size;
   return (
     <BaseAlertDialog.Portal container={container}>
       <BaseAlertDialog.Backdrop
@@ -68,8 +73,8 @@ export function AlertDialogContent({
         {...props}
         aria-modal
         data-slot="alert-dialog-content"
-        data-size={size ?? dialogDefaults.size}
-        className={mergeClassName(dialogVariants({ size }), className)}
+        data-size={resolvedSize}
+        className={mergeClassName(dialogVariants({ size: resolvedSize }), className)}
       />
     </BaseAlertDialog.Portal>
   );

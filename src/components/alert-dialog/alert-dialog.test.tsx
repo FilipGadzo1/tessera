@@ -185,6 +185,14 @@ describe("AlertDialog", () => {
     expect(popup.classList.contains("max-w-lg")).toBe(false);
   });
 
+  it("rejects size={null} in the type, and falls back to md if it arrives anyway", async () => {
+    // @ts-expect-error null is not a valid size
+    await render(<DeleteProject size={null} />);
+    const popup = await openByClick();
+    expect(popup.getAttribute("data-size")).toBe("md");
+    expect(popup.classList.contains("max-w-lg")).toBe(true);
+  });
+
   it("locks background scroll, uses the overlay z-index and follows .dark", async () => {
     const screen = await render(
       <div>

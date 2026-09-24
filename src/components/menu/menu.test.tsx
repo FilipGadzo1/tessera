@@ -125,11 +125,31 @@ describe("Menu", () => {
     await expect.element(trigger()).toHaveAttribute("aria-expanded", "false");
     await openByClick();
     await expect.element(trigger()).toHaveAttribute("aria-expanded", "true");
-    await expect.element(page.getByRole("menuitem", { name: "Edit ⌘E" })).toBeVisible();
+    await expect.element(page.getByRole("menuitem", { name: "Edit", exact: true })).toBeVisible();
     await expect.element(page.getByRole("menuitem", { name: "Archive" })).toBeVisible();
     await expect.element(page.getByRole("menuitem", { name: "Delete" })).toBeVisible();
     await expect.element(page.getByRole("group", { name: "Project" })).toBeVisible();
     await expect.element(page.getByRole("separator")).toBeInTheDocument();
+  });
+
+  it("keeps the shortcut out of the item's accessible name (aria-hidden, not overridable)", async () => {
+    await render(
+      <Actions>
+        <MenuItem>
+          Rename…
+          {/* A caller cannot un-hide it by accident: aria-hidden is set after the props. */}
+          <MenuShortcut aria-hidden={false}>F2</MenuShortcut>
+        </MenuItem>
+      </Actions>,
+    );
+    await openByClick();
+    await expect.element(page.getByRole("menuitem", { name: "Edit", exact: true })).toBeVisible();
+    await expect
+      .element(page.getByRole("menuitem", { name: "Rename…", exact: true }))
+      .toBeVisible();
+    const shortcuts = document.querySelectorAll("[data-slot=menu-shortcut]");
+    expect(shortcuts).toHaveLength(2);
+    for (const shortcut of shortcuts) expect(shortcut.getAttribute("aria-hidden")).toBe("true");
   });
 
   it("composes the trigger with Button: one button carrying Button's classes", async () => {
@@ -294,6 +314,37 @@ describe("Menu", () => {
     const share = item("Share").element().getBoundingClientRect();
     const email = item("Email").element().getBoundingClientRect();
     expect(Math.round(email.top - share.top)).toBe(0);
+  });
+
+  it("sizes a submenu to its content (min-w-32), not to its trigger item's width", async () => {
+    await render(
+      <div className="p-16">
+        <Menu>
+          <MenuTrigger render={<Button variant="outline" />}>File</MenuTrigger>
+          <MenuContent>
+            <MenuItem>Export as a high-resolution PNG image</MenuItem>
+            <MenuSub>
+              <MenuSubTrigger>Share</MenuSubTrigger>
+              <MenuSubContent>
+                <MenuItem>Email</MenuItem>
+              </MenuSubContent>
+            </MenuSub>
+          </MenuContent>
+        </Menu>
+      </div>,
+    );
+    await openByClick("File");
+    await userEvent.keyboard("{ArrowDown}{ArrowDown}{ArrowRight}");
+    await expect.poll(() => menus().length).toBe(2);
+    const sub = menus()[1] as HTMLElement;
+    await waitForPopupSettled(sub);
+    // The submenu's anchor is its trigger item, as wide as the parent menu's content box; with
+    // `min-w-(--anchor-width)` a short submenu would be forced at least that wide.
+    const shareWidth = item("Share").element().getBoundingClientRect().width;
+    expect(sub.getBoundingClientRect().width).toBeLessThan(shareWidth);
+    expect(sub.classList.contains("min-w-32")).toBe(true);
+    expect(sub.classList.contains("min-w-(--anchor-width)")).toBe(false);
+    expect(getComputedStyle(sub).minWidth).toBe("128px");
   });
 
   it("paints the danger item with text-danger, and bg-danger-soft when highlighted", async () => {

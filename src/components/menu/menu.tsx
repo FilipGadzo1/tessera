@@ -7,6 +7,11 @@ import { mergeClassName } from "../../lib/merge-class-name";
 import { menuItemBase, popupMotion, popupSurface } from "../../lib/overlay-classes";
 
 const menuContentBase = "min-w-(--anchor-width) max-h-(--available-height) overflow-y-auto p-1";
+/**
+ * A submenu's anchor is its trigger item, as wide as the parent menu: sizing to it would make
+ * every short submenu as wide as its parent. It gets a fixed floor instead and grows to content.
+ */
+const menuSubContentBase = "min-w-32";
 const menuItemVariantClasses = {
   default: "",
   danger:
@@ -64,10 +69,13 @@ export interface MenuContentProps extends BaseMenu.Popup.Props, MenuPositioningP
 
 interface MenuPopupLayerProps extends MenuContentProps {
   slot: string;
+  /** Extra base classes after `menuContentBase` (merged, so they can override it). */
+  baseClassName?: string;
 }
 
 function MenuPopupLayer({
   slot,
+  baseClassName,
   side,
   align,
   sideOffset,
@@ -90,7 +98,10 @@ function MenuPopupLayer({
         <BaseMenu.Popup
           {...props}
           data-slot={slot}
-          className={mergeClassName(cn(popupMotion, popupSurface, menuContentBase), className)}
+          className={mergeClassName(
+            cn(popupMotion, popupSurface, menuContentBase, baseClassName),
+            className,
+          )}
         />
       </BaseMenu.Positioner>
     </BaseMenu.Portal>
@@ -261,6 +272,8 @@ export type MenuSubContentProps = MenuContentProps;
  * The submenu panel (`role="menu"`), styled like `MenuContent`. Placed beside its trigger
  * (Base UI's submenu defaults: `side` "inline-end", `align` "start"), with `sideOffset` 0 and
  * `alignOffset` -5 so its first item lines up with the trigger item (1px border + 4px padding).
+ * Its minimum width is `min-w-32` rather than the anchor (trigger item) width, so a short submenu
+ * stays narrower than its parent.
  */
 export function MenuSubContent({
   sideOffset = 0,
@@ -270,6 +283,7 @@ export function MenuSubContent({
   return (
     <MenuPopupLayer
       slot="menu-sub-content"
+      baseClassName={menuSubContentBase}
       sideOffset={sideOffset}
       alignOffset={alignOffset}
       {...props}
@@ -279,9 +293,21 @@ export function MenuSubContent({
 
 export type MenuShortcutProps = ComponentProps<"span">;
 
-/** A keyboard hint at the end of an item (plain `<span>`, no behaviour): `<MenuShortcut>⌘E</MenuShortcut>`. */
+/**
+ * A keyboard hint at the end of an item (plain `<span>`, no behaviour): `<MenuShortcut>⌘E</MenuShortcut>`.
+ * It is always `aria-hidden` so the hint stays out of the item's accessible name ("Rename…", not
+ * "Rename…F2"). When the app really handles the key, expose it on the item instead:
+ * `<MenuItem aria-keyshortcuts="F2">Rename…<MenuShortcut>F2</MenuShortcut></MenuItem>`.
+ */
 export function MenuShortcut({ className, ...props }: MenuShortcutProps) {
-  return <span {...props} data-slot="menu-shortcut" className={cn(menuShortcutBase, className)} />;
+  return (
+    <span
+      {...props}
+      aria-hidden="true"
+      data-slot="menu-shortcut"
+      className={cn(menuShortcutBase, className)}
+    />
+  );
 }
 
 function Icon({ children, className }: { children: ReactNode; className?: string }) {
