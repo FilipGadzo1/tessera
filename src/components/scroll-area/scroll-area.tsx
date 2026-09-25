@@ -70,9 +70,7 @@ export type ScrollAreaCornerProps = BaseScrollArea.Corner.Props;
 
 /** The square where a vertical and a horizontal scrollbar meet, exported for a custom layout. */
 export function ScrollAreaCorner({ className, ...props }: ScrollAreaCornerProps) {
-  return (
-    <BaseScrollArea.Corner {...props} data-slot="scroll-area-corner" className={className} />
-  );
+  return <BaseScrollArea.Corner {...props} data-slot="scroll-area-corner" className={className} />;
 }
 
 export type ScrollAreaViewportProps = BaseScrollArea.Viewport.Props;

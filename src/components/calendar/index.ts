@@ -1,3 +1,4 @@
+export type { WeekDay } from "../../lib/date";
 export {
   Calendar,
   type CalendarProps,
@@ -7,4 +8,3 @@ export {
   type RangeCalendarProps,
 } from "./calendar";
 export type { CalendarLabels } from "./calendar-base";
-export type { WeekDay } from "../../lib/date";

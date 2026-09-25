@@ -12,13 +12,7 @@ function Uncontrolled({ onChange }: { onChange?: (value: string) => void }) {
   );
 }
 
-function Controlled({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange?: (value: string) => void;
-}) {
+function Controlled({ value, onChange }: { value: string; onChange?: (value: string) => void }) {
   const [current, setValue] = useControllableState<string>(value, "off", onChange);
   return (
     <button type="button" onClick={() => setValue(current === "off" ? "on" : "off")}>
@@ -65,7 +59,7 @@ describe("useControllableState", () => {
       const [current] = useControllableState<string | null>(value, "default");
       return <span>{current === null ? "null" : (current ?? "undefined-fallback")}</span>;
     }
-    const controlledNull = await render(<NullableControlled value={null} />);
+    await render(<NullableControlled value={null} />);
     await expect.element(page.getByText("null")).toBeVisible();
 
     const uncontrolled = await render(<NullableControlled value={undefined} />);
