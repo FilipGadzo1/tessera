@@ -45,7 +45,7 @@ function Tile({
   return (
     <div
       title={token}
-      className="group relative aspect-square flex-1 rounded-[3px] transition-[rotate,scale] duration-200 ease-out hover:z-10 hover:scale-125 hover:rotate-(--tile-tilt) motion-reduce:transition-none"
+      className="group relative h-(--tile-size) flex-1 rounded-[3px] transition-[rotate,scale] duration-200 ease-out hover:z-10 hover:scale-125 hover:rotate-(--tile-tilt) motion-reduce:transition-none"
       style={
         { background: `var(${token})`, "--tile-tilt": `${tilt(row, column)}deg` } as CSSProperties
       }
@@ -79,7 +79,20 @@ function Palettes() {
           </div>
           <div className="flex flex-col gap-[3px] rounded-lg bg-border p-[3px]">
             {group.palettes.map((palette, row) => (
-              <div key={palette} className="flex items-center gap-[3px]">
+              // Tile height is the flex width rounded to a whole pixel: aspect-square would copy
+              // the 1/64px width remainders flexbox hands the first tiles, and on a row at a
+              // fractional y those heights snap to alternating pixel rows.
+              <div
+                key={palette}
+                className="@container flex items-center gap-[3px]"
+                style={
+                  {
+                    "--tiles": group.steps.length,
+                    "--tile-size":
+                      "round(calc((100cqw - 6rem - var(--tiles) * 3px) / var(--tiles)), 1px)",
+                  } as CSSProperties
+                }
+              >
                 <span className="w-24 shrink-0 px-2 font-medium text-foreground text-xs capitalize">
                   {palette}
                 </span>
