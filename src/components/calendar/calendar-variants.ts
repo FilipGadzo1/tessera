@@ -1,5 +1,5 @@
 import { cn } from "../../lib/cn";
-import { toggleFocusClasses } from "../toggle/toggle-variants";
+import { toggleFocusClasses } from "../../lib/focus-classes";
 
 /** Root: one month stacks header over grid; two months sit side by side, each with its own grid. */
 export function calendarRootClasses(numberOfMonths: number): string {

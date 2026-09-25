@@ -1,15 +1,12 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "../../lib/cn";
+import { toggleFocusClasses } from "../../lib/focus-classes";
 
 /** Defaults — shared by cva and the Toggle's / ToggleGroup's data attributes. */
 export const toggleDefaults = { variant: "ghost", size: "md" } as const;
 
-/**
- * The shared focus ring for controls without a text-field border (Toggle, ToolbarLink, and —
- * later — Calendar's day buttons): 2px solid, offset, the tone ring colour.
- */
-export const toggleFocusClasses =
-  "outline-none outline-offset-2 outline-ring focus-visible:outline-2 focus-visible:outline-solid";
+/** Re-exported for compatibility — moved to `src/lib/focus-classes` (server-safe, Task M8). */
+export { toggleFocusClasses };
 
 const toggleCva = cva(
   [

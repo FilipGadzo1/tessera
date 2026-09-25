@@ -1,10 +1,10 @@
 "use client";
 
 import { Toolbar as BaseToolbar } from "@base-ui/react/toolbar";
+import { toggleFocusClasses } from "../../lib/focus-classes";
 import { mergeClassName } from "../../lib/merge-class-name";
 import { type ButtonVariantProps, buttonVariants } from "../button/button-variants";
 import { inputVariants } from "../input/input-variants";
-import { toggleFocusClasses } from "../toggle/toggle-variants";
 
 export interface ToolbarProps extends BaseToolbar.Root.Props {}
 
