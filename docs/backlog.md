@@ -142,9 +142,11 @@ phase; items fixed by a later commit are left out).
   `showCloseButton={false}`; no mutation checks for `aria-modal`, `useLayeredEscape` or the
   `transform` swipe binding.
 - Orders example (Task 7): `test/overlay.ts` `auditOpenOverlay` now accepts a Base UI inert marker
-  on an ancestor (Base UI keeps `[aria-live]` regions such as Slider's `<output>` exposed behind a
-  modal) and re-checks `elmPartiallyObscuring` contrast inside an open modal with the hidden page
-  made invisible; both are unit-tested in `test/overlay.test.ts`. The example's "Save changes" is
+  on an ancestor when that marked element contains an `[aria-live]` region (Base UI keeps such
+  regions, e.g. Slider's `<output>`, exposed behind a modal), and re-checks `elmPartiallyObscuring`
+  contrast inside an open modal with the hidden page made invisible, only when the popup is topmost
+  at the text's rects; all unit-tested in `test/overlay.test.ts`. The topmost check uses
+  `elementsFromPoint`, which skips `pointer-events: none` layers above the modal. The example's "Save changes" is
   local state only, the breadcrumb links are `#`, and its axe tests run at a 1024px viewport (at
   414px axe cannot decide the contrast of table cells scrolled out of view).
 
@@ -163,6 +165,9 @@ phase; items fixed by a later commit are left out).
 - `verify-consumer` type-only check misclassifies a semicolon-less `type` alias (latent: Biome
   enforces semicolons).
 - `verify-consumer` does not recognize `export type * from` (fails loudly rather than silently).
+- Test order dependence (Phase E Task 3b): under a shuffled test order (`--sequence.shuffle`), the
+  Toast timeout tests and the Switch track-colour test fail; the default order is green. Task 3b
+  fixed the order-dependent Tooltip id flake (a stale pointer from an earlier hover); these remain.
 
 ## Next components
 Follow the phases in the design-system spec §6

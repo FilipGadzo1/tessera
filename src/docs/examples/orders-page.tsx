@@ -157,8 +157,11 @@ export function OrdersPage({ loading = false }: OrdersPageProps) {
   // The drawer opens from a row's button, not a DrawerTrigger, so it names the element to return
   // focus to. Without `finalFocus` Base UI returns focus to whatever was focused before opening:
   // the View button after Enter or a click in Chromium, but not where a click does not focus
-  // buttons (Safari), where focus would fall back to the page.
+  // buttons (Safari), where focus would fall back to the page. When a Save moves the order off
+  // the current page (e.g. while sorted by Total), its View button unmounts; focus then goes to
+  // the results status line, which says where the list now stands.
   const viewButtons = useRef(new Map<string, HTMLButtonElement>());
+  const statusRef = useRef<HTMLParagraphElement>(null);
 
   const [min = 0, max = priceMax] = range;
   const filtered = orders.filter((order) => {
@@ -357,7 +360,7 @@ export function OrdersPage({ loading = false }: OrdersPageProps) {
       </section>
 
       <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
-        <p className="text-muted-foreground text-sm tabular-nums">
+        <p ref={statusRef} tabIndex={-1} className="text-muted-foreground text-sm tabular-nums">
           {loading
             ? "Loading orders…"
             : sorted.length === 0
@@ -407,7 +410,9 @@ export function OrdersPage({ loading = false }: OrdersPageProps) {
 
       <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
         <DrawerContent
-          finalFocus={() => (selectedId && viewButtons.current.get(selectedId)) || true}
+          finalFocus={() =>
+            (selectedId && viewButtons.current.get(selectedId)) || statusRef.current || true
+          }
         >
           {selected && (
             <>

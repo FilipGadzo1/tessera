@@ -132,6 +132,22 @@ describe("OrdersPage example", () => {
     expect(totals()[0]).toBe("€118.00");
   });
 
+  it("after a Save moves the order off the page, focus lands on the results status, not the body", async () => {
+    await render(<OrdersPage />);
+    await userEvent.click(page.getByRole("button", { name: "Total" }));
+    await expect.poll(() => totals()[0]).toBe("€16.00");
+    await userEvent.click(page.getByRole("button", { name: "View order #1019" }));
+    const socks = page.getByRole("textbox", { name: "Quantity, Merino socks" });
+    await userEvent.fill(socks, "10");
+    await userEvent.click(page.getByRole("button", { name: "Save changes" }));
+    await expect.poll(drawer).toBeNull();
+    // €160.00 now sorts after page 1's last total (€59.00), so the row and its View button are gone.
+    expect(page.getByRole("button", { name: "View order #1019" }).elements()).toHaveLength(0);
+    await expect
+      .poll(() => document.activeElement)
+      .toBe(page.getByText("Showing 1–5 of 36 orders").element());
+  });
+
   it("narrows the orders with the total range slider", async () => {
     await render(<OrdersPage />);
     const maximum = page.getByRole("slider", { name: "Maximum total" });

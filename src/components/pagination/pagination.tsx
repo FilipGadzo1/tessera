@@ -58,6 +58,15 @@ export interface PaginationLinkProps extends ComponentProps<"a"> {
   "data-slot"?: string;
 }
 
+/**
+ * In forced colors the outline/ghost difference disappears (author borders and backgrounds are
+ * replaced), so the active page takes the system "selected" pairing, as the active segmented tab
+ * does, on hover too: the variant's hover background and text colours would otherwise be forced
+ * to Canvas and the link colour.
+ */
+const activeForcedColorsClasses =
+  "forced-colors:bg-[Highlight] forced-colors:text-[HighlightText] forced-colors:not-data-disabled:hover:bg-[Highlight] forced-colors:not-data-disabled:hover:text-[HighlightText]";
+
 /** A single page link, styled like an outline (active) or ghost (inactive) icon Button. */
 export function PaginationLink({
   isActive,
@@ -73,7 +82,7 @@ export function PaginationLink({
     variant: isActive ? "outline" : "ghost",
     color: "neutral",
     size,
-    className,
+    className: cn(isActive && activeForcedColorsClasses, className),
   });
   const shared = {
     ...props,

@@ -2,7 +2,7 @@ import axe from "axe-core";
 import { afterEach, describe, expect, it } from "vitest";
 import { userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
-import { emulateForcedColors, resetEmulatedMedia } from "../../../test/emulation";
+import { emulateForcedColors, resetEmulatedMedia, systemColor } from "../../../test/emulation";
 import {
   Pagination,
   PaginationContent,
@@ -43,6 +43,7 @@ function Pager({ page }: { page: number }) {
 
 afterEach(async () => {
   await resetEmulatedMedia();
+  await userEvent.hover(document.body, { position: { x: 0, y: 0 } });
 });
 
 describe("Pagination", () => {
@@ -175,6 +176,25 @@ describe("Pagination", () => {
     const style = getComputedStyle(link);
     expect(style.outlineStyle).toBe("solid");
     expect(Number.parseFloat(style.outlineWidth)).toBeGreaterThanOrEqual(1);
+  });
+
+  // Forced colors replaces author backgrounds and borders with system colours, so without its own
+  // treatment the active page looks exactly like the others. It takes the system "selected"
+  // pairing, as the active segmented tab does (Phase D): Highlight fill, HighlightText text.
+  it("marks the active page with Highlight / HighlightText in forced colors, also on hover", async () => {
+    await emulateForcedColors(true);
+    const screen = await render(<Pager page={2} />);
+    const active = screen.getByRole("link", { name: "2" });
+    const inactive = screen.getByRole("link", { name: "1" }).element();
+    const highlight = systemColor("Highlight");
+    const highlightText = systemColor("HighlightText");
+    expect(getComputedStyle(active.element()).backgroundColor).toBe(highlight);
+    expect(getComputedStyle(active.element()).color).toBe(highlightText);
+    expect(getComputedStyle(inactive).backgroundColor).not.toBe(highlight);
+    expect(getComputedStyle(inactive).color).not.toBe(highlightText);
+    await userEvent.hover(active);
+    expect(getComputedStyle(active.element()).backgroundColor).toBe(highlight);
+    expect(getComputedStyle(active.element()).color).toBe(highlightText);
   });
 
   it.each(["light", "dark"] as const)("has no axe violations in the %s theme", async (theme) => {

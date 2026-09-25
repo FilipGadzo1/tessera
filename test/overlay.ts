@@ -27,13 +27,17 @@ export async function waitForPopupSettled(popup: Element) {
  *   check are dropped; the dialog tests assert the focus trap itself. The marker can sit on an
  *   ancestor: Base UI keeps `[aria-live]` regions (e.g. Slider's `<output aria-live="off">`) and
  *   their ancestors exposed, so `aria-hidden` lands on their siblings deeper in the tree while the
- *   marker stays on the top-level outside element.
+ *   marker stays on the top-level outside element. An ancestor marker is accepted only when that
+ *   marked element contains an `[aria-live]` region, so an app's own `aria-hidden` is still caught.
  * - A `color-contrast` "needs review" with `elmPartiallyObscuring` on text inside the open modal is
  *   re-checked: axe compares the stacks under each part of the text, *including* the page behind
  *   the backdrop, so text over a boundary between two page elements (e.g. two table headers) is
  *   left undecided although the popup's own opaque background is what sits under it. The node is
- *   dropped only when axe's color-contrast passes it with the modal-hidden page
- *   (`[data-base-ui-inert]`) made `visibility: hidden` for the re-check.
+ *   dropped only when the popup's content is topmost at the centre of each of the text's rects (so
+ *   no marked layer above the modal, e.g. the Toaster, covers it) and axe's color-contrast passes
+ *   it with the modal-hidden page (`[data-base-ui-inert]`) made `visibility: hidden` for the
+ *   re-check. `elementsFromPoint` skips `pointer-events: none` layers, so such a layer above the
+ *   modal is not caught.
  * - An `aria-valid-attr-value` "needs review" on a trigger with `aria-haspopup` + `aria-controls`
  *   (message key `controlsWithinPopup`) is raised by axe unconditionally. axe keeps one review
  *   message per node and overwrites it attribute by attribute, so that key can mask an earlier
@@ -70,10 +74,11 @@ function hiddenByOpenModal(node: axe.NodeResult) {
   const checks = [...node.any, ...node.all, ...node.none];
   if (!checks.every((check) => check.id === "focusable-modal-open")) return false;
   const element = document.querySelector(String(node.target[0]));
-  return (
-    element?.getAttribute("aria-hidden") === "true" &&
-    element.closest("[data-base-ui-inert]") !== null
-  );
+  if (element?.getAttribute("aria-hidden") !== "true") return false;
+  // The marker on an ancestor counts only for Base UI's aria-live carve-out (see above); an app's
+  // own aria-hidden under a marked subtree without a live region is still reported.
+  const marked = element.closest("[data-base-ui-inert]");
+  return marked === element || marked?.querySelector("[aria-live]") != null;
 }
 
 /** Text inside the open modal (not behind it) whose contrast axe left undecided over the page. */
@@ -81,11 +86,14 @@ function partiallyObscuredInModal(node: axe.NodeResult) {
   const checks = [...node.any, ...node.all, ...node.none];
   if (!checks.every((check) => check.data?.messageKey === "elmPartiallyObscuring")) return false;
   const element = document.querySelector(String(node.target[0]));
-  return (
-    element !== null &&
-    element.closest('[aria-modal="true"]') !== null &&
-    element.closest("[data-base-ui-inert]") === null
-  );
+  const modal = element?.closest('[aria-modal="true"]');
+  if (!element || !modal || element.closest("[data-base-ui-inert]") !== null) return false;
+  // The re-check hides every marked element, including marked layers painted ABOVE the modal
+  // (e.g. the Toaster); so the text must be the topmost content at the centre of each of its rects.
+  return [...element.getClientRects()].every((rect) => {
+    const top = document.elementsFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2)[0];
+    return top !== undefined && modal.contains(top);
+  });
 }
 
 /** Re-runs color-contrast on `nodes` with the modal-hidden page hidden; returns those that pass. */
