@@ -376,7 +376,7 @@ export function OrdersPage({ loading = false }: OrdersPageProps) {
               <PaginationPrevious
                 render={<button type="button" />}
                 disabled={currentPage === 1}
-                onClick={() => currentPage > 1 && goTo(currentPage - 1)}
+                onClick={() => goTo(currentPage - 1)}
               />
             </PaginationItem>
             {getPaginationRange({ page: currentPage, pageCount }).map((item) =>
@@ -401,7 +401,7 @@ export function OrdersPage({ loading = false }: OrdersPageProps) {
               <PaginationNext
                 render={<button type="button" />}
                 disabled={currentPage === pageCount}
-                onClick={() => currentPage < pageCount && goTo(currentPage + 1)}
+                onClick={() => goTo(currentPage + 1)}
               />
             </PaginationItem>
           </PaginationContent>

@@ -257,8 +257,13 @@ source files automatically (build output + `"use client"` directive checks).
 - [x] Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious,
   PaginationNext, PaginationEllipsis, getPaginationRange (a `nav aria-label="Pagination"` landmark
   around a `ul` of page links, each styled like an outline (active, `aria-current="page"`) or ghost
-  icon Button; in forced colors the active page is filled with `Highlight` / `HighlightText`. A `disabled` link drops its `href` (`aria-disabled` instead) so it stays out of the tab
-  order. `PaginationLink` takes the same server-safe `render` escape hatch as `BreadcrumbLink`.
+  icon Button; in forced colors the active page is filled with `Highlight` / `HighlightText`.
+  A `disabled` link is `aria-disabled`, dimmed, and drops its `href` and `onClick`, so it stays out
+  of the tab order and ignores clicks; a `render` element (e.g. `<button type="button" />` for
+  client-side paging) also gets `tabIndex={-1}` and keeps focus if it disables while focused.
+  `PaginationLink` takes the same server-safe `render` escape hatch as `BreadcrumbLink`.
+  `PaginationPrevious` / `PaginationNext` take `children` (visible text, default "Previous" /
+  "Next") and `aria-label` (default "Go to previous page" / "Go to next page") to localise.
   `getPaginationRange({ page, pageCount, siblings, boundaries })` is a pure helper that collapses a
   long run of pages into `1 … 4 5 [6] 7 8 … 20` (never collapsing a single page — it shows that page
   instead, since hiding it saves no space). Server-safe)

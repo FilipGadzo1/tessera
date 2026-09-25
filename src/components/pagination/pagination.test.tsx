@@ -1,5 +1,6 @@
 import axe from "axe-core";
-import { afterEach, describe, expect, it } from "vitest";
+import { useState } from "react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { emulateForcedColors, resetEmulatedMedia, systemColor } from "../../../test/emulation";
@@ -91,6 +92,131 @@ describe("Pagination", () => {
     const next = start.getByRole("link", { name: "Go to next page" }).element();
     expect(next.hasAttribute("aria-disabled")).toBe(false);
     expect(next.getAttribute("href")).toBe("#");
+  });
+
+  it("does not fire onClick on a disabled <a> link", async () => {
+    const onClick = vi.fn();
+    const screen = await render(
+      <PaginationLink disabled href="#2" onClick={onClick}>
+        2
+      </PaginationLink>,
+    );
+    const link = screen.container.querySelector('[data-slot="pagination-link"]') as HTMLElement;
+    expect(link.tagName).toBe("A");
+    expect(link.hasAttribute("href")).toBe(false);
+    expect(link.getAttribute("aria-disabled")).toBe("true");
+    expect(link.hasAttribute("tabindex")).toBe(false);
+    await userEvent.click(link);
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  // The README recommends `render={<button type="button" />}` for client-side paging; a disabled
+  // one must leave the tab order and ignore clicks like the `<a>` path does.
+  it("makes a disabled <button> render element non-interactive: not tabbable, no onClick", async () => {
+    const onPrevious = vi.fn();
+    const onNext = vi.fn();
+    const screen = await render(
+      <Pagination>
+        <PaginationContent>
+          <PaginationItem>
+            <PaginationPrevious render={<button type="button" />} disabled onClick={onPrevious} />
+          </PaginationItem>
+          <PaginationItem>
+            <PaginationNext render={<button type="button" />} onClick={onNext} />
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>,
+    );
+    const previous = screen.container.querySelector(
+      '[data-slot="pagination-previous"]',
+    ) as HTMLButtonElement;
+    const next = screen.getByRole("button", { name: "Go to next page" }).element();
+    expect(previous.tagName).toBe("BUTTON");
+    expect(previous.tabIndex).toBe(-1);
+    expect(previous.getAttribute("aria-disabled")).toBe("true");
+    expect(previous.hasAttribute("data-disabled")).toBe(true);
+    expect(getComputedStyle(previous).opacity).toBe("0.5");
+    await userEvent.tab();
+    expect(document.activeElement).toBe(next);
+    await userEvent.click(previous, { force: true });
+    expect(onPrevious).not.toHaveBeenCalled();
+    await userEvent.click(next);
+    expect(onNext).toHaveBeenCalledTimes(1);
+  });
+
+  // Native `disabled` would blur a focused button the moment it disables (Chromium moves focus to
+  // the body), so a keyboard user paging with Next would lose their place on the last page.
+  it("keeps focus on a <button> Next that disables under the keyboard", async () => {
+    function ButtonPager() {
+      const [page, setPage] = useState(1);
+      return (
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationNext
+                render={<button type="button" />}
+                disabled={page === 2}
+                onClick={() => setPage((current) => current + 1)}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      );
+    }
+    const screen = await render(<ButtonPager />);
+    const next = screen.getByRole("button", { name: "Go to next page" });
+    await userEvent.tab();
+    expect(document.activeElement).toBe(next.element());
+    await userEvent.keyboard("{Enter}");
+    await expect.element(next).toHaveAttribute("aria-disabled", "true");
+    expect(document.activeElement).toBe(next.element());
+  });
+
+  it("takes a disabled non-button render element (e.g. a router link) out of the tab order", async () => {
+    const onClick = vi.fn();
+    const screen = await render(
+      <PaginationLink disabled render={<a href="/orders?page=2" onClick={onClick} />}>
+        2
+      </PaginationLink>,
+    );
+    const link = screen.container.querySelector('[data-slot="pagination-link"]') as HTMLElement;
+    expect(link.hasAttribute("href")).toBe(false);
+    expect(link.tabIndex).toBe(-1);
+    await userEvent.click(link);
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it("lets callers localise Previous / Next: aria-label and visible text", async () => {
+    const screen = await render(
+      <Pagination>
+        <PaginationContent>
+          <PaginationItem>
+            <PaginationPrevious href="#" aria-label="Zur vorherigen Seite">
+              Zurück
+            </PaginationPrevious>
+          </PaginationItem>
+          <PaginationItem>
+            <PaginationNext href="#" aria-label="Zur nächsten Seite">
+              Weiter
+            </PaginationNext>
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>,
+    );
+    const previous = screen.getByRole("link", { name: "Zur vorherigen Seite" }).element();
+    const next = screen.getByRole("link", { name: "Zur nächsten Seite" }).element();
+    expect(previous.textContent).toBe("Zurück");
+    expect(next.textContent).toBe("Weiter");
+  });
+
+  it("keeps the default Previous / Next visible text", async () => {
+    const screen = await render(<Pager page={2} />);
+    expect(screen.getByRole("link", { name: "Go to previous page" }).element().textContent).toBe(
+      "Previous",
+    );
+    expect(screen.getByRole("link", { name: "Go to next page" }).element().textContent).toBe(
+      "Next",
+    );
   });
 
   it("hides the ellipsis from assistive technology with visible sr text", async () => {

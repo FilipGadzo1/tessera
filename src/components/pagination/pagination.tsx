@@ -46,7 +46,12 @@ export function PaginationItem(props: PaginationItemProps) {
 export interface PaginationLinkProps extends ComponentProps<"a"> {
   /** Marks this as the current page (`aria-current="page"`, outline styling). */
   isActive?: boolean;
-  /** No `href`; `aria-disabled` + `data-disabled` instead, so it stays out of the tab order. */
+  /**
+   * Non-interactive: `aria-disabled` + `data-disabled` (dimmed), no `href` and no `onClick`, so it
+   * stays out of the tab order and ignores clicks. A `render` element (e.g. a `<button>`) also gets
+   * `tabIndex={-1}` and loses its own `href` / `onClick`; it keeps focus if it disables while
+   * focused (no native `disabled`, which would drop focus to the page).
+   */
   disabled?: boolean;
   /** @default "icon" */
   size?: ButtonVariantProps["size"];
@@ -75,6 +80,7 @@ export function PaginationLink({
   render,
   className,
   href,
+  onClick,
   "data-slot": dataSlot = "pagination-link",
   ...props
 }: PaginationLinkProps) {
@@ -87,12 +93,16 @@ export function PaginationLink({
   const shared = {
     ...props,
     ...(isActive && { "aria-current": "page" as const }),
-    ...(disabled ? { "aria-disabled": "true" as const, "data-disabled": "" } : { href }),
+    ...(disabled ? { "aria-disabled": "true" as const, "data-disabled": "" } : { href, onClick }),
   };
   if (render) {
     return cloneElement(render, {
       ...shared,
       ...render.props,
+      // A disabled clone must not stay interactive through the render element's own props either.
+      // `tabIndex={-1}` rather than a `<button>`'s native `disabled`: that would blur a focused
+      // Next the moment it disables on the last page, dropping a keyboard user's place.
+      ...(disabled && { onClick: undefined, href: undefined, tabIndex: -1 }),
       "data-slot": dataSlot,
       className: cn(classes, render.props.className),
     });
@@ -136,35 +146,53 @@ function ChevronRightIcon() {
   );
 }
 
-/** A `PaginationLink` widened for a leading chevron and "Previous" text (hidden below `sm:`). */
-export function PaginationPrevious({ className, ...props }: PaginationPreviousProps) {
+/**
+ * A `PaginationLink` widened for a leading chevron and "Previous" text (hidden below `sm:`).
+ * `children` replaces the visible text and `aria-label` the accessible name ("Go to previous
+ * page"); localise both.
+ */
+export function PaginationPrevious({
+  className,
+  children = "Previous",
+  "aria-label": ariaLabel = "Go to previous page",
+  ...props
+}: PaginationPreviousProps) {
   return (
     <PaginationLink
       {...props}
-      aria-label="Go to previous page"
+      aria-label={ariaLabel}
       data-slot="pagination-previous"
       size="md"
       className={cn("gap-1.5", className)}
     >
       <ChevronLeftIcon />
-      <span className="hidden sm:inline">Previous</span>
+      <span className="hidden sm:inline">{children}</span>
     </PaginationLink>
   );
 }
 
 export type PaginationNextProps = PaginationPreviousProps;
 
-/** A `PaginationLink` widened for a trailing chevron and "Next" text (hidden below `sm:`). */
-export function PaginationNext({ className, ...props }: PaginationNextProps) {
+/**
+ * A `PaginationLink` widened for a trailing chevron and "Next" text (hidden below `sm:`).
+ * `children` replaces the visible text and `aria-label` the accessible name ("Go to next page");
+ * localise both.
+ */
+export function PaginationNext({
+  className,
+  children = "Next",
+  "aria-label": ariaLabel = "Go to next page",
+  ...props
+}: PaginationNextProps) {
   return (
     <PaginationLink
       {...props}
-      aria-label="Go to next page"
+      aria-label={ariaLabel}
       data-slot="pagination-next"
       size="md"
       className={cn("gap-1.5", className)}
     >
-      <span className="hidden sm:inline">Next</span>
+      <span className="hidden sm:inline">{children}</span>
       <ChevronRightIcon />
     </PaginationLink>
   );
