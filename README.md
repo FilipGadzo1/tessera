@@ -331,15 +331,18 @@ source files automatically (build output + `"use client"` directive checks).
   `sm` / `md` / `lg`, and MeterLabel/MeterValue render in the same header row. No indeterminate
   state — `value` is required. `aria-valuenow`/`aria-valuemin`/`aria-valuemax`/`aria-valuetext`
   come from Base UI; a MeterLabel names it, otherwise pass `aria-label`. Client component)
-- [x] ScrollArea, ScrollBar, ScrollAreaViewport, ScrollAreaContent (custom, pointer-draggable
-  scrollbars over native scrolling — wheel, touch and keyboard on the viewport keep working
-  unchanged, the bars are visual plus draggable. `orientation` on `ScrollArea`: `vertical`
-  (default), `horizontal`, or `both` (adds the corner). Base UI makes the viewport focusable
-  (`tabIndex=0`) only when it overflows, so it never adds a dead Tab stop; a focus ring shows on
-  keyboard focus. The bars fade in on hover or while scrolling (`data-hovering`/`data-scrolling`)
-  and the thumb tracks the visible fraction of the content. `ScrollBar`, `ScrollAreaViewport` and
-  `ScrollAreaContent` are exported separately for a custom layout around Base UI's own
-  `ScrollArea.Root`. Client component)
+- [x] ScrollArea, ScrollBar, ScrollAreaRoot, ScrollAreaViewport, ScrollAreaContent, ScrollAreaCorner
+  (custom, pointer-draggable scrollbars over native scrolling — wheel, touch and keyboard on the
+  viewport keep working unchanged, the bars are visual plus draggable. `orientation` on
+  `ScrollArea`: `vertical` (default), `horizontal`, or `both` (adds the corner). Base UI makes the
+  viewport focusable (`tabIndex=0`) only when it overflows, so it never adds a dead Tab stop; a
+  focus ring shows on keyboard focus. The bars fade in on hover or while scrolling
+  (`data-hovering`/`data-scrolling`) and the thumb tracks the visible fraction of the content. For
+  a custom layout, compose `ScrollAreaRoot`, `ScrollBar`, `ScrollAreaViewport`,
+  `ScrollAreaContent` and `ScrollAreaCorner` directly — use Tessera's `ScrollAreaRoot`, not Base
+  UI's own `ScrollArea.Root`: Tessera is pinned to `~1.8.0`, and a consumer's own, different copy
+  of Base UI would not share React context with Tessera's other ScrollArea parts. Client
+  component)
 - [x] Toggle, ToggleGroup, ToggleGroupItem, toggleVariants (a two-state `aria-pressed` button —
   `variant` `ghost` (default) / `outline`, `size` `sm`/`md`/`lg`/`icon-sm`/`icon`/`icon-lg`,
   heights matching Button. `ToggleGroup` shares pressed state across `ToggleGroupItem`s (`value` is

@@ -1,10 +1,16 @@
-import { ScrollArea as BaseScrollArea } from "@base-ui/react/scroll-area";
 import axe from "axe-core";
 import { afterEach, describe, expect, it } from "vitest";
 import { cdp, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { emulateForcedColors, resetEmulatedMedia, systemColor } from "../../../test/emulation";
-import { ScrollArea, ScrollAreaContent, ScrollAreaViewport, ScrollBar } from "./scroll-area";
+import {
+  ScrollArea,
+  ScrollAreaContent,
+  ScrollAreaCorner,
+  ScrollAreaRoot,
+  ScrollAreaViewport,
+  ScrollBar,
+} from "./scroll-area";
 
 afterEach(async () => {
   await resetEmulatedMedia();
@@ -165,25 +171,42 @@ describe("ScrollArea", () => {
     await expect.poll(() => root.querySelector('[data-slot="scroll-area-corner"]')).toBeTruthy();
   });
 
-  it("composes ScrollAreaViewport / ScrollAreaContent directly for a custom layout", async () => {
+  it("composes ScrollAreaRoot / ScrollAreaViewport / ScrollAreaContent directly for a custom layout", async () => {
     const screen = await render(
-      <BaseScrollArea.Root
-        data-slot="scroll-area"
-        className="relative h-48 w-64 overflow-hidden"
-        aria-label="Custom"
-      >
+      <ScrollAreaRoot className="h-48 w-64" aria-label="Custom">
         <ScrollAreaViewport>
           <ScrollAreaContent className="p-2">
             <div className="h-[600px]">Tall content</div>
           </ScrollAreaContent>
         </ScrollAreaViewport>
         <ScrollBar />
-      </BaseScrollArea.Root>,
+      </ScrollAreaRoot>,
     );
+    const root = screen.container.querySelector('[data-slot="scroll-area"]') as HTMLElement;
+    await expect.element(root).toHaveClass("h-48");
     const viewport = screen.container.querySelector('[data-slot="scroll-area-viewport"]');
     expect(viewport).toBeTruthy();
     const content = screen.container.querySelector('[data-slot="scroll-area-content"]');
     await expect.element(content as HTMLElement).toHaveClass("p-2");
+  });
+
+  it("composes ScrollAreaRoot / ScrollAreaCorner directly for a custom two-bar layout", async () => {
+    const screen = await render(
+      <ScrollAreaRoot className="h-48 w-64" aria-label="Custom grid">
+        <ScrollAreaViewport>
+          <ScrollAreaContent>
+            <div className="h-[600px] w-[600px]" />
+          </ScrollAreaContent>
+        </ScrollAreaViewport>
+        <ScrollBar orientation="vertical" />
+        <ScrollBar orientation="horizontal" />
+        <ScrollAreaCorner className="bg-muted" />
+      </ScrollAreaRoot>,
+    );
+    const root = screen.container.querySelector('[data-slot="scroll-area"]') as HTMLElement;
+    const corner = root.querySelector('[data-slot="scroll-area-corner"]') as HTMLElement;
+    expect(corner).toBeTruthy();
+    await expect.element(corner).toHaveClass("bg-muted");
   });
 
   it.each(["light", "dark"] as const)("has no axe violations in the %s theme", async (theme) => {

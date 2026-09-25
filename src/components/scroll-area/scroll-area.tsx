@@ -33,11 +33,7 @@ export function ScrollArea({
   ...props
 }: ScrollAreaProps) {
   return (
-    <BaseScrollArea.Root
-      {...props}
-      data-slot="scroll-area"
-      className={mergeClassName("relative overflow-hidden", className)}
-    >
+    <ScrollAreaRoot {...props} className={className}>
       <ScrollAreaViewport>
         <ScrollAreaContent>{children}</ScrollAreaContent>
       </ScrollAreaViewport>
@@ -47,8 +43,35 @@ export function ScrollArea({
       {(orientation === "horizontal" || orientation === "both") && (
         <ScrollBar orientation="horizontal" />
       )}
-      {orientation === "both" && <BaseScrollArea.Corner data-slot="scroll-area-corner" />}
-    </BaseScrollArea.Root>
+      {orientation === "both" && <ScrollAreaCorner />}
+    </ScrollAreaRoot>
+  );
+}
+
+export type ScrollAreaRootProps = BaseScrollArea.Root.Props;
+
+/**
+ * The bare root, exported for a custom layout (your own Viewport/Content/ScrollBar composition)
+ * that still shares Tessera's Base UI `ScrollArea` copy — Tessera is pinned to `~1.8.0`, so a
+ * consumer's own, different copy of Base UI's `ScrollArea.Root` would not share context with
+ * Tessera's `ScrollBar` / `ScrollAreaViewport` / `ScrollAreaContent`.
+ */
+export function ScrollAreaRoot({ className, ...props }: ScrollAreaRootProps) {
+  return (
+    <BaseScrollArea.Root
+      {...props}
+      data-slot="scroll-area"
+      className={mergeClassName("relative overflow-hidden", className)}
+    />
+  );
+}
+
+export type ScrollAreaCornerProps = BaseScrollArea.Corner.Props;
+
+/** The square where a vertical and a horizontal scrollbar meet, exported for a custom layout. */
+export function ScrollAreaCorner({ className, ...props }: ScrollAreaCornerProps) {
+  return (
+    <BaseScrollArea.Corner {...props} data-slot="scroll-area-corner" className={className} />
   );
 }
 
