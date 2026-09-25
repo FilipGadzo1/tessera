@@ -76,6 +76,7 @@ export {
   type DateRange,
   RangeCalendar,
   type RangeCalendarProps,
+  type WeekDay,
 } from "./components/calendar";
 export {
   Card,
