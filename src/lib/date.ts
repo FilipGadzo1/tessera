@@ -108,11 +108,11 @@ const sundayRegions = new Set([
   "HK",
   "PH",
   "ZA",
+  "SA",
+  "YE",
 ]);
 const saturdayRegions = new Set([
   "EG",
-  "SA",
-  "AE",
   "QA",
   "BH",
   "KW",
@@ -122,9 +122,10 @@ const saturdayRegions = new Set([
   "IQ",
   "LY",
   "DZ",
-  "MA",
-  "TN",
-  "YE",
+  "AF",
+  "DJ",
+  "IR",
+  "SD",
 ]);
 
 /**

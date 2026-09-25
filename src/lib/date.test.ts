@@ -225,6 +225,11 @@ describe("getWeekStartsOn", () => {
   // `Intl.Locale` exposes no week info at all (Firefox may lack both `getWeekInfo` and
   // `weekInfo`). Chromium (this suite's runtime) does support `getWeekInfo`, so the fallback is
   // exercised directly here instead of through `getWeekStartsOn`.
+  //
+  // Expected values verified on Node 24 via
+  // `new Intl.Locale("und-" + region).maximize().getWeekInfo().firstDay` (1 = Monday … 7 = Sunday,
+  // converted here to this file's 0 = Sunday … 6 = Saturday): SA 7, YE 7, AE 1, MA 1, TN 1; EG,
+  // QA, BH, KW, OM, JO, SY, IQ, LY, DZ, AF, DJ, IR, SD all 6.
   describe("regionWeekStartsOn (the Firefox fallback path)", () => {
     it.each([
       ["US", 0],
@@ -235,8 +240,24 @@ describe("getWeekStartsOn", () => {
       ["GB", 1],
       ["AU", 1],
       ["EG", 6],
-      ["SA", 6],
-      ["AE", 6],
+      ["SA", 0],
+      ["YE", 0],
+      ["AE", 1],
+      ["MA", 1],
+      ["TN", 1],
+      ["QA", 6],
+      ["BH", 6],
+      ["KW", 6],
+      ["OM", 6],
+      ["JO", 6],
+      ["SY", 6],
+      ["IQ", 6],
+      ["LY", 6],
+      ["DZ", 6],
+      ["AF", 6],
+      ["DJ", 6],
+      ["IR", 6],
+      ["SD", 6],
     ] as const)("region %s starts the week on %i", (region, expected) => {
       expect(regionWeekStartsOn(region)).toBe(expected);
     });
