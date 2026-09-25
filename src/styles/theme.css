@@ -52,6 +52,13 @@
     --neutral-soft-hover: var(--tsr-surface-200);
     --neutral-soft-foreground: var(--tsr-surface-900);
 
+    /* The tooltip chip: a dark surface-900 bubble, same as neutral today. Its own tokens (rather
+       than reusing --neutral) so dark mode can give it a raised chip instead of --neutral's
+       near-white in that theme (see the dark block below). */
+    --tooltip: var(--tsr-surface-900);
+    --tooltip-foreground: var(--tsr-surface-0);
+    --tooltip-border: transparent;
+
     --success: var(--tsr-verdant-600);
     --success-hover: var(--tsr-verdant-700);
     --success-active: var(--tsr-verdant-800);
@@ -129,6 +136,14 @@
     --neutral-soft-hover: var(--tsr-surface-700);
     --neutral-soft-foreground: var(--tsr-surface-50);
 
+    /* --neutral is surface-50 in dark mode (near-white), which would make the tooltip read as an
+       unstyled white box on a dark page. A raised surface-700 chip in the surface palette's own
+       hue instead (surface-50 text is ≥ 4.5:1 on 700 for every surface palette — gated in
+       scripts/generate-palettes.mjs). */
+    --tooltip: var(--tsr-surface-700);
+    --tooltip-foreground: var(--tsr-surface-50);
+    --tooltip-border: var(--tsr-surface-600);
+
     --success: var(--tsr-verdant-400);
     --success-hover: var(--tsr-verdant-300);
     --success-active: var(--tsr-verdant-200);
@@ -185,6 +200,9 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-tooltip: var(--tooltip);
+  --color-tooltip-foreground: var(--tooltip-foreground);
+  --color-tooltip-border: var(--tooltip-border);
 
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);

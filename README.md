@@ -129,7 +129,11 @@ source files automatically (build output + `"use client"` directive checks).
 - [x] Fieldset, FieldsetLegend (groups radios or Fields; a disabled Fieldset disables its RadioGroup;
   to mute the label text as well, set `disabled` on the surrounding `Field` — FieldLabel dims its text
   color, and the control keeps its own 50% opacity)
-- [x] Tooltip (TooltipProvider, Tooltip, TooltipTrigger, TooltipContent; inverted neutral bubble, no arrow.
+- [x] Tooltip (TooltipProvider, Tooltip, TooltipTrigger, TooltipContent; a raised chip on its own
+  `--tooltip` / `--tooltip-foreground` / `--tooltip-border` tokens (`bg-tooltip text-tooltip-foreground
+  border-tooltip-border`), not `--neutral` — `--neutral` flips to a near-white surface-50 in dark mode,
+  which would make the tooltip read as an unstyled white box, so dark mode gives it its own
+  surface-700 chip (surface-600 border) that still follows the active surface palette. No arrow.
   Compose the trigger: `<TooltipTrigger render={<Button size="icon" aria-label="Add" />}>`. Hover delay
   is set on the trigger or a TooltipProvider (`delay`, default 600 ms). The content gets
   `role="tooltip"` and the trigger `aria-describedby` while it is open — still give icon-only triggers

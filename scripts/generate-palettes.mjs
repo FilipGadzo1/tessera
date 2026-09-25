@@ -157,6 +157,9 @@ for (const surface of Object.keys(SURFACES)) {
   );
   need(`${surface} neutral solid (0 on 900)`, contrast(luminance(s[0]), luminance(s[900])));
   need(`${surface} dark neutral solid (950 on 50)`, contrast(luminance(s[950]), luminance(s[50])));
+  // Tooltip chip: light reuses neutral solid (900/0, gated above); dark is a raised surface-700
+  // chip with surface-50 text (see theme.css `--tooltip*`).
+  need(`${surface} dark tooltip (50 on 700)`, contrast(luminance(s[50]), luminance(s[700])));
   need(`${surface} muted-foreground (500) on 0`, contrast(luminance(s[500]), luminance(s[0])));
   need(`${surface} muted-foreground (500) on 100`, contrast(luminance(s[500]), luminance(s[100])));
   need(

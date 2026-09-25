@@ -21,11 +21,12 @@ import { popupMotion } from "../../lib/overlay-classes";
 import { registerOpenTooltip } from "../../lib/tooltip-escape";
 
 /**
- * The transparent border is invisible normally but painted in a system colour in forced-colors
- * mode, where the background and shadow are dropped and the bubble would lose its edge.
+ * `--tooltip-border` is transparent in light mode (invisible normally, but painted in a system
+ * colour in forced-colors mode, where the background and shadow are dropped and the bubble would
+ * lose its edge) and a visible surface-600 in dark mode, where it outlines the raised chip.
  */
 const tooltipContentBase =
-  "rounded-md border border-transparent bg-neutral px-2 py-1 text-xs text-neutral-foreground shadow-md max-w-xs text-balance";
+  "rounded-md border border-tooltip-border bg-tooltip px-2 py-1 text-xs text-tooltip-foreground shadow-md max-w-xs text-balance";
 
 /**
  * Base UI's tooltip is visual-only (no role, no aria-describedby). Tessera adds both: the content
