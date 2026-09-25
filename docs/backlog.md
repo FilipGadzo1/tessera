@@ -167,7 +167,9 @@ phase; items fixed by a later commit are left out).
   (`@base-ui/react/internals/field-root-context`, `…/internals/labelable-provider`); they are in the
   package's `exports` but undocumented, so a Base UI upgrade can move them. The Field tests
   (label name, description, invalid, disabled) are the guard. Field `validate` / `required` are not
-  wired (the picker doesn't register as a Field control).
+  wired (the picker doesn't register as a Field control). Before bumping Base UI, run the DatePicker Field tests against the new version; the
+  range is pinned to `~1.8.0` because of this (a minor that moved either subpath would break every
+  import from Tessera, since `src/index.ts` re-exports the pickers).
 
 ## Theming
 - No `.light` scope: a region cannot switch back to light inside `.dark` (documented limit).

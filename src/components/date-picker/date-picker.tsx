@@ -12,7 +12,7 @@ import { type ComponentProps, type ReactNode, useId, useRef, useState } from "re
 import { cn } from "../../lib/cn";
 import { toISODate, type WeekDay } from "../../lib/date";
 import { CalendarIcon } from "../../lib/icons";
-import { Calendar, type DateRange, RangeCalendar } from "../calendar";
+import { Calendar, type DateRange, RangeCalendar, type RangeCalendarProps } from "../calendar";
 import { type CalendarLabels, resolveLocale } from "../calendar/calendar-base";
 import { Popover, PopoverContent, type PopoverContentProps, PopoverTrigger } from "../popover";
 import { type SelectTriggerVariantProps, selectDefaults, selectTriggerVariants } from "../select";
@@ -83,10 +83,11 @@ interface PickerShellProps extends PickerTriggerProps {
   placeholder: string;
   dialogLabel: string;
   hiddenInputs: ReactNode;
-  /** Renders the calendar; `close` closes the popup (focus returns to the trigger). */
-  renderCalendar: (close: () => void) => ReactNode;
-  /** Runs whenever the popup closes, whatever the reason. */
-  onClosed?: () => void;
+  /**
+   * Renders the calendar: `close` asks to close the popup (focus returns to the trigger), `open`
+   * is the effective open state (controlled or not).
+   */
+  renderCalendar: (close: () => void, open: boolean) => ReactNode;
 }
 
 /**
@@ -100,7 +101,6 @@ function PickerShell({
   dialogLabel,
   hiddenInputs,
   renderCalendar,
-  onClosed,
   disabled,
   size,
   open: openProp,
@@ -123,7 +123,6 @@ function PickerShell({
     if (next === open) return;
     if (openProp === undefined) setInternalOpen(next);
     onOpenChange?.(next);
-    if (!next) onClosed?.();
   };
 
   const isDisabled = disabled || field.state.disabled;
@@ -182,7 +181,7 @@ function PickerShell({
           ) ?? true
         }
       >
-        {renderCalendar(() => setOpen(false))}
+        {renderCalendar(() => setOpen(false), open)}
       </PopoverContent>
     </Popover>
   );
@@ -274,6 +273,43 @@ export interface DateRangePickerProps extends PickerSharedProps {
 
 const emptyRange: DateRange = { start: null, end: null };
 
+interface RangePickerCalendarProps extends Omit<RangeCalendarProps, "value" | "onValueChange"> {
+  open: boolean;
+  /** The committed range. */
+  value: DateRange;
+  /** Called with a complete range. */
+  onCommit: (value: DateRange) => void;
+}
+
+/**
+ * The popup's RangeCalendar plus the pick in progress (only the start chosen), which is never
+ * reported. The draft is dropped whenever the effective open state turns false — however the
+ * popup closed (a request, or a parent setting `open={false}`) — and kept while a parent refuses
+ * a close by keeping `open` true.
+ */
+function RangePickerCalendar({ open, value, onCommit, ...props }: RangePickerCalendarProps) {
+  const [draft, setDraft] = useState<DateRange | null>(null);
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (!open) setDraft(null);
+  }
+  return (
+    <RangeCalendar
+      {...props}
+      value={draft ?? value}
+      onValueChange={(next) => {
+        if (!next.start || !next.end) {
+          setDraft(next);
+          return;
+        }
+        setDraft(null);
+        onCommit(next);
+      }}
+    />
+  );
+}
+
 /**
  * A Select-styled button that opens a `RangeCalendar` (two months by default). The first pick
  * sets the start and keeps it open; the second sets the end, commits and closes. Escape or an
@@ -299,8 +335,6 @@ export function DateRangePicker({
   ...props
 }: DateRangePickerProps) {
   const [value, setValue] = useControllable(valueProp, defaultValue);
-  // The pick in progress (only the start chosen): never reported, dropped on close.
-  const [draft, setDraft] = useState<DateRange | null>(null);
   const formatter = new Intl.DateTimeFormat(resolveLocale(locale), format);
 
   const { start, end } = value;
@@ -313,7 +347,6 @@ export function DateRangePicker({
       text={text}
       placeholder={placeholder}
       dialogLabel={labels?.dialog ?? "Choose date range"}
-      onClosed={() => setDraft(null)}
       hiddenInputs={
         <>
           {startName && (
@@ -322,15 +355,11 @@ export function DateRangePicker({
           {endName && <input type="hidden" name={endName} value={end ? toISODate(end) : ""} />}
         </>
       }
-      renderCalendar={(close) => (
-        <RangeCalendar
-          value={draft ?? value}
-          onValueChange={(next) => {
-            if (!next.start || !next.end) {
-              setDraft(next);
-              return;
-            }
-            setDraft(null);
+      renderCalendar={(close, open) => (
+        <RangePickerCalendar
+          open={open}
+          value={value}
+          onCommit={(next) => {
             setValue(next);
             onValueChange?.(next);
             close();

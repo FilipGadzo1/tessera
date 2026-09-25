@@ -627,6 +627,64 @@ describe("DateRangePicker", () => {
     await expect.element(dayButton(d(2026, 9, 20))).not.toHaveAttribute("data-range-start");
   });
 
+  describe("controlled open", () => {
+    /**
+     * A parent that refuses every close request; it closes the picker only by itself
+     * (`closeFromParent`, no close request involved).
+     */
+    let closeFromParent = () => {};
+    function Gatekeeper({ onValueChange }: { onValueChange?: (range: DateRange) => void }) {
+      const [isOpen, setOpen] = useState(false);
+      closeFromParent = () => setOpen(false);
+      return (
+        <div className="p-16">
+          <DateRangePicker
+            aria-label="Stay"
+            locale="en-US"
+            defaultValue={{ start: d(2026, 9, 1), end: d(2026, 9, 12) }}
+            open={isOpen}
+            onOpenChange={(next) => {
+              if (next) setOpen(true);
+            }}
+            onValueChange={onValueChange}
+          />
+        </div>
+      );
+    }
+
+    it("drops the draft when the parent closes it by setting open={false}", async () => {
+      const onValueChange = vi.fn();
+      await render(<Gatekeeper onValueChange={onValueChange} />);
+      await open();
+      await userEvent.click(dayButton(d(2026, 9, 20)));
+      await expect.element(dayButton(d(2026, 9, 20))).toHaveAttribute("data-range-start");
+      closeFromParent();
+      await expect.element(dialog()).not.toBeInTheDocument();
+      await open();
+      await expect.element(dayButton(d(2026, 9, 1))).toHaveAttribute("data-range-start");
+      await expect.element(dayButton(d(2026, 9, 12))).toHaveAttribute("data-range-end");
+      await expect.element(dayButton(d(2026, 9, 20))).not.toHaveAttribute("data-range-start");
+      expect(onValueChange).not.toHaveBeenCalled();
+    });
+
+    it("keeps the draft while the parent refuses a close", async () => {
+      const onValueChange = vi.fn();
+      await render(<Gatekeeper onValueChange={onValueChange} />);
+      await open();
+      await userEvent.click(dayButton(d(2026, 9, 20)));
+      await userEvent.keyboard("{Escape}");
+      // Refused: still open, the start still chosen; the next pick completes the range.
+      await expect.element(dialog()).toBeVisible();
+      await expect.element(dayButton(d(2026, 9, 20))).toHaveAttribute("data-range-start");
+      await userEvent.click(dayButton(d(2026, 9, 23)));
+      expect(onValueChange).toHaveBeenCalledTimes(1);
+      expect(onValueChange.mock.calls[0]?.[0]).toEqual({
+        start: d(2026, 9, 20),
+        end: d(2026, 9, 23),
+      });
+    });
+  });
+
   it("reverts on an outside click with only the start chosen", async () => {
     const onValueChange = vi.fn();
     await render(
