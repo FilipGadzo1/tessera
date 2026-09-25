@@ -22,8 +22,11 @@ async function wheelAt(x: number, y: number, deltaY: number) {
 }
 
 function TallList({ count = 30 }: { count?: number }) {
+  // m-4: keep the area off the page origin, where `parkPointer` leaves the real pointer; at (0,0)
+  // a synthetic mouse move after layout can mark the root hovered and show the bars (flaky under
+  // full-suite load, found in Phase F Task 4).
   return (
-    <ScrollArea className="h-48 w-64">
+    <ScrollArea className="m-4 h-48 w-64">
       {Array.from({ length: count }, (_, i) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: fixture rows have no identity beyond position.
         <div key={`item-${i}`} className="h-8 px-2 text-sm text-foreground">
