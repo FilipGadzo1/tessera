@@ -27,6 +27,8 @@ export default defineConfig({
       "@base-ui/react/menu",
       "@base-ui/react/avatar",
       "@base-ui/react/progress",
+      "@base-ui/react/meter",
+      "@base-ui/react/scroll-area",
       "@base-ui/react/tabs",
       "@base-ui/react/accordion",
       "@base-ui/react/select",

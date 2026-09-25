@@ -221,6 +221,15 @@ export {
   type MenuTriggerProps,
 } from "./components/menu";
 export {
+  Meter,
+  MeterLabel,
+  type MeterLabelProps,
+  type MeterProps,
+  type MeterSize,
+  MeterValue,
+  type MeterValueProps,
+} from "./components/meter";
+export {
   NumberField,
   NumberFieldDecrement,
   type NumberFieldDecrementProps,
@@ -280,6 +289,17 @@ export {
   type ProgressValueProps,
 } from "./components/progress";
 export { Radio, RadioGroup, type RadioGroupProps, type RadioProps } from "./components/radio-group";
+export {
+  ScrollArea,
+  ScrollAreaContent,
+  type ScrollAreaContentProps,
+  type ScrollAreaOrientation,
+  type ScrollAreaProps,
+  ScrollAreaViewport,
+  type ScrollAreaViewportProps,
+  ScrollBar,
+  type ScrollBarProps,
+} from "./components/scroll-area";
 export {
   Select,
   SelectContent,

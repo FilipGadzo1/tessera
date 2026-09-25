@@ -325,9 +325,25 @@ source files automatically (build output + `"use client"` directive checks).
   handle and the panel's edges stay swipeable, touch swipes work anywhere. Slides in over 300ms,
   instantly under reduced motion.
   Tooltips and Dialogs inside take Escape first. Client component)
+- [x] Meter, MeterLabel, MeterValue (Progress's twin — a `role="meter"` measurement within a known
+  range, like disk usage or password strength, not task completion. Same props as Progress:
+  `min`, `max`, `format` (`Intl.NumberFormatOptions`), `color` (tone, default primary), `size`
+  `sm` / `md` / `lg`, and MeterLabel/MeterValue render in the same header row. No indeterminate
+  state — `value` is required. `aria-valuenow`/`aria-valuemin`/`aria-valuemax`/`aria-valuetext`
+  come from Base UI; a MeterLabel names it, otherwise pass `aria-label`. Client component)
+- [x] ScrollArea, ScrollBar, ScrollAreaViewport, ScrollAreaContent (custom, pointer-draggable
+  scrollbars over native scrolling — wheel, touch and keyboard on the viewport keep working
+  unchanged, the bars are visual plus draggable. `orientation` on `ScrollArea`: `vertical`
+  (default), `horizontal`, or `both` (adds the corner). Base UI makes the viewport focusable
+  (`tabIndex=0`) only when it overflows, so it never adds a dead Tab stop; a focus ring shows on
+  keyboard focus. The bars fade in on hover or while scrolling (`data-hovering`/`data-scrolling`)
+  and the thumb tracks the visible fraction of the content. `ScrollBar`, `ScrollAreaViewport` and
+  `ScrollAreaContent` are exported separately for a custom layout around Base UI's own
+  `ScrollArea.Root`. Client component)
 
 Phase A (foundation), Phase B (forms), Phase C (overlays), Phase D (navigation and feedback) and
-Phase E (data entry and display) are complete.
+Phase E (data entry and display) are complete. Phase F (dates, toolbars and surfaces) is in
+progress: Meter and ScrollArea are done.
 
 Composition: when a part is rendered through another (`<Fieldset render={<RadioGroup className=…/>}>`),
 the outer part's own classes win over conflicting classes on the render element (Base UI merges the
@@ -378,7 +394,7 @@ list `aria-busy`.
 
 ## Roadmap
 
-Next, Phase F: Calendar, DatePicker, DateRangePicker, ToggleGroup, Toolbar, ScrollArea, Meter,
-HoverCard/PreviewCard, ContextMenu.
+Rest of Phase F: Calendar, DatePicker, DateRangePicker, ToggleGroup, Toolbar, PreviewCard,
+ContextMenu.
 
 Later: visual regression · React Compiler on output · publish to npm (`@tessera/ui` is free).
