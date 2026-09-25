@@ -160,6 +160,23 @@ export {
   type MenuTriggerProps,
 } from "./components/menu";
 export {
+  NumberField,
+  NumberFieldDecrement,
+  type NumberFieldDecrementProps,
+  NumberFieldGroup,
+  type NumberFieldGroupProps,
+  type NumberFieldGroupVariantProps,
+  NumberFieldIncrement,
+  type NumberFieldIncrementProps,
+  NumberFieldInput,
+  type NumberFieldInputProps,
+  type NumberFieldProps,
+  NumberFieldScrubArea,
+  type NumberFieldScrubAreaProps,
+  numberFieldDefaults,
+  numberFieldGroupVariants,
+} from "./components/number-field";
+export {
   getPaginationRange,
   Pagination,
   PaginationContent,

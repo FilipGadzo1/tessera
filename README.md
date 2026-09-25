@@ -279,10 +279,21 @@ source files automatically (build output + `"use client"` directive checks).
   A range slider's thumbs get distinct accessible names from `thumbLabels` (index-aligned with the
   value array); a single-thumb slider is named by its own `aria-label`/`aria-labelledby`, a
   `SliderLabel`, or a wrapping `Field`. Client component)
+- [x] NumberField, NumberFieldGroup, NumberFieldInput, NumberFieldIncrement, NumberFieldDecrement,
+  NumberFieldScrubArea (on Base UI `NumberField.*`. `<NumberField>` with no children renders the
+  common stepper — `NumberFieldGroup` around `NumberFieldDecrement`, `NumberFieldInput`,
+  `NumberFieldIncrement` — at the default size; pass children to compose the parts yourself, e.g. a
+  non-default `size` on `NumberFieldGroup` or a `NumberFieldScrubArea`. The group looks like an Input
+  (same heights per size) with a focus-within ring, since focus lives on the child input; the
+  increment/decrement buttons are excluded from the Tab order (Base UI: the input already handles
+  keyboard stepping) and come pre-named "Increase"/"Decrease". Supports `format`
+  (`Intl.NumberFormatOptions`), `min`/`max`/`step`/`smallStep`/`largeStep`, `readOnly`, `disabled`,
+  and works inside a `Field` (label names the input; invalid shows the danger border on the group).
+  Client component)
 
 Phase A (foundation), Phase B (forms), Phase C (overlays) and Phase D (navigation and feedback) are
-complete. Phase E (data entry and display) is in progress: Skeleton, Breadcrumb, Pagination, Table and
-Slider are done; NumberField, Combobox and Drawer remain.
+complete. Phase E (data entry and display) is in progress: Skeleton, Breadcrumb, Pagination, Table,
+Slider and NumberField are done; Combobox and Drawer remain.
 
 Composition: when a part is rendered through another (`<Fieldset render={<RadioGroup className=…/>}>`),
 the outer part's own classes win over conflicting classes on the render element (Base UI merges the
@@ -324,8 +335,7 @@ Separators for billing; and a "Save changes" Button that shows a success toast f
 
 ## Roadmap
 
-Finishing Phase E: Combobox, NumberField, Drawer (Sheet is the same component, on
-Base UI's `Drawer.*`).
+Finishing Phase E: Combobox, Drawer (Sheet is the same component, on Base UI's `Drawer.*`).
 
 Next, Phase F: Calendar, DatePicker, DateRangePicker, ToggleGroup, Toolbar, ScrollArea, Meter,
 HoverCard/PreviewCard, ContextMenu.
