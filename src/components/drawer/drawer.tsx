@@ -111,7 +111,15 @@ export function DrawerContent({
           {side === "bottom" && (
             <div aria-hidden="true" data-slot="drawer-handle" className={drawerHandleClasses} />
           )}
-          {children}
+          {/*
+           * Base UI's mouse swipe skips targets inside `Drawer.Content`, so text in the drawer can
+           * be selected and controls (e.g. a Slider thumb) dragged without dismissing it; the
+           * handle and the popup's own padding stay swipeable, and touch swipes work everywhere.
+           * `contents` keeps the children as direct flex items of the popup (gap, `mt-auto`).
+           */}
+          <BaseDrawer.Content data-slot="drawer-body" className="contents">
+            {children}
+          </BaseDrawer.Content>
           {showCloseButton && (
             // Button always sets its own `data-slot="button"`, so the slot and the corner position
             // live on this wrapper; the button inside keeps Button's full DOM contract.

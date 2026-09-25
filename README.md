@@ -312,8 +312,12 @@ source files automatically (build output + `"use client"` directive checks).
   sheets show a grab handle. DrawerContent takes `showCloseButton` (default true) and `container`,
   like DialogContent. Focus moves to the panel and is trapped; page scroll is locked; Escape, a
   backdrop click, DrawerClose or swiping the panel towards its edge closes it and focus returns to
-  the trigger. Content does not scroll by itself: give a long body `flex-1 overflow-y-auto` (the
-  footer sits at the bottom via `mt-auto`). Slides in over 300ms, instantly under reduced motion.
+  the trigger. Long content scrolls inside the drawer (`overscroll-contain`); the footer sits at the
+  bottom via `mt-auto`, and the corner close button scrolls away with the content, as in Dialog —
+  Escape always closes. Children render inside Base UI's `Drawer.Content`, so with a mouse, text
+  can be selected and controls (e.g. a Slider) dragged without dismissing the drawer; the bottom
+  handle and the panel's edges stay swipeable, touch swipes work anywhere. Slides in over 300ms,
+  instantly under reduced motion.
   Tooltips and Dialogs inside take Escape first. Client component)
 
 Phase A (foundation), Phase B (forms), Phase C (overlays) and Phase D (navigation and feedback) are

@@ -41,7 +41,7 @@ const meta = {
             Change how you appear to your team. Save when you are done.
           </DrawerDescription>
         </DrawerHeader>
-        <div className="grid gap-4 overflow-y-auto px-4">
+        <div className="grid gap-4 px-4">
           <div className="grid gap-1.5">
             <Label htmlFor="drawer-story-name">Name</Label>
             <Input id="drawer-story-name" defaultValue="Ada Lovelace" />

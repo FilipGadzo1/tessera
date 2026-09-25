@@ -12,6 +12,7 @@ import { Button } from "../button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "../dialog";
 import { Input } from "../input";
 import { Label } from "../label";
+import { Slider } from "../slider";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../tooltip";
 import {
   Drawer,
@@ -221,6 +222,38 @@ describe("Drawer", () => {
     }
   });
 
+  it("scrolls tall content inside the popup: the last control can be reached and is visible", async () => {
+    await render(
+      <Basic>
+        <div data-testid="tall" className="h-[3000px] shrink-0 px-4">
+          Terms
+        </div>
+        <DrawerFooter>
+          <Button>Accept terms</Button>
+        </DrawerFooter>
+      </Basic>,
+    );
+    const popup = await openByClick();
+    expect(getComputedStyle(popup).overflowY).toBe("auto");
+    expect(getComputedStyle(popup).overscrollBehaviorY).toBe("contain");
+    expect(popup.scrollHeight).toBeGreaterThan(popup.clientHeight);
+    const accept = page.getByRole("button", { name: "Accept terms" });
+    // Popup → Accept terms (Tab scrolls it into view inside the popup).
+    await userEvent.tab();
+    expect(document.activeElement).toBe(accept.element());
+    await expect.poll(() => popup.scrollTop).toBeGreaterThan(0);
+    const rect = accept.element().getBoundingClientRect();
+    expect(rect.top).toBeGreaterThanOrEqual(0);
+    expect(rect.bottom).toBeLessThanOrEqual(window.innerHeight);
+    const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    expect(hit !== null && accept.element().contains(hit)).toBe(true);
+    // Like Dialog's, the corner close button scrolls with the content (README); Escape still closes.
+    const close = page.getByRole("button", { name: "Close" }).element().getBoundingClientRect();
+    expect(close.bottom).toBeLessThan(0);
+    await userEvent.keyboard("{Escape}");
+    await expect.element(drawer()).not.toBeInTheDocument();
+  });
+
   it("closes from DrawerClose", async () => {
     await render(<WithForm />);
     await openByClick();
@@ -303,6 +336,12 @@ describe("Drawer", () => {
     expect(popup.classList.contains("gap-4")).toBe(false);
     const part = (slot: string) => document.querySelector(`[data-slot=${slot}]`) as HTMLElement;
     expect(part("drawer-viewport").contains(popup)).toBe(true);
+    // Children sit in Base UI's Drawer.Content (mouse swipes ignore it), laid out as popup items.
+    expect(part("drawer-body").hasAttribute("data-drawer-content")).toBe(true);
+    expect(part("drawer-body").className).toBe("contents");
+    expect(getComputedStyle(part("drawer-body")).display).toBe("contents");
+    expect(part("drawer-body").contains(part("drawer-header"))).toBe(true);
+    expect(part("drawer-body").contains(part("drawer-close-button"))).toBe(false);
     expect(part("drawer-header").className).toBe("flex flex-col gap-1.5 p-4 pr-12");
     expect(part("drawer-footer").className).toBe(
       "mt-auto flex flex-col-reverse gap-2 p-4 sm:flex-row sm:justify-end",
@@ -325,6 +364,8 @@ describe("Drawer", () => {
       "text-popover-foreground",
       "shadow-xl",
       "outline-hidden",
+      "overflow-y-auto",
+      "overscroll-contain",
       "inset-x-0",
       "bottom-0",
       "rounded-t-xl",
@@ -540,6 +581,67 @@ describe("Drawer", () => {
   });
 
   describe("swipe", () => {
+    it("a mouse drag across the drawer's text selects it and does not dismiss the drawer", async () => {
+      const onOpenChange = vi.fn();
+      await render(
+        <Basic onOpenChange={onOpenChange}>
+          <p data-testid="body" className="px-4 text-sm">
+            Order 1042 ships from the Rotterdam warehouse within two business days.
+          </p>
+        </Basic>,
+      );
+      const popup = await openByClick();
+      const body = page.getByTestId("body");
+      const rect = body.element().getBoundingClientRect();
+      // Drag rightwards (the right drawer's dismiss direction) across the whole paragraph: further
+      // than Base UI's swipe threshold (half the popup width) would be, were it a swipe.
+      expect(rect.width).toBeGreaterThan(popup.offsetWidth / 2);
+      await userEvent.dragAndDrop(body, body, {
+        sourcePosition: { x: 1, y: 4 },
+        targetPosition: { x: rect.width - 1, y: rect.height - 4 },
+        steps: 12,
+      } as Parameters<typeof userEvent.dragAndDrop>[2]);
+      const selection = document.getSelection();
+      expect(selection?.isCollapsed).toBe(false);
+      expect(selection?.toString()).toContain("Rotterdam");
+      await expect.element(drawer()).toBeVisible();
+      expect(onOpenChange.mock.calls.filter(([open]) => open === false)).toHaveLength(0);
+      selection?.removeAllRanges();
+    });
+
+    it("dragging a Slider thumb inside a right drawer changes the value and keeps the drawer open", async () => {
+      const onOpenChange = vi.fn();
+      const onValueChange = vi.fn();
+      await render(
+        <Basic onOpenChange={onOpenChange}>
+          <div className="px-4 py-2">
+            <Slider aria-label="Quantity" defaultValue={10} onValueChange={onValueChange} />
+          </div>
+        </Basic>,
+      );
+      await openByClick();
+      const slider = page.getByRole("slider", { name: "Quantity" });
+      const thumb = document.querySelector<HTMLElement>("[data-slot=slider-thumb]");
+      if (!thumb) throw new Error("slider thumb not found");
+      const track = thumb.parentElement?.getBoundingClientRect() as DOMRect;
+      const thumbRect = thumb.getBoundingClientRect();
+      // Drag the thumb rightwards, towards the drawer's dismiss direction, to the track's end.
+      await userEvent.dragAndDrop(page.elementLocator(thumb), page.elementLocator(thumb), {
+        force: true,
+        targetPosition: {
+          x: track.right - thumbRect.left - 1,
+          y: thumbRect.height / 2,
+        },
+        steps: 12,
+      } as Parameters<typeof userEvent.dragAndDrop>[2]);
+      await expect
+        .poll(() => Number(slider.element().getAttribute("aria-valuenow")))
+        .toBeGreaterThan(80);
+      expect(onValueChange).toHaveBeenCalled();
+      await expect.element(drawer()).toBeVisible();
+      expect(onOpenChange.mock.calls.filter(([open]) => open === false)).toHaveLength(0);
+    });
+
     it("a pointer drag down on a bottom drawer dismisses it (reason swipe)", async () => {
       const onOpenChange = vi.fn();
       await render(<Basic side="bottom" onOpenChange={onOpenChange} />);
