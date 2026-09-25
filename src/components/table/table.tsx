@@ -53,12 +53,19 @@ export function TableFooter({ className, ...props }: TableFooterProps) {
     <tfoot
       {...props}
       data-slot="table-footer"
-      className={cn("border-t bg-muted/50 font-medium [&>tr]:last:border-b-0", className)}
+      className={cn("border-t border-border bg-muted/50 font-medium [&>tr]:last:border-b-0", className)}
     />
   );
 }
 
 export type TableRowProps = ComponentProps<"tr">;
+
+/**
+ * Forced colors replaces the muted selected background with Canvas, so a selected row takes the
+ * system "selected" pairing (as the active pagination link and segmented tab do), on hover too.
+ */
+const selectedForcedColorsClasses =
+  "forced-colors:aria-selected:bg-[Highlight] forced-colors:aria-selected:text-[HighlightText] forced-colors:data-[state=selected]:bg-[Highlight] forced-colors:data-[state=selected]:text-[HighlightText]";
 
 /** `<tr>`. Hover highlight, plus a selected look via `data-state="selected"` or `aria-selected`. */
 export function TableRow({ className, ...props }: TableRowProps) {
@@ -68,6 +75,7 @@ export function TableRow({ className, ...props }: TableRowProps) {
       data-slot="table-row"
       className={cn(
         "border-b border-border transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted aria-selected:bg-muted",
+        selectedForcedColorsClasses,
         className,
       )}
     />

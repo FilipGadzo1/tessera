@@ -2,7 +2,7 @@ import axe from "axe-core";
 import { afterEach, describe, expect, it } from "vitest";
 import { userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
-import { emulateForcedColors, resetEmulatedMedia } from "../../../test/emulation";
+import { emulateForcedColors, resetEmulatedMedia, systemColor } from "../../../test/emulation";
 import {
   Table,
   TableBody,
@@ -171,6 +171,54 @@ describe("Table", () => {
     const style = getComputedStyle(button);
     expect(style.outlineStyle).toBe("solid");
     expect(Number.parseFloat(style.outlineWidth)).toBeGreaterThanOrEqual(1);
+  });
+
+  // A bare `border-t` takes `currentColor` (Tessera sets no default border colour), which would
+  // draw the footer rule in the text colour instead of the rows' `border-border`.
+  it("draws the footer's top border in the row border colour, not currentColor", async () => {
+    const screen = await render(<Invoices />);
+    const footer = screen.container.querySelector('[data-slot="table-footer"]') as HTMLElement;
+    const bodyRow = screen.container.querySelector(
+      '[data-slot="table-body"] [data-slot="table-row"]',
+    ) as HTMLElement;
+    const style = getComputedStyle(footer);
+    expect(style.borderTopStyle).toBe("solid");
+    expect(style.borderTopColor).toBe(getComputedStyle(bodyRow).borderBottomColor);
+    expect(style.borderTopColor).not.toBe(style.color);
+  });
+
+  // Forced colors replaces the muted selected background with Canvas, so a selected row would look
+  // like every other row; it takes the system "selected" pairing instead, also on hover.
+  it.each([
+    ["aria-selected", { "aria-selected": true }],
+    ['data-state="selected"', { "data-state": "selected" }],
+  ] as const)("marks a %s row with Highlight / HighlightText in forced colors", async (_, attrs) => {
+    await emulateForcedColors(true);
+    const screen = await render(
+      <Table>
+        <TableBody>
+          <TableRow {...attrs}>
+            <TableCell>Selected</TableCell>
+          </TableRow>
+          <TableRow>
+            <TableCell>Other</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>,
+    );
+    const [selected, other] = screen.container.querySelectorAll<HTMLElement>(
+      '[data-slot="table-row"]',
+    );
+    if (!selected || !other) throw new Error("rows missing");
+    const highlight = systemColor("Highlight");
+    const highlightText = systemColor("HighlightText");
+    expect(getComputedStyle(selected).backgroundColor).toBe(highlight);
+    expect(getComputedStyle(selected).color).toBe(highlightText);
+    expect(getComputedStyle(other).backgroundColor).not.toBe(highlight);
+    expect(getComputedStyle(other).color).not.toBe(highlightText);
+    await userEvent.hover(selected);
+    expect(getComputedStyle(selected).backgroundColor).toBe(highlight);
+    expect(getComputedStyle(selected).color).toBe(highlightText);
   });
 
   it.each(["light", "dark"] as const)("has no axe violations in the %s theme", async (theme) => {

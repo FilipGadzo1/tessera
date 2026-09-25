@@ -267,7 +267,8 @@ source files automatically (build output + `"use client"` directive checks).
   of overflowing the page; `className` styles the `<table>`, `containerClassName` the wrapper.
   `TableHead` is `scope="col"` by default (override for row headers) and takes a `sort` prop
   (`"ascending" | "descending" | "none"`) that sets `aria-sort` (omitted when left `undefined`).
-  `TableRow` highlights on hover and looks selected via `data-state="selected"` or `aria-selected`.
+  `TableRow` highlights on hover and looks selected via `data-state="selected"` or `aria-selected`
+  (in forced colors a selected row is filled with `Highlight` / `HighlightText`).
   `TableSortButton` is a presentational `<button>` for a sortable column header — no hooks, `onClick`
   and the current `direction` are the caller's, and it swaps its trailing icon (arrow-up / arrow-down
   / arrow-up-down) to match. Server-safe)
