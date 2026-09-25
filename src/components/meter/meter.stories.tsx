@@ -62,6 +62,7 @@ export const Sizes: Story = {
 };
 
 export const FormattedValue: Story = {
+  name: "Formatted value",
   render: () => (
     <div className="flex flex-col gap-6">
       <Meter value={1240} max={2000}>

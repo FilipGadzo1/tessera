@@ -194,6 +194,23 @@ describe("ScrollArea", () => {
     expect(results.incomplete.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
   });
 
+  it("forced colors: viewport shows no outline until focused, then a visible ring", async () => {
+    await emulateForcedColors(true);
+    expect(matchMedia("(forced-colors: active)").matches).toBe(true);
+    const screen = await render(<TallList />);
+    const root = screen.container.querySelector('[data-slot="scroll-area"]') as HTMLElement;
+    const viewport = viewportOf(root);
+    const idle = getComputedStyle(viewport);
+    expect(idle.outlineStyle).toBe("none");
+
+    await userEvent.tab();
+    await expect.poll(() => document.activeElement).toBe(viewport);
+    const focused = getComputedStyle(viewport);
+    expect(focused.outlineStyle).toBe("solid");
+    expect(Number.parseFloat(focused.outlineWidth)).toBeGreaterThanOrEqual(1);
+    expect(focused.outlineColor).not.toBe(systemColor("Canvas"));
+  });
+
   it("keeps the thumb visible in forced colors", async () => {
     await emulateForcedColors(true);
     expect(matchMedia("(forced-colors: active)").matches).toBe(true);

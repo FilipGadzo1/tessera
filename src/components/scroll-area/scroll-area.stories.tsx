@@ -29,6 +29,7 @@ const tags = [
 ];
 
 export const VerticalList: Story = {
+  name: "Vertical list",
   render: () => (
     <ScrollArea className="h-72 w-64 rounded-md border border-border">
       <div className="p-4">
@@ -58,6 +59,7 @@ const colors = [
 ];
 
 export const HorizontalGallery: Story = {
+  name: "Horizontal gallery",
   render: () => (
     <ScrollArea orientation="horizontal" className="w-96 rounded-md border border-border">
       <div className="flex gap-4 p-4">
@@ -103,6 +105,7 @@ export const Both: Story = {
 };
 
 export const InCard: Story = {
+  name: "In Card",
   render: () => (
     <div className="w-80 rounded-lg border border-border bg-background p-4 shadow-sm">
       <h3 className="mb-2 text-sm font-semibold text-foreground">Release notes</h3>
