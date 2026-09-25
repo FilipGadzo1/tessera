@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import { cleanup, render } from "vitest-browser-react";
+import { render } from "vitest-browser-react";
 import { auditOpenOverlay, waitForPopupSettled } from "../../../test/overlay";
 import { OrdersPage } from "./orders-page";
 
@@ -24,12 +24,8 @@ beforeEach(async () => {
   await page.viewport(1024, 768);
 });
 
-afterEach(async () => {
+afterEach(() => {
   document.documentElement.classList.remove("dark");
-  // Unmount first (an open drawer's backdrop covers 0,0), then park the real pointer in the
-  // top-left corner so hover styles never leak into the next test.
-  cleanup();
-  await userEvent.hover(document.body, { position: { x: 0, y: 0 } });
 });
 
 describe("OrdersPage example", () => {

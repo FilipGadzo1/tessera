@@ -304,7 +304,6 @@ describe("NumberField", () => {
     expect(increment.matches(":hover")).toBe(true);
     expect(getComputedStyle(increment).backgroundColor).toBe(background);
     expect(getComputedStyle(increment).color).toBe(color);
-    await userEvent.hover(document.body, { position: { x: 0, y: 0 } });
   });
 
   it("does not warn when aria-label is used with the childless convenience default", async () => {

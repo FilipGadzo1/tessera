@@ -1,6 +1,6 @@
 import { type ReactElement, useRef, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cdp, page, userEvent } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import {
   emulateForcedColors,
@@ -77,19 +77,9 @@ async function openByClick() {
   return popup;
 }
 
-/**
- * Parks the real pointer at the top-left corner through CDP. `userEvent.hover(document.body)`
- * cannot be used here: when a test leaves a drawer (and its full-screen backdrop) open, Playwright's
- * actionability check sees the backdrop intercepting the pointer and times out.
- */
-async function parkPointer() {
-  await cdp().send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 0, y: 0 });
-}
-
 afterEach(async () => {
   document.documentElement.classList.remove("dark");
   await resetEmulatedMedia();
-  await parkPointer();
 });
 
 describe("Drawer", () => {

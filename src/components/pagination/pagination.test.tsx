@@ -44,7 +44,6 @@ function Pager({ page }: { page: number }) {
 
 afterEach(async () => {
   await resetEmulatedMedia();
-  await userEvent.hover(document.body, { position: { x: 0, y: 0 } });
 });
 
 describe("Pagination", () => {

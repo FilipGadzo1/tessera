@@ -125,9 +125,6 @@ async function openByClick(name = "Fruit") {
 afterEach(async () => {
   document.documentElement.classList.remove("dark");
   await resetEmulatedMedia();
-  // Park the real (Playwright) pointer at the page's top-left corner, where no test renders a
-  // control, so hover styles never leak into the next test's colour comparisons.
-  await userEvent.hover(document.body, { position: { x: 0, y: 0 } });
 });
 
 describe("Combobox", () => {
