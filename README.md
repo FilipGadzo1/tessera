@@ -290,10 +290,24 @@ source files automatically (build output + `"use client"` directive checks).
   (`Intl.NumberFormatOptions`), `min`/`max`/`step`/`smallStep`/`largeStep`, `readOnly`, `disabled`,
   and works inside a `Field` (label names the input; invalid shows the danger border on the group).
   Client component)
+- [x] Combobox, ComboboxInput, ComboboxTrigger, ComboboxClear, ComboboxContent, ComboboxList,
+  ComboboxItem, ComboboxEmpty, ComboboxStatus, ComboboxGroup, ComboboxGroupLabel, ComboboxCollection,
+  ComboboxSeparator, ComboboxValue, ComboboxChips, ComboboxChip, ComboboxChipRemove (on Base UI
+  `Combobox.*`. Pass `items` to the root and a function child to `ComboboxList`; Base UI filters as
+  you type — strings, `{ value, label }` objects, other objects via `itemToStringLabel` /
+  `itemToStringValue`, or groups `{ value, items }` rendered with `ComboboxGroup` +
+  `ComboboxCollection`; `filter={null}` + `onInputValueChange` for async results announced by
+  `ComboboxStatus`. `ComboboxInput` looks like an Input (`size` `sm` / `md` / `lg`, focus-within
+  ring) with a chevron trigger (`showTrigger`, default on) and a clear button (`showClear`);
+  `className` styles the `<input>`, `groupClassName` the field. `multiple` uses `ComboboxChips` —
+  chips from `ComboboxValue`, then a `ComboboxInput` — and the list anchors to the chips field.
+  Only the input is in the Tab order (Base UI): trigger, clear and chip remove buttons are pointer
+  affordances, chips are reached with ArrowLeft. Escape closes the list; on a closed combobox it
+  clears the value (Base UI). Works inside a `Field` and a `Dialog`. Client component)
 
 Phase A (foundation), Phase B (forms), Phase C (overlays) and Phase D (navigation and feedback) are
 complete. Phase E (data entry and display) is in progress: Skeleton, Breadcrumb, Pagination, Table,
-Slider and NumberField are done; Combobox and Drawer remain.
+Slider, NumberField and Combobox are done; Drawer remains.
 
 Composition: when a part is rendered through another (`<Fieldset render={<RadioGroup className=…/>}>`),
 the outer part's own classes win over conflicting classes on the render element (Base UI merges the
@@ -335,7 +349,7 @@ Separators for billing; and a "Save changes" Button that shows a success toast f
 
 ## Roadmap
 
-Finishing Phase E: Combobox, Drawer (Sheet is the same component, on Base UI's `Drawer.*`).
+Finishing Phase E: Drawer (Sheet is the same component, on Base UI's `Drawer.*`).
 
 Next, Phase F: Calendar, DatePicker, DateRangePicker, ToggleGroup, Toolbar, ScrollArea, Meter,
 HoverCard/PreviewCard, ContextMenu.

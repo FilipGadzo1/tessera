@@ -70,7 +70,7 @@ None block current use.
   Escape close (`eventDetails.cancel()` + `allowPropagation()`, not forwarded to the caller's
   `onOpenChange`) while a tooltip is open or was open at keydown (a window-capture listener records
   the event without stopping it); the tooltip closes itself with reason `"escape-key"`. Remaining
-  trade-offs: any new overlay root with Escape dismissal (Select does; future Drawer / Combobox)
+  trade-offs: any new overlay root with Escape dismissal (Select and Combobox do; future Drawer)
   must wrap its `onOpenChange` with `useLayeredEscape`, and a raw Base UI overlay around a Tessera
   Tooltip still closes on the same Escape (with the tooltip's trigger focused, too — the tooltip now
   lets the event propagate). A controlled Tooltip whose owner ignores `onOpenChange(false)` keeps
