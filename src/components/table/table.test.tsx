@@ -192,34 +192,36 @@ describe("Table", () => {
   it.each([
     ["aria-selected", { "aria-selected": true }],
     ['data-state="selected"', { "data-state": "selected" }],
-  ] as const)("marks a %s row with Highlight / HighlightText in forced colors", async (_, attrs) => {
-    await emulateForcedColors(true);
-    const screen = await render(
-      <Table>
-        <TableBody>
-          <TableRow {...attrs}>
-            <TableCell>Selected</TableCell>
-          </TableRow>
-          <TableRow>
-            <TableCell>Other</TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>,
-    );
-    const [selected, other] = screen.container.querySelectorAll<HTMLElement>(
-      '[data-slot="table-row"]',
-    );
-    if (!selected || !other) throw new Error("rows missing");
-    const highlight = systemColor("Highlight");
-    const highlightText = systemColor("HighlightText");
-    expect(getComputedStyle(selected).backgroundColor).toBe(highlight);
-    expect(getComputedStyle(selected).color).toBe(highlightText);
-    expect(getComputedStyle(other).backgroundColor).not.toBe(highlight);
-    expect(getComputedStyle(other).color).not.toBe(highlightText);
-    await userEvent.hover(selected);
-    expect(getComputedStyle(selected).backgroundColor).toBe(highlight);
-    expect(getComputedStyle(selected).color).toBe(highlightText);
-  });
+  ] as const)(
+    "marks a %s row with Highlight / HighlightText in forced colors",
+    async (_, attrs) => {
+      await emulateForcedColors(true);
+      const screen = await render(
+        <Table>
+          <TableBody>
+            <TableRow {...attrs}>
+              <TableCell>Selected</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell>Other</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>,
+      );
+      const [selected, other] =
+        screen.container.querySelectorAll<HTMLElement>('[data-slot="table-row"]');
+      if (!selected || !other) throw new Error("rows missing");
+      const highlight = systemColor("Highlight");
+      const highlightText = systemColor("HighlightText");
+      expect(getComputedStyle(selected).backgroundColor).toBe(highlight);
+      expect(getComputedStyle(selected).color).toBe(highlightText);
+      expect(getComputedStyle(other).backgroundColor).not.toBe(highlight);
+      expect(getComputedStyle(other).color).not.toBe(highlightText);
+      await userEvent.hover(selected);
+      expect(getComputedStyle(selected).backgroundColor).toBe(highlight);
+      expect(getComputedStyle(selected).color).toBe(highlightText);
+    },
+  );
 
   it.each(["light", "dark"] as const)("has no axe violations in the %s theme", async (theme) => {
     const screen = await render(
