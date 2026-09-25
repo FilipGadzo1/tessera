@@ -282,6 +282,22 @@ const needleGroups = [
     reason: "Toast stacking utilities (--toast-offset-y / --toast-index arbitrary values) missing",
     needles: [/var\(--toast-offset-y\)/, /z-index:\s*calc\(1000 - var\(--toast-index\)\)/],
   },
+  {
+    // Phase E: Drawer swipe (Base UI's --drawer-swipe-* vars through arbitrary transform/opacity),
+    // Combobox popup height and empty-list selector, Slider thumb ring (focus lives on the nested
+    // input, so the wrapper uses has-[:focus-visible]), Pagination's forced-colors active link.
+    reason: "Phase E var and arbitrary utilities (Drawer, Combobox, Slider, Pagination) missing",
+    needles: [
+      /transform:\s*translateX\(var\(--drawer-swipe-movement-x\)\)/,
+      /transform:\s*translateY\(var\(--drawer-swipe-movement-y\)\)/,
+      /opacity:\s*calc\(1 - var\(--drawer-swipe-progress\)\)/,
+      /max-height:\s*min\(var\(--available-height\), 20rem\)/,
+      ".not-has-\\[\\[role\\=option\\]\\]\\:hidden:not(:has(:is([role=option])))",
+      ".has-\\[\\:focus-visible\\]\\:outline-2:has(:is(:focus-visible))",
+      ".forced-colors\\:has-\\[\\:focus-visible\\]\\:outline-\\[Highlight\\]:has(:is(:focus-visible))",
+      ".forced-colors\\:not-data-disabled\\:hover\\:bg-\\[Highlight\\]:not([data-disabled]):hover",
+    ],
+  },
 ];
 for (const { reason, needles } of needleGroups) {
   for (const needle of needles) {
