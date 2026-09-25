@@ -1,5 +1,6 @@
 "use client";
 
+import { AlignCenter, AlignLeft, AlignRight, Bold, Italic, Underline } from "lucide-react";
 import { useId, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "../../components/avatar";
 import type { DateRange } from "../../components/calendar";
@@ -50,38 +51,33 @@ function EditorToolbar({
   onAlignmentChange,
 }: EditorToolbarProps) {
   return (
-    <Toolbar aria-label="Formatting" className="w-fit">
+    <Toolbar aria-label="Text formatting" className="w-fit">
       <ToggleGroup
         aria-label="Formatting"
         multiple
         value={formatting}
         onValueChange={onFormattingChange}
       >
-        <ToggleGroupItem value="bold" aria-label="Bold" size="icon-sm" className="font-bold">
-          B
+        <ToggleGroupItem value="bold" aria-label="Bold" size="icon-sm">
+          <Bold aria-hidden="true" />
         </ToggleGroupItem>
-        <ToggleGroupItem value="italic" aria-label="Italic" size="icon-sm" className="italic">
-          I
+        <ToggleGroupItem value="italic" aria-label="Italic" size="icon-sm">
+          <Italic aria-hidden="true" />
         </ToggleGroupItem>
-        <ToggleGroupItem
-          value="underline"
-          aria-label="Underline"
-          size="icon-sm"
-          className="underline"
-        >
-          U
+        <ToggleGroupItem value="underline" aria-label="Underline" size="icon-sm">
+          <Underline aria-hidden="true" />
         </ToggleGroupItem>
       </ToggleGroup>
       <ToolbarSeparator />
       <ToggleGroup aria-label="Alignment" value={alignment} onValueChange={onAlignmentChange}>
         <ToggleGroupItem value="left" aria-label="Align left" size="icon-sm">
-          L
+          <AlignLeft aria-hidden="true" />
         </ToggleGroupItem>
         <ToggleGroupItem value="center" aria-label="Align center" size="icon-sm">
-          C
+          <AlignCenter aria-hidden="true" />
         </ToggleGroupItem>
         <ToggleGroupItem value="right" aria-label="Align right" size="icon-sm">
-          R
+          <AlignRight aria-hidden="true" />
         </ToggleGroupItem>
       </ToggleGroup>
       <ToolbarSeparator />
@@ -150,6 +146,7 @@ function AuthorLine() {
     <p className="text-muted-foreground text-sm">
       By{" "}
       <PreviewCard>
+        {/* href="#" is illustrative only (no real author profile page in this example). */}
         <PreviewCardTrigger
           href="#"
           delay={0}

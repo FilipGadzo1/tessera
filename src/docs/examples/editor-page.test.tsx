@@ -47,7 +47,7 @@ describe("EditorPage example", () => {
   it("renders the card, toolbar, body, byline and meter", async () => {
     await render(<EditorPage />);
     await expect.element(page.getByText("New post", { exact: true })).toBeVisible();
-    await expect.element(page.getByRole("toolbar", { name: "Formatting" })).toBeVisible();
+    await expect.element(page.getByRole("toolbar", { name: "Text formatting" })).toBeVisible();
     await expect.element(page.getByRole("link", { name: "@filip" })).toBeVisible();
     await expect.element(page.getByRole("button", { name: "Publish on" })).toBeVisible();
     await expect.element(page.getByRole("button", { name: "Embargo" })).toBeVisible();
