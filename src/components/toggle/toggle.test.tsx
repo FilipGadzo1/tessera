@@ -205,6 +205,25 @@ describe("ToggleGroup", () => {
       .toHaveAttribute("data-slot", "toggle");
   });
 
+  it("keeps a function-form className on a ToggleGroupItem (not silently dropped)", async () => {
+    const screen = await render(
+      <ToggleGroup aria-label="Alignment">
+        <ToggleGroupItem
+          value="left"
+          aria-label="Left"
+          className={(state) => (state.pressed ? "is-pressed" : "is-idle")}
+        >
+          L
+        </ToggleGroupItem>
+      </ToggleGroup>,
+    );
+    const left = screen.getByRole("button", { name: "Left" });
+    await expect.element(left).toHaveClass("is-idle");
+    await expect.element(left).toHaveClass("focus-visible:z-10");
+    await left.click();
+    await expect.element(left).toHaveClass("is-pressed");
+  });
+
   it("allows only one pressed value by default (single)", async () => {
     const onValueChange = vi.fn();
     const screen = await render(

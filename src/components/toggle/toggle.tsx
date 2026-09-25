@@ -120,9 +120,8 @@ export function ToggleGroupItem({ variant, size, className, ...props }: ToggleGr
       {...props}
       variant={variant ?? group.variant}
       size={size ?? group.size}
-      className={cn(
-        "focus-visible:z-10",
-        group.attached && attachedClasses[group.orientation],
+      className={mergeClassName(
+        cn("focus-visible:z-10", group.attached && attachedClasses[group.orientation]),
         className,
       )}
     />
