@@ -409,10 +409,10 @@ source files automatically (build output + `"use client"` directive checks).
   via `formatRange` ("Sep 1 – 12, 2026") and submits `startName` / `endName`. No clear button:
   render a Button beside it. Client component)
 
-Phase A (foundation), Phase B (forms), Phase C (overlays), Phase D (navigation and feedback) and
-Phase E (data entry and display) are complete. Phase F (dates, toolbars and surfaces) is in
-progress: Meter, ScrollArea, Toggle/ToggleGroup, Toolbar, PreviewCard, ContextMenu, Calendar,
-RangeCalendar, DatePicker and DateRangePicker are done.
+Phase A (foundation), Phase B (forms), Phase C (overlays), Phase D (navigation and feedback),
+Phase E (data entry and display) and Phase F (dates, toolbars and surfaces — Meter, ScrollArea,
+Toggle/ToggleGroup, Toolbar, PreviewCard, ContextMenu, Calendar, RangeCalendar, DatePicker and
+DateRangePicker) are complete.
 
 Composition: when a part is rendered through another (`<Fieldset render={<RadioGroup className=…/>}>`),
 the outer part's own classes win over conflicting classes on the render element (Base UI merges the
@@ -461,8 +461,17 @@ are NumberFields. The Drawer has no trigger of its own, so it is controlled and 
 that row's button with `finalFocus`. A `loading` toggle swaps the rows for Skeletons and marks the
 list `aria-busy`.
 
+The Storybook story **Tessera/Examples/Editor** (`src/docs/examples/editor-page.tsx`) composes the
+Phase F components in a "New post" editor card: a Toolbar holds a formatting `ToggleGroup`
+(Bold/Italic/Underline, multiple), an alignment `ToggleGroup` (single) and an "Insert" `Menu`; the
+body sits in a `ScrollArea` under a `ContextMenu` (right-click it) whose Format submenu reuses
+`MenuCheckboxItem`s bound to the same toolbar state; the byline's `@name` is a
+`PreviewCardTrigger` showing an Avatar card; a "Publish on" `DatePicker` and an "Embargo"
+`DateRangePicker` sit in a Field row; and a `Meter` reports the character count.
+
 ## Roadmap
 
-Rest of Phase F: DatePicker, DateRangePicker, and the Editor example page.
+Phase G candidates: DateField, Menubar, NavigationMenu, Autocomplete, OTP field, Collapsible,
+CheckboxGroup, Form, Sidebar/app shell.
 
 Later: visual regression · React Compiler on output · publish to npm (`@tessera/ui` is free).

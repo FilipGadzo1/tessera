@@ -170,6 +170,13 @@ phase; items fixed by a later commit are left out).
   wired (the picker doesn't register as a Field control). Before bumping Base UI, run the DatePicker Field tests against the new version; the
   range is pinned to `~1.8.0` because of this (a minor that moved either subpath would break every
   import from Tessera, since `src/index.ts` re-exports the pickers).
+- Editor example (Task 6): `ContextMenu` marks the rest of the page inert while open (Base UI's
+  `data-base-ui-inert` on the background), so a test that picks a Format submenu item and then
+  checks the toolbar's mirrored `ToggleGroup` state must close the context menu first — the
+  toolbar's buttons are unreachable by role while the menu (or its submenu) is open. `Meter`
+  formats `MeterValue`'s `formatted` argument as a percentage by default; getting a raw formatted
+  count ("1,240") for the character Meter needs an explicit `format={{}}` (or other non-percent
+  `Intl.NumberFormatOptions`) on `Meter` itself, not just a custom `MeterValue` render function.
 
 ## Theming
 - No `.light` scope: a region cannot switch back to light inside `.dark` (documented limit).
@@ -200,6 +207,8 @@ phase; items fixed by a later commit are left out).
 Follow the phases in the design-system spec §6
 (`docs/superpowers/specs/2026-09-23-tessera-design-system-v2.md`): Phase B forms (Label, Field, Input,
 Textarea, Checkbox, Switch, RadioGroup — use the `field*` / `switch-track` tokens), Phase C overlays,
-Phase D navigation and feedback, Phase E data entry and display. Phases B–E are done. Phase F:
-Calendar, DatePicker, DateRangePicker, ToggleGroup, Toolbar, ScrollArea, Meter,
-HoverCard/PreviewCard, ContextMenu.
+Phase D navigation and feedback, Phase E data entry and display, Phase F dates/toolbars/surfaces
+(Calendar, DatePicker, DateRangePicker, ToggleGroup, Toolbar, ScrollArea, Meter,
+HoverCard/PreviewCard, ContextMenu). Phases B–F are done. Phase G candidates (spec §5): DateField,
+Menubar, NavigationMenu, Autocomplete, OTP field, Collapsible, CheckboxGroup, Form, Sidebar/app
+shell.
