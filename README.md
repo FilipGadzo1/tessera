@@ -304,10 +304,21 @@ source files automatically (build output + `"use client"` directive checks).
   Only the input is in the Tab order (Base UI): trigger, clear and chip remove buttons are pointer
   affordances, chips are reached with ArrowLeft. Escape closes the list; on a closed combobox it
   clears the value (Base UI). Works inside a `Field` and a `Dialog`. Client component)
+- [x] Drawer, DrawerTrigger, DrawerContent, DrawerHeader, DrawerFooter, DrawerTitle,
+  DrawerDescription, DrawerClose (Tessera's Sheet, on Base UI `Drawer.*`. A modal `role="dialog"`
+  panel against an edge over a dimmed backdrop: `side` on the `Drawer` root — `right` (default),
+  `left`, `bottom`, `top` — because Base UI's swipe direction is a root prop. Side panels are `w-3/4`
+  up to `max-w-sm`; bottom/top sheets span the width up to 85% of the viewport height, and bottom
+  sheets show a grab handle. DrawerContent takes `showCloseButton` (default true) and `container`,
+  like DialogContent. Focus moves to the panel and is trapped; page scroll is locked; Escape, a
+  backdrop click, DrawerClose or swiping the panel towards its edge closes it and focus returns to
+  the trigger. Content does not scroll by itself: give a long body `flex-1 overflow-y-auto` (the
+  footer sits at the bottom via `mt-auto`). Slides in over 300ms, instantly under reduced motion.
+  Tooltips and Dialogs inside take Escape first. Client component)
 
 Phase A (foundation), Phase B (forms), Phase C (overlays) and Phase D (navigation and feedback) are
 complete. Phase E (data entry and display) is in progress: Skeleton, Breadcrumb, Pagination, Table,
-Slider, NumberField and Combobox are done; Drawer remains.
+Slider, NumberField, Combobox and Drawer are done; the Orders example page remains.
 
 Composition: when a part is rendered through another (`<Fieldset render={<RadioGroup className=…/>}>`),
 the outer part's own classes win over conflicting classes on the render element (Base UI merges the
@@ -315,7 +326,7 @@ render element's className first; tailwind-merge keeps the last). Lay out childr
 instead — e.g. a horizontal radio group puts the radios in `<div className="flex flex-row gap-6">`
 after the FieldsetLegend.
 
-Overlays (Tooltip, Popover, Dialog, AlertDialog, Menu, Select) and the Toaster portal into
+Overlays (Tooltip, Popover, Dialog, AlertDialog, Drawer, Menu, Select, Combobox) and the Toaster portal into
 `document.body`:
 
 - Put theme scopes (`.dark`, `data-primary`, `data-surface`) on `<html>` so overlays pick them up.
@@ -349,7 +360,7 @@ Separators for billing; and a "Save changes" Button that shows a success toast f
 
 ## Roadmap
 
-Finishing Phase E: Drawer (Sheet is the same component, on Base UI's `Drawer.*`).
+Finishing Phase E: the Orders example page composing the Phase E components.
 
 Next, Phase F: Calendar, DatePicker, DateRangePicker, ToggleGroup, Toolbar, ScrollArea, Meter,
 HoverCard/PreviewCard, ContextMenu.

@@ -33,6 +33,7 @@ export default defineConfig({
       "@base-ui/react/slider",
       "@base-ui/react/number-field",
       "@base-ui/react/combobox",
+      "@base-ui/react/drawer",
       "@base-ui/react/toast",
       // Icons used by the docs examples (src/docs/examples).
       "lucide-react",

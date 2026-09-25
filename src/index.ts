@@ -143,6 +143,28 @@ export {
   dialogVariants,
 } from "./components/dialog";
 export {
+  Drawer,
+  DrawerClose,
+  type DrawerCloseProps,
+  DrawerContent,
+  type DrawerContentProps,
+  DrawerDescription,
+  type DrawerDescriptionProps,
+  DrawerFooter,
+  type DrawerFooterProps,
+  DrawerHeader,
+  type DrawerHeaderProps,
+  type DrawerProps,
+  type DrawerSide,
+  DrawerTitle,
+  type DrawerTitleProps,
+  DrawerTrigger,
+  type DrawerTriggerProps,
+  type DrawerVariantProps,
+  drawerDefaults,
+  drawerVariants,
+} from "./components/drawer";
+export {
   Field,
   FieldDescription,
   type FieldDescriptionProps,
