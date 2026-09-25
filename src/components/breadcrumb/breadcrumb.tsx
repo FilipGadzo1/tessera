@@ -1,5 +1,7 @@
-import { type ComponentProps, cloneElement, type ReactElement, type ReactNode } from "react";
+import type { ComponentProps, ReactElement, ReactNode } from "react";
+import { cloneRender } from "../../lib/clone-render";
 import { cn } from "../../lib/cn";
+import { ChevronRightIcon, EllipsisIcon } from "../../lib/icons";
 
 export interface BreadcrumbProps extends ComponentProps<"nav"> {
   /** @default "Breadcrumb" */
@@ -58,12 +60,7 @@ export function BreadcrumbLink({
 }: BreadcrumbLinkProps) {
   const classes = cn(breadcrumbLinkClasses, className);
   if (render) {
-    return cloneElement(render, {
-      ...props,
-      ...render.props,
-      "data-slot": dataSlot,
-      className: cn(classes, render.props.className),
-    });
+    return cloneRender(render, props, { slot: dataSlot, className: classes });
   }
   return <a {...props} data-slot={dataSlot} className={classes} />;
 }
@@ -82,23 +79,6 @@ export function BreadcrumbPage({ className, ...props }: BreadcrumbPageProps) {
   );
 }
 
-function ChevronRightIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <path d="m9 18 6-6-6-6" />
-    </svg>
-  );
-}
-
 export interface BreadcrumbSeparatorProps extends ComponentProps<"li"> {
   children?: ReactNode;
 }
@@ -109,16 +89,6 @@ export function BreadcrumbSeparator({ children, ...props }: BreadcrumbSeparatorP
     <li {...props} role="presentation" aria-hidden="true" data-slot="breadcrumb-separator">
       {children ?? <ChevronRightIcon className="size-3.5" />}
     </li>
-  );
-}
-
-function EllipsisIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor" className="size-4">
-      <circle cx="5" cy="12" r="1" />
-      <circle cx="12" cy="12" r="1" />
-      <circle cx="19" cy="12" r="1" />
-    </svg>
   );
 }
 
@@ -137,7 +107,7 @@ export function BreadcrumbEllipsis({ className, ...props }: BreadcrumbEllipsisPr
       data-slot="breadcrumb-ellipsis"
       className={cn("flex size-9 items-center justify-center", className)}
     >
-      <EllipsisIcon />
+      <EllipsisIcon className="size-4" />
       <span className="sr-only">More</span>
     </span>
   );

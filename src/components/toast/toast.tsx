@@ -8,6 +8,7 @@ import {
 } from "@base-ui/react/toast";
 import type { ReactNode } from "react";
 import { cn } from "../../lib/cn";
+import { CloseIcon } from "../../lib/icons";
 import { popupSurface } from "../../lib/overlay-classes";
 import { type ToneColor, toneClass } from "../../lib/tone";
 import { Button } from "../button";
@@ -284,15 +285,6 @@ function ToastIcon({ type, toned }: { type: string | undefined; toned: boolean }
           <path d="M12 8h.01" />
         </>
       )}
-    </svg>
-  );
-}
-
-function CloseIcon() {
-  return (
-    <svg aria-hidden="true" {...svgProps}>
-      <path d="M18 6 6 18" />
-      <path d="m6 6 12 12" />
     </svg>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { Accordion as BaseAccordion } from "@base-ui/react/accordion";
+import { ChevronDownIcon } from "../../lib/icons";
 import { mergeClassName } from "../../lib/merge-class-name";
 
 const itemClasses = "border-b border-border";
@@ -95,27 +96,9 @@ export function AccordionTrigger({
         className={mergeClassName(triggerClasses, className)}
       >
         {children}
-        <ChevronDownIcon />
+        <ChevronDownIcon data-slot="accordion-chevron" className={chevronClasses} />
       </BaseAccordion.Trigger>
     </BaseAccordion.Header>
-  );
-}
-
-function ChevronDownIcon() {
-  return (
-    <svg
-      data-slot="accordion-chevron"
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={chevronClasses}
-    >
-      <path d="m6 9 6 6 6-6" />
-    </svg>
   );
 }
 

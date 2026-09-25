@@ -1,5 +1,7 @@
-import { type ComponentProps, cloneElement, type ReactElement } from "react";
+import type { ComponentProps, ReactElement } from "react";
+import { cloneRender } from "../../lib/clone-render";
 import { cn } from "../../lib/cn";
+import { ChevronLeftIcon, ChevronRightIcon, EllipsisIcon } from "../../lib/icons";
 import { type ButtonVariantProps, buttonVariants } from "../button/button-variants";
 
 export interface PaginationProps extends ComponentProps<"nav"> {
@@ -96,55 +98,19 @@ export function PaginationLink({
     ...(disabled ? { "aria-disabled": "true" as const, "data-disabled": "" } : { href, onClick }),
   };
   if (render) {
-    return cloneElement(render, {
-      ...shared,
-      ...render.props,
+    return cloneRender(render, shared, {
+      slot: dataSlot,
+      className: classes,
       // A disabled clone must not stay interactive through the render element's own props either.
       // `tabIndex={-1}` rather than a `<button>`'s native `disabled`: that would blur a focused
       // Next the moment it disables on the last page, dropping a keyboard user's place.
-      ...(disabled && { onClick: undefined, href: undefined, tabIndex: -1 }),
-      "data-slot": dataSlot,
-      className: cn(classes, render.props.className),
+      overrideProps: disabled ? { onClick: undefined, href: undefined, tabIndex: -1 } : undefined,
     });
   }
   return <a {...shared} data-slot={dataSlot} className={classes} />;
 }
 
 export type PaginationPreviousProps = Omit<PaginationLinkProps, "size" | "isActive">;
-
-function ChevronLeftIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="size-4"
-    >
-      <path d="m15 18-6-6 6-6" />
-    </svg>
-  );
-}
-
-function ChevronRightIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="size-4"
-    >
-      <path d="m9 18 6-6-6-6" />
-    </svg>
-  );
-}
 
 /**
  * A `PaginationLink` widened for a leading chevron and "Previous" text (hidden below `sm:`).
@@ -165,7 +131,7 @@ export function PaginationPrevious({
       size="md"
       className={cn("gap-1.5", className)}
     >
-      <ChevronLeftIcon />
+      <ChevronLeftIcon className="size-4" />
       <span className="hidden sm:inline">{children}</span>
     </PaginationLink>
   );
@@ -193,18 +159,8 @@ export function PaginationNext({
       className={cn("gap-1.5", className)}
     >
       <span className="hidden sm:inline">{children}</span>
-      <ChevronRightIcon />
+      <ChevronRightIcon className="size-4" />
     </PaginationLink>
-  );
-}
-
-function EllipsisIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor" className="size-4">
-      <circle cx="5" cy="12" r="1" />
-      <circle cx="12" cy="12" r="1" />
-      <circle cx="19" cy="12" r="1" />
-    </svg>
   );
 }
 
@@ -219,7 +175,7 @@ export function PaginationEllipsis({ className, ...props }: PaginationEllipsisPr
       data-slot="pagination-ellipsis"
       className={cn("flex size-10 items-center justify-center", className)}
     >
-      <EllipsisIcon />
+      <EllipsisIcon className="size-4" />
       <span className="sr-only">More pages</span>
     </span>
   );

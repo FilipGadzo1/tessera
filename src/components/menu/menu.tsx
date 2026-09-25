@@ -1,8 +1,9 @@
 "use client";
 
 import { Menu as BaseMenu } from "@base-ui/react/menu";
-import type { ComponentProps, ReactNode } from "react";
+import type { ComponentProps } from "react";
 import { cn } from "../../lib/cn";
+import { CheckIcon, ChevronRightIcon, DotIcon } from "../../lib/icons";
 import { mergeClassName } from "../../lib/merge-class-name";
 import { menuItemBase, popupMotion, popupSurface } from "../../lib/overlay-classes";
 import { useLayeredEscape } from "../../lib/tooltip-escape";
@@ -264,7 +265,7 @@ export function MenuSubTrigger({ className, children, ...props }: MenuSubTrigger
       className={mergeClassName(cn(menuItemBase, menuSubTriggerBase), className)}
     >
       {children}
-      <ChevronRightIcon />
+      <ChevronRightIcon className={menuSubTriggerChevron} />
     </BaseMenu.SubmenuTrigger>
   );
 }
@@ -310,46 +311,5 @@ export function MenuShortcut({ className, ...props }: MenuShortcutProps) {
       data-slot="menu-shortcut"
       className={cn(menuShortcutBase, className)}
     />
-  );
-}
-
-function Icon({ children, className }: { children: ReactNode; className?: string }) {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      {children}
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <Icon>
-      <path d="M20 6 9 17l-5-5" />
-    </Icon>
-  );
-}
-
-function DotIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor">
-      <circle cx="12" cy="12" r="4" />
-    </svg>
-  );
-}
-
-function ChevronRightIcon() {
-  return (
-    <Icon className={menuSubTriggerChevron}>
-      <path d="m9 18 6-6-6-6" />
-    </Icon>
   );
 }

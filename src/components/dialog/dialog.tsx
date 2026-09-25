@@ -3,6 +3,7 @@
 import { Dialog as BaseDialog } from "@base-ui/react/dialog";
 import { type ComponentProps, createContext, useContext } from "react";
 import { cn } from "../../lib/cn";
+import { CloseIcon } from "../../lib/icons";
 import { mergeClassName } from "../../lib/merge-class-name";
 import { useLayeredEscape } from "../../lib/tooltip-escape";
 import { Button } from "../button";
@@ -105,23 +106,6 @@ export function DialogContent({
         )}
       </BaseDialog.Popup>
     </BaseDialog.Portal>
-  );
-}
-
-function CloseIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M18 6 6 18" />
-      <path d="m6 6 12 12" />
-    </svg>
   );
 }
 

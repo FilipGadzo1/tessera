@@ -131,15 +131,12 @@ phase; items fixed by a later commit are left out).
   formats" test does not exercise a format; the clamp test never tries to pass the bound (it stops
   when the button disables); group sizes are copied from `textFieldSizes`, not derived.
 - Combobox (Task 5): inside a `Field`, an `aria-label` on the trigger is ineffective (Base UI's
-  `aria-labelledby` wins; worth documenting); Select, Menu and Combobox each keep their own check /
-  chevron icons, and Breadcrumb and Pagination each keep a `ChevronRightIcon` and an `EllipsisIcon`
-  (extract shared ones); the AsyncWithStatus story mounts `ComboboxEmpty`
+  `aria-labelledby` wins; worth documenting); the AsyncWithStatus story mounts `ComboboxEmpty`
   conditionally and its `.catch(() => {})` swallows errors; the InDialog story has no axe test;
   `ComboboxChips` with `aria-invalid` outside a `Field` is untested.
-- Drawer (Task 6): the RightWithForm story's body lacks `flex-1`; `CloseIcon` is copied a third
-  time (Dialog, Toast, Drawer — extract it); the drag tests cast `dragAndDrop` options; the header keeps `pr-12` with
-  `showCloseButton={false}`; no mutation checks for `aria-modal`, `useLayeredEscape` or the
-  `transform` swipe binding.
+- Drawer (Task 6): the RightWithForm story's body lacks `flex-1`; the drag tests cast
+  `dragAndDrop` options; the header keeps `pr-12` with `showCloseButton={false}`; no mutation
+  checks for `aria-modal`, `useLayeredEscape` or the `transform` swipe binding.
 - Orders example (Task 7): `test/overlay.ts` `auditOpenOverlay` now accepts a Base UI inert marker
   on an ancestor for an `aria-hidden` element whose parent holds an `[aria-live]` region and which
   holds none itself (Base UI keeps such regions, e.g. Slider's `<output>`, and their ancestors
@@ -155,9 +152,6 @@ phase; items fixed by a later commit are left out).
   `loading`; the loading skeleton rows shift the column widths when the data arrives; on mobile
   widths the range Slider's thumbs overhang the card edge; `orders-page.tsx` is ~468 lines (split
   the filters / table / drawer into local components).
-- Breadcrumb / Pagination (final review): `BreadcrumbLink` and `PaginationLink` duplicate the
-  server-safe `render` clone logic (merge props, keep `data-slot`, merge `className`) — extract a
-  server-safe `src/lib/clone-render.ts`.
 - Pagination (final review): `getPaginationRange` returns 4–7 items depending on the page, so the
   pager's width changes as the user pages (the Previous/Next controls move); consider an optional
   steady-width mode that always returns the same count (padding with extra pages near the edges).

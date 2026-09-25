@@ -2,6 +2,7 @@
 
 import { NumberField as BaseNumberField } from "@base-ui/react/number-field";
 import { useEffect, useRef } from "react";
+import { MinusIcon, PlusIcon } from "../../lib/icons";
 import { mergeClassName } from "../../lib/merge-class-name";
 import {
   type NumberFieldGroupVariantProps,
@@ -105,7 +106,7 @@ export function NumberFieldIncrement({ className, ...props }: NumberFieldIncreme
       data-slot="number-field-increment"
       className={mergeClassName(`${numberFieldButtonBase} border-l border-field-border`, className)}
     >
-      <PlusIcon />
+      <PlusIcon className="size-3.5" />
     </BaseNumberField.Increment>
   );
 }
@@ -120,7 +121,7 @@ export function NumberFieldDecrement({ className, ...props }: NumberFieldDecreme
       data-slot="number-field-decrement"
       className={mergeClassName(`${numberFieldButtonBase} border-r border-field-border`, className)}
     >
-      <MinusIcon />
+      <MinusIcon className="size-3.5" />
     </BaseNumberField.Decrement>
   );
 }
@@ -138,39 +139,5 @@ export function NumberFieldScrubArea({ className, ...props }: NumberFieldScrubAr
       data-slot="number-field-scrub-area"
       className={mergeClassName("cursor-ew-resize select-none text-sm font-medium", className)}
     />
-  );
-}
-
-function PlusIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="size-3.5"
-    >
-      <path d="M12 5v14M5 12h14" />
-    </svg>
-  );
-}
-
-function MinusIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="size-3.5"
-    >
-      <path d="M5 12h14" />
-    </svg>
   );
 }

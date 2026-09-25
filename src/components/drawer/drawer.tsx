@@ -3,6 +3,7 @@
 import { Drawer as BaseDrawer } from "@base-ui/react/drawer";
 import { type ComponentProps, createContext, useContext } from "react";
 import { cn } from "../../lib/cn";
+import { CloseIcon } from "../../lib/icons";
 import { mergeClassName } from "../../lib/merge-class-name";
 import { useLayeredEscape } from "../../lib/tooltip-escape";
 import { Button } from "../button";
@@ -136,23 +137,6 @@ export function DrawerContent({
         </BaseDrawer.Popup>
       </BaseDrawer.Viewport>
     </BaseDrawer.Portal>
-  );
-}
-
-function CloseIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M18 6 6 18" />
-      <path d="m6 6 12 12" />
-    </svg>
   );
 }
 
