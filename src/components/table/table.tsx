@@ -66,9 +66,15 @@ export type TableRowProps = ComponentProps<"tr">;
 /**
  * Forced colors replaces the muted selected background with Canvas, so a selected row takes the
  * system "selected" pairing (as the active pagination link and segmented tab do), on hover too.
+ *
+ * *Amended (Task 6 fix round 1, see design-system-v2 spec §4)*: `forced-color-adjust: none`
+ * disables Chromium's forced-colors text backplate, which otherwise paints Canvas over the
+ * `Highlight` fill and hides `HighlightText` on the row's own text and its cells' inherited text
+ * colour alike (the row is the element with the Highlight/HighlightText pair; cells have no colour
+ * of their own, so they inherit it and are covered by the same rule on the row).
  */
 const selectedForcedColorsClasses =
-  "forced-colors:aria-selected:bg-[Highlight] forced-colors:aria-selected:text-[HighlightText] forced-colors:data-[state=selected]:bg-[Highlight] forced-colors:data-[state=selected]:text-[HighlightText]";
+  "forced-colors:aria-selected:bg-[Highlight] forced-colors:aria-selected:text-[HighlightText] forced-colors:aria-selected:forced-color-adjust-none forced-colors:data-[state=selected]:bg-[Highlight] forced-colors:data-[state=selected]:text-[HighlightText] forced-colors:data-[state=selected]:forced-color-adjust-none";
 
 /** `<tr>`. Hover highlight, plus a selected look via `data-state="selected"` or `aria-selected`. */
 export function TableRow({ className, ...props }: TableRowProps) {

@@ -494,6 +494,14 @@ describe("Calendar: focus, cursor and forced colors", () => {
     expect(getComputedStyle(dayElement(d(2026, 9, 24)), "::after").borderTopWidth).toBe("0px");
   });
 
+  /*
+   * *Amended (Task 6 fix round 1, see design-system-v2 spec §4)*: Chromium paints a Canvas-coloured
+   * text backplate behind text under forced colors whenever `forced-color-adjust` is `auto` (the
+   * default), even when the text's colour is already the explicit system colour `HighlightText` —
+   * the backplate sits on top of the `Highlight` fill and hides the glyph. `getComputedStyle`'s
+   * `background-color`/`color` checks below cannot detect this (it is a paint-time effect, not a
+   * CSS property change), so `forced-color-adjust` itself is checked too.
+   */
   it("in forced colors: selected day is Highlight (also on hover), today's bar survives, focus is visible", async () => {
     await emulateForcedColors(true);
     await render(<Calendar locale="en-US" defaultValue={d(2026, 9, 3)} />);
@@ -501,6 +509,8 @@ describe("Calendar: focus, cursor and forced colors", () => {
     const today = dayElement(d(2026, 9, 25));
     expect(getComputedStyle(selected).backgroundColor).toBe(systemColor("Highlight"));
     expect(getComputedStyle(selected).color).toBe(systemColor("HighlightText"));
+    expect(getComputedStyle(selected).forcedColorAdjust).toBe("none");
+    expect(getComputedStyle(today).forcedColorAdjust).toBe("auto");
     await userEvent.hover(selected);
     expect(getComputedStyle(selected).backgroundColor).toBe(systemColor("Highlight"));
     const bar = getComputedStyle(today, "::after");
@@ -721,9 +731,14 @@ describe("RangeCalendar", () => {
     const middle = getComputedStyle(dayElement(d(2026, 9, 10)));
     const plain = getComputedStyle(dayElement(d(2026, 9, 14)));
     expect(start.backgroundColor).toBe(systemColor("Highlight"));
+    expect(start.forcedColorAdjust).toBe("none");
     expect(getComputedStyle(dayElement(d(2026, 9, 11))).backgroundColor).toBe(
       systemColor("Highlight"),
     );
+    expect(getComputedStyle(dayElement(d(2026, 9, 11))).forcedColorAdjust).toBe("none");
+    // The range middle isn't "selected" (it has no HighlightText text colour, only a border), so
+    // it keeps the default forced-colors handling.
+    expect(middle.forcedColorAdjust).toBe("auto");
     expect(middle.borderTopStyle).toBe("solid");
     expect(middle.borderTopWidth).toBe("1px");
     expect(middle.borderBottomStyle).toBe("solid");

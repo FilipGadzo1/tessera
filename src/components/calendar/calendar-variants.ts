@@ -51,8 +51,15 @@ export function calendarDayClasses(state: CalendarDayState): string {
     (state.rangeMiddle || state.rangePreview) &&
       "rounded-none bg-primary-soft text-primary-soft-foreground not-data-disabled:hover:bg-primary-soft-hover forced-colors:border-y forced-colors:border-[CanvasText]",
     state.rangePreview && "forced-colors:border-dashed",
+    // *Amended (Task 6 fix round 1, see design-system-v2 spec §4)*: `forced-color-adjust: none`
+    // disables Chromium's forced-colors text backplate, which otherwise paints Canvas over the
+    // `Highlight` fill and hides `HighlightText` (the day number, and — via inheritance — the
+    // `::after` today bar's `border-[HighlightText]` colour). The general
+    // `forced-colors:focus-visible:outline-[Highlight]` rule above still applies unaffected: it is
+    // itself an explicit system-colour value, not something `forced-color-adjust` would otherwise
+    // auto-force.
     state.selected &&
-      "bg-primary text-primary-foreground not-data-disabled:hover:bg-primary-hover forced-colors:bg-[Highlight] forced-colors:text-[HighlightText] forced-colors:not-data-disabled:hover:bg-[Highlight] forced-colors:after:border-[HighlightText]",
+      "bg-primary text-primary-foreground not-data-disabled:hover:bg-primary-hover forced-colors:bg-[Highlight] forced-colors:text-[HighlightText] forced-colors:not-data-disabled:hover:bg-[Highlight] forced-colors:after:border-[HighlightText] forced-colors:forced-color-adjust-none",
     state.bandAfter && "rounded-e-none",
     state.bandBefore && "rounded-s-none",
     state.disabled && "cursor-not-allowed line-through opacity-40",

@@ -306,6 +306,13 @@ describe("Pagination", () => {
   // Forced colors replaces author backgrounds and borders with system colours, so without its own
   // treatment the active page looks exactly like the others. It takes the system "selected"
   // pairing, as the active segmented tab does (Phase D): Highlight fill, HighlightText text.
+  //
+  // *Amended (Task 6 fix round 1, see design-system-v2 spec §4)*: Chromium paints a Canvas-coloured
+  // text backplate behind text under forced colors whenever `forced-color-adjust` is `auto` (the
+  // default), even when the text's colour is already the explicit system colour `HighlightText` —
+  // the backplate sits on top of the `Highlight` fill and hides the glyph. `getComputedStyle`'s
+  // `background-color`/`color` checks below cannot detect this (it is a paint-time effect, not a
+  // CSS property change), so `forced-color-adjust` itself is checked too.
   it("marks the active page with Highlight / HighlightText in forced colors, also on hover", async () => {
     await emulateForcedColors(true);
     const screen = await render(<Pager page={2} />);
@@ -315,8 +322,10 @@ describe("Pagination", () => {
     const highlightText = systemColor("HighlightText");
     expect(getComputedStyle(active.element()).backgroundColor).toBe(highlight);
     expect(getComputedStyle(active.element()).color).toBe(highlightText);
+    expect(getComputedStyle(active.element()).forcedColorAdjust).toBe("none");
     expect(getComputedStyle(inactive).backgroundColor).not.toBe(highlight);
     expect(getComputedStyle(inactive).color).not.toBe(highlightText);
+    expect(getComputedStyle(inactive).forcedColorAdjust).toBe("auto");
     await userEvent.hover(active);
     expect(getComputedStyle(active.element()).backgroundColor).toBe(highlight);
     expect(getComputedStyle(active.element()).color).toBe(highlightText);

@@ -363,6 +363,14 @@ describe("Tabs", () => {
       },
     );
 
+    /*
+     * *Amended (Task 6 fix round 1, see design-system-v2 spec §4)*: Chromium paints a Canvas-
+     * coloured text backplate behind text under forced colors whenever `forced-color-adjust` is
+     * `auto` (the default), even when the text's colour is already the explicit system colour
+     * `HighlightText` — the backplate sits on top of the `Highlight` fill and hides the glyph.
+     * `getComputedStyle`'s `background-color`/`color` checks below cannot detect this (it is a
+     * paint-time effect, not a CSS property change), so `forced-color-adjust` itself is checked too.
+     */
     it("marks the active segmented tab with Highlight and keeps the focus ring", async () => {
       await emulateForcedColors(true);
       const screen = await render(<Account variant="segmented" />);
@@ -372,6 +380,8 @@ describe("Tabs", () => {
       let active = getComputedStyle(profile);
       expect(active.backgroundColor).toBe(highlight);
       expect(active.backgroundColor).not.toBe(systemColor("Canvas"));
+      expect(active.forcedColorAdjust).toBe("none");
+      expect(getComputedStyle(billing).forcedColorAdjust).toBe("auto");
       expect(active.color).toBe(systemColor("HighlightText"));
       expect(getComputedStyle(billing).backgroundColor).not.toBe(highlight);
       // No outline until focused, then the focus ring shows 2px outside the Highlight fill.

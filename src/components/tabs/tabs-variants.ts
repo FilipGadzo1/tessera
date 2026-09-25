@@ -37,7 +37,13 @@ const tabsTabCva = cva("", {
       ],
       segmented: [
         "inline-flex h-full flex-1 cursor-pointer items-center justify-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground not-data-disabled:hover:text-foreground data-active:bg-background data-active:text-foreground data-active:shadow-xs data-disabled:cursor-not-allowed data-disabled:opacity-50",
-        "forced-colors:data-active:bg-[Highlight] forced-colors:data-active:text-[HighlightText] forced-colors:data-active:hover:text-[HighlightText]",
+        // *Amended (Task 6 fix round 1, see design-system-v2 spec §4)*: `forced-color-adjust: none`
+        // scoped to the active state disables Chromium's forced-colors text backplate, which would
+        // otherwise paint over the `Highlight` fill and hide `HighlightText`. The focus outline
+        // colour is restated because it is no longer auto-forced once `forced-color-adjust` is
+        // `none` on this element.
+        "forced-colors:data-active:bg-[Highlight] forced-colors:data-active:text-[HighlightText] forced-colors:data-active:hover:text-[HighlightText] forced-colors:data-active:forced-color-adjust-none",
+        "forced-colors:data-active:focus-visible:outline-[Highlight]",
         tabFocus,
         "data-[orientation=vertical]:h-8 data-[orientation=vertical]:flex-none data-[orientation=vertical]:justify-start",
       ],

@@ -1,9 +1,32 @@
 import axe from "axe-core";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { userEvent } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { emulateForcedColors, resetEmulatedMedia, systemColor } from "../../../test/emulation";
 import { Toggle, ToggleGroup, ToggleGroupItem } from "./toggle";
+
+/** Fraction of `element`'s screenshot whose pixels are near-white (a Canvas backplate, or Canvas itself). */
+async function whitePixelFraction(element: Element): Promise<number> {
+  const base64 = await page.screenshot({ element, save: false });
+  const image = new Image();
+  image.src = `data:image/png;base64,${base64}`;
+  await image.decode();
+  const canvas = document.createElement("canvas");
+  canvas.width = image.naturalWidth;
+  canvas.height = image.naturalHeight;
+  const context = canvas.getContext("2d") as CanvasRenderingContext2D;
+  context.drawImage(image, 0, 0);
+  const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
+  let white = 0;
+  const total = canvas.width * canvas.height;
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i] ?? 0;
+    const g = data[i + 1] ?? 0;
+    const b = data[i + 2] ?? 0;
+    if (r > 235 && g > 235 && b > 235) white++;
+  }
+  return white / total;
+}
 
 afterEach(async () => {
   await resetEmulatedMedia();
@@ -79,6 +102,54 @@ describe("Toggle", () => {
     await userEvent.hover(toggle);
     expect(getComputedStyle(toggle).backgroundColor).toBe(systemColor("Highlight"));
   });
+
+  /*
+   * *Amended (Task 6 fix round 1)*: Chromium paints a Canvas-coloured text backplate behind text
+   * under forced colors whenever `forced-color-adjust` is `auto` (the default) — even when the
+   * text's own colour is already the explicit system colour `HighlightText`. That backplate sits
+   * on top of the `Highlight` fill and hides the glyph (verified against a real minimal page; see
+   * design-system-v2 spec §4). `forced-color-adjust: none`, scoped to the pressed state, disables
+   * it. `getComputedStyle`'s `background-color`/`color` (above) cannot detect this bug at all — the
+   * backplate is a browser paint-time effect, not a CSS property change — so this checks the actual
+   * computed `forced-color-adjust` value, and the pixel test below checks the real rendering.
+   */
+  it("sets forced-color-adjust: none only while pressed, in forced colors", async () => {
+    await emulateForcedColors(true);
+    const screen = await render(<Toggle aria-label="Bold" />);
+    const toggle = screen.getByRole("button", { name: "Bold" }).element() as HTMLElement;
+    expect(getComputedStyle(toggle).forcedColorAdjust).toBe("auto");
+    await toggle.click();
+    expect(getComputedStyle(toggle).forcedColorAdjust).toBe("none");
+  });
+
+  it(
+    "regression: forced-color-adjust: none keeps the pressed glyph legible — without it, the " +
+      "Canvas backplate covers much more of the button in white than the glyph strokes alone do",
+    async () => {
+      await emulateForcedColors(true);
+      const screen = await render(
+        <div className="inline-flex gap-2 bg-white p-2">
+          <Toggle aria-label="Fixed" defaultPressed>
+            Bold
+          </Toggle>
+          {/* Reproduces the pre-fix bug: forces `forced-color-adjust` back to `auto` despite being
+              pressed, via an inline style (which wins over the class regardless of Tailwind's own
+              rule order). */}
+          <Toggle aria-label="Unfixed" defaultPressed style={{ forcedColorAdjust: "auto" }}>
+            Bold
+          </Toggle>
+        </div>,
+      );
+      const fixed = screen.getByRole("button", { name: "Fixed" }).element() as HTMLElement;
+      const unfixed = screen.getByRole("button", { name: "Unfixed" }).element() as HTMLElement;
+      expect(getComputedStyle(fixed).forcedColorAdjust).toBe("none");
+      expect(getComputedStyle(unfixed).forcedColorAdjust).toBe("auto");
+
+      const fixedWhite = await whitePixelFraction(fixed);
+      const unfixedWhite = await whitePixelFraction(unfixed);
+      expect(unfixedWhite).toBeGreaterThan(fixedWhite + 0.15);
+    },
+  );
 
   it.each(["light", "dark"] as const)("has no axe violations in the %s theme", async (theme) => {
     const screen = await render(

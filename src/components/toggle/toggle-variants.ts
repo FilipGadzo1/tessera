@@ -20,8 +20,17 @@ const toggleCva = cva(
     "[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
     "text-muted-foreground not-data-disabled:hover:bg-muted not-data-disabled:hover:text-foreground",
     "data-pressed:bg-accent data-pressed:text-accent-foreground",
-    "forced-colors:data-pressed:bg-[Highlight] forced-colors:data-pressed:text-[HighlightText]",
+    // *Amended (Task 6 fix round 1)*: Chromium (and Edge) under forced colors paints a Canvas-
+    // coloured text backplate behind text whenever `forced-color-adjust` is `auto` (the default),
+    // even when the element's own colour is already an explicit system colour (`HighlightText`).
+    // That backplate sits on top of the `Highlight` fill and hides the glyph. `forced-color-adjust:
+    // none`, scoped to the pressed state only, disables that automatic backplate so the authored
+    // Highlight/HighlightText pair renders as specified. See design-system-v2 spec §4.
+    "forced-colors:data-pressed:bg-[Highlight] forced-colors:data-pressed:text-[HighlightText] forced-colors:data-pressed:forced-color-adjust-none",
     "forced-colors:not-data-disabled:hover:data-pressed:bg-[Highlight] forced-colors:not-data-disabled:hover:data-pressed:text-[HighlightText]",
+    // `forced-color-adjust: none` also stops the outline's colour (`outline-ring`, an author
+    // colour) from being auto-forced to a system colour while pressed, so it is restated here.
+    "forced-colors:data-pressed:focus-visible:outline-[Highlight]",
   ],
   {
     variants: {
@@ -34,8 +43,11 @@ const toggleCva = cva(
         // show no visible ring change. Verified by the "outline variant keeps a forced-colors
         // focus outline" test (toggle.test.tsx), which asserts the resolved outline colour is
         // `Highlight`, distinct from the idle `CanvasText` border.
+        // Once `forced-color-adjust: none` applies while pressed (above), `border-field-border` is
+        // no longer auto-forced to `CanvasText`; restate the border as `Highlight` (matching the
+        // fill) so it keeps a system colour instead of its literal, non-system one.
         outline:
-          "border border-field-border bg-transparent forced-colors:focus-visible:outline-[Highlight]",
+          "border border-field-border bg-transparent forced-colors:focus-visible:outline-[Highlight] forced-colors:data-pressed:border-[Highlight]",
       },
       size: {
         sm: "h-8 px-2.5 min-w-8",

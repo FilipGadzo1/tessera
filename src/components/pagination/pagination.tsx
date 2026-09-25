@@ -70,9 +70,15 @@ export interface PaginationLinkProps extends ComponentProps<"a"> {
  * replaced), so the active page takes the system "selected" pairing, as the active segmented tab
  * does, on hover too: the variant's hover background and text colours would otherwise be forced
  * to Canvas and the link colour.
+ *
+ * *Amended (Task 6 fix round 1, see design-system-v2 spec §4)*: `forced-color-adjust: none`
+ * disables Chromium's forced-colors text backplate, which otherwise paints Canvas over the
+ * `Highlight` fill and hides `HighlightText`. The border and focus outline colours are restated
+ * because, once `forced-color-adjust` is `none` on this element, they are no longer auto-forced to
+ * a system colour by the browser.
  */
 const activeForcedColorsClasses =
-  "forced-colors:bg-[Highlight] forced-colors:text-[HighlightText] forced-colors:not-data-disabled:hover:bg-[Highlight] forced-colors:not-data-disabled:hover:text-[HighlightText]";
+  "forced-colors:bg-[Highlight] forced-colors:text-[HighlightText] forced-colors:border-[Highlight] forced-colors:not-data-disabled:hover:bg-[Highlight] forced-colors:not-data-disabled:hover:text-[HighlightText] forced-colors:forced-color-adjust-none forced-colors:focus-visible:outline-[Highlight]";
 
 /** A single page link, styled like an outline (active) or ghost (inactive) icon Button. */
 export function PaginationLink({

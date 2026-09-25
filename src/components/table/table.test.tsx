@@ -189,6 +189,14 @@ describe("Table", () => {
 
   // Forced colors replaces the muted selected background with Canvas, so a selected row would look
   // like every other row; it takes the system "selected" pairing instead, also on hover.
+  //
+  // *Amended (Task 6 fix round 1, see design-system-v2 spec §4)*: Chromium paints a Canvas-coloured
+  // text backplate behind text under forced colors whenever `forced-color-adjust` is `auto` (the
+  // default), even when the text's colour is already the explicit system colour `HighlightText` —
+  // the backplate sits on top of the `Highlight` fill and hides the glyph. `getComputedStyle`'s
+  // `background-color`/`color` checks below cannot detect this (it is a paint-time effect, not a
+  // CSS property change), so `forced-color-adjust` itself is checked too, on the row and (since
+  // `forced-color-adjust` inherits) on its cell's own text.
   it.each([
     ["aria-selected", { "aria-selected": true }],
     ['data-state="selected"', { "data-state": "selected" }],
@@ -211,12 +219,19 @@ describe("Table", () => {
       const [selected, other] =
         screen.container.querySelectorAll<HTMLElement>('[data-slot="table-row"]');
       if (!selected || !other) throw new Error("rows missing");
+      const selectedCell = selected.querySelector<HTMLElement>('[data-slot="table-cell"]');
+      const otherCell = other.querySelector<HTMLElement>('[data-slot="table-cell"]');
+      if (!selectedCell || !otherCell) throw new Error("cells missing");
       const highlight = systemColor("Highlight");
       const highlightText = systemColor("HighlightText");
       expect(getComputedStyle(selected).backgroundColor).toBe(highlight);
       expect(getComputedStyle(selected).color).toBe(highlightText);
+      expect(getComputedStyle(selected).forcedColorAdjust).toBe("none");
+      expect(getComputedStyle(selectedCell).forcedColorAdjust).toBe("none");
       expect(getComputedStyle(other).backgroundColor).not.toBe(highlight);
       expect(getComputedStyle(other).color).not.toBe(highlightText);
+      expect(getComputedStyle(other).forcedColorAdjust).toBe("auto");
+      expect(getComputedStyle(otherCell).forcedColorAdjust).toBe("auto");
       await userEvent.hover(selected);
       expect(getComputedStyle(selected).backgroundColor).toBe(highlight);
       expect(getComputedStyle(selected).color).toBe(highlightText);
