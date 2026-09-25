@@ -129,26 +129,38 @@ phase; items fixed by a later commit are left out).
 - NumberField (Task 4): with `readOnly` the stepper buttons keep the pointer cursor and hover;
   disabled buttons are dimmed twice (group and button `opacity-50` → 0.25); the "commits and
   formats" test does not exercise a format; the clamp test never tries to pass the bound (it stops
-  when the button disables); group sizes are copied from `textFieldSizes`, not derived; the
-  transition comment in `number-field-variants.ts` is written around the test.
+  when the button disables); group sizes are copied from `textFieldSizes`, not derived.
 - Combobox (Task 5): inside a `Field`, an `aria-label` on the trigger is ineffective (Base UI's
   `aria-labelledby` wins; worth documenting); Select, Menu and Combobox each keep their own check /
-  chevron icons (extract shared ones); the AsyncWithStatus story mounts `ComboboxEmpty`
+  chevron icons, and Breadcrumb and Pagination each keep a `ChevronRightIcon` and an `EllipsisIcon`
+  (extract shared ones); the AsyncWithStatus story mounts `ComboboxEmpty`
   conditionally and its `.catch(() => {})` swallows errors; the InDialog story has no axe test;
   `ComboboxChips` with `aria-invalid` outside a `Field` is untested.
 - Drawer (Task 6): the RightWithForm story's body lacks `flex-1`; `CloseIcon` is copied a third
-  time (Dialog, Toast, Drawer — extract it); verify-consumer has no needles for the drawer swipe
-  vars; the drag tests cast `dragAndDrop` options; the header keeps `pr-12` with
+  time (Dialog, Toast, Drawer — extract it); the drag tests cast `dragAndDrop` options; the header keeps `pr-12` with
   `showCloseButton={false}`; no mutation checks for `aria-modal`, `useLayeredEscape` or the
   `transform` swipe binding.
 - Orders example (Task 7): `test/overlay.ts` `auditOpenOverlay` now accepts a Base UI inert marker
-  on an ancestor when that marked element contains an `[aria-live]` region (Base UI keeps such
-  regions, e.g. Slider's `<output>`, exposed behind a modal), and re-checks `elmPartiallyObscuring`
+  on an ancestor for an `aria-hidden` element whose parent holds an `[aria-live]` region and which
+  holds none itself (Base UI keeps such regions, e.g. Slider's `<output>`, and their ancestors
+  exposed behind a modal and hides their other children), and re-checks `elmPartiallyObscuring`
   contrast inside an open modal with the hidden page made invisible, only when the popup is topmost
   at the text's rects; all unit-tested in `test/overlay.test.ts`. The topmost check uses
   `elementsFromPoint`, which skips `pointer-events: none` layers above the modal. The example's "Save changes" is
   local state only, the breadcrumb links are `#`, and its axe tests run at a 1024px viewport (at
   414px axe cannot decide the contrast of table cells scrolled out of view).
+- Orders example (Task 7 review): the story's claim that Escape or Cancel discards the drawer's
+  draft quantities is untested; the "Showing 1–5 of 36 orders" result count is not a live region,
+  so filter changes are not announced; the filters, sort and pager stay interactive while
+  `loading`; the loading skeleton rows shift the column widths when the data arrives; on mobile
+  widths the range Slider's thumbs overhang the card edge; `orders-page.tsx` is ~468 lines (split
+  the filters / table / drawer into local components).
+- Breadcrumb / Pagination (final review): `BreadcrumbLink` and `PaginationLink` duplicate the
+  server-safe `render` clone logic (merge props, keep `data-slot`, merge `className`) — extract a
+  server-safe `src/lib/clone-render.ts`.
+- Pagination (final review): `getPaginationRange` returns 4–7 items depending on the page, so the
+  pager's width changes as the user pages (the Previous/Next controls move); consider an optional
+  steady-width mode that always returns the same count (padding with extra pages near the edges).
 
 ## Theming
 - No `.light` scope: a region cannot switch back to light inside `.dark` (documented limit).
@@ -165,9 +177,15 @@ phase; items fixed by a later commit are left out).
 - `verify-consumer` type-only check misclassifies a semicolon-less `type` alias (latent: Biome
   enforces semicolons).
 - `verify-consumer` does not recognize `export type * from` (fails loudly rather than silently).
-- Test order dependence (Phase E Task 3b): under a shuffled test order (`--sequence.shuffle`), the
-  Toast timeout tests and the Switch track-colour test fail; the default order is green. Task 3b
-  fixed the order-dependent Tooltip id flake (a stale pointer from an earlier hover); these remain.
+- Test order dependence (Phase E Task 3b): under a shuffled test order (`--sequence.shuffle`) some
+  focus-dependent tests fail; the default order is green. Task 3b fixed the order-dependent Tooltip
+  id flake (a stale pointer from an earlier hover), and the final review's global pointer parking
+  (`test/setup.ts` `afterEach` → `test/pointer.ts`) fixed the Switch track-colour failure (a hover
+  leak). Still failing with seeds 1 / 1234 (seed 42 green): the Toast "uses the Toaster's timeout"
+  test (`document.hasFocus()` false — the page lost window focus), RadioGroup "moves selection and
+  focus with the arrow keys" and NumberField "stepper buttons are excluded from the Tab order"
+  (focus lands on `<body>`). All three look like lost window/document focus after some earlier
+  test, not hover; not chased further.
 
 ## Next components
 Follow the phases in the design-system spec §6
