@@ -12,7 +12,14 @@ import { type ComponentProps, type ReactNode, useId, useRef, useState } from "re
 import { cn } from "../../lib/cn";
 import { toISODate, type WeekDay } from "../../lib/date";
 import { CalendarIcon } from "../../lib/icons";
-import { Calendar, type DateRange, RangeCalendar, type RangeCalendarProps } from "../calendar";
+import { useControllableState } from "../../lib/use-controllable-state";
+import {
+  Calendar,
+  type DateRange,
+  emptyRange,
+  RangeCalendar,
+  type RangeCalendarProps,
+} from "../calendar";
 import { type CalendarLabels, resolveLocale } from "../calendar/calendar-base";
 import { Popover, PopoverContent, type PopoverContentProps, PopoverTrigger } from "../popover";
 import { type SelectTriggerVariantProps, selectDefaults, selectTriggerVariants } from "../select";
@@ -68,15 +75,6 @@ const valueBase = "min-w-0 truncate";
 const iconBase = "size-4 shrink-0 text-muted-foreground";
 const contentBase = "p-0 w-auto";
 
-function useControllable<T>(value: T | undefined, defaultValue: T) {
-  const [internal, setInternal] = useState(defaultValue);
-  const controlled = value !== undefined;
-  const set = (next: T) => {
-    if (!controlled) setInternal(next);
-  };
-  return [controlled ? (value as T) : internal, set] as const;
-}
-
 interface PickerShellProps extends PickerTriggerProps {
   /** The formatted value, or `null` to show the placeholder. */
   text: string | null;
@@ -117,12 +115,13 @@ function PickerShell({
   const valueId = useId();
   const popupRef = useRef<HTMLDivElement>(null);
 
-  const [internalOpen, setInternalOpen] = useState(defaultOpen);
-  const open = openProp ?? internalOpen;
+  const [open, setControllableOpen] = useControllableState(openProp, defaultOpen, onOpenChange);
+  // Dedupe locally: the hook itself always calls onChange, but a Popover can re-request the
+  // state it's already in (e.g. its own onOpenChange wrapper), and that must not re-fire
+  // onOpenChange for callers relying on it only firing on an actual change.
   const setOpen = (next: boolean) => {
     if (next === open) return;
-    if (openProp === undefined) setInternalOpen(next);
-    onOpenChange?.(next);
+    setControllableOpen(next);
   };
 
   const isDisabled = disabled || field.state.disabled;
@@ -221,7 +220,7 @@ export function DatePicker({
   ...props
 }: DatePickerProps) {
   const field = useFieldRootContext();
-  const [value, setValue] = useControllable(valueProp, defaultValue);
+  const [value, setValue] = useControllableState(valueProp, defaultValue);
   const formatter = new Intl.DateTimeFormat(resolveLocale(locale), format);
   const inputName = name ?? field.name;
 
@@ -270,8 +269,6 @@ export interface DateRangePickerProps extends PickerSharedProps {
   /** @default "Pick a date range" */
   placeholder?: string;
 }
-
-const emptyRange: DateRange = { start: null, end: null };
 
 interface RangePickerCalendarProps extends Omit<RangeCalendarProps, "value" | "onValueChange"> {
   open: boolean;
@@ -334,7 +331,7 @@ export function DateRangePicker({
   labels,
   ...props
 }: DateRangePickerProps) {
-  const [value, setValue] = useControllable(valueProp, defaultValue);
+  const [value, setValue] = useControllableState(valueProp, defaultValue);
   const formatter = new Intl.DateTimeFormat(resolveLocale(locale), format);
 
   const { start, end } = value;

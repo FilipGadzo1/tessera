@@ -2,6 +2,7 @@ export {
   Calendar,
   type CalendarProps,
   type DateRange,
+  emptyRange,
   RangeCalendar,
   type RangeCalendarProps,
 } from "./calendar";

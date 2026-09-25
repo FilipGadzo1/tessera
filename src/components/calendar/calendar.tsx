@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { compareDay, isBetweenDays, isSameDay } from "../../lib/date";
+import { useControllableState } from "../../lib/use-controllable-state";
 import {
   CalendarBase,
   type CalendarSelectionState,
@@ -29,8 +30,7 @@ export function Calendar({
   onValueChange,
   ...props
 }: CalendarProps) {
-  const [internalValue, setInternalValue] = useState<Date | null>(defaultValue);
-  const value = valueProp !== undefined ? valueProp : internalValue;
+  const [value, setValue] = useControllableState<Date | null>(valueProp, defaultValue);
 
   const getSelectionState = (date: Date): CalendarSelectionState => {
     const selected = isSameDay(date, value);
@@ -53,7 +53,7 @@ export function Calendar({
       selectedDay={value}
       getSelectionState={getSelectionState}
       onDaySelect={(date) => {
-        if (valueProp === undefined) setInternalValue(date);
+        setValue(date);
         onValueChange?.(date);
       }}
     />
@@ -80,7 +80,8 @@ export interface RangeCalendarProps extends CalendarSharedProps {
   numberOfMonths?: 1 | 2;
 }
 
-const emptyRange: DateRange = { start: null, end: null };
+/** The empty range, shared with `date-picker.tsx`'s `DateRangePicker` (Phase F final review M7). */
+export const emptyRange: DateRange = { start: null, end: null };
 
 /**
  * A calendar for picking a range: the first activation sets the start, the second the end (an
@@ -94,8 +95,7 @@ export function RangeCalendar({
   numberOfMonths = 1,
   ...props
 }: RangeCalendarProps) {
-  const [internalValue, setInternalValue] = useState<DateRange>(defaultValue);
-  const value = valueProp ?? internalValue;
+  const [value, setValue] = useControllableState<DateRange>(valueProp, defaultValue);
   const [previewDay, setPreviewDay] = useState<Date | null>(null);
 
   const { start, end } = value;
@@ -159,7 +159,7 @@ export function RangeCalendar({
     if (!start || end) next = { start: date, end: null };
     else if (compareDay(date, start) < 0) next = { start: date, end: start };
     else next = { start, end: date };
-    if (valueProp === undefined) setInternalValue(next);
+    setValue(next);
     onValueChange?.(next);
   };
 
