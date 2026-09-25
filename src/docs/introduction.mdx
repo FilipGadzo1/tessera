@@ -63,6 +63,13 @@ app in `Toaster` once; any component inside calls `useToast().add({ title, type 
 **Examples / Settings** for all of them on one page. Toasts sit on `--z-toast` (70), above
 overlays and tooltips.
 
+## Data entry and display
+
+Skeleton, Breadcrumb, Pagination (+ `getPaginationRange`), Table (+ `TableSortButton`), Slider,
+NumberField, Combobox and Drawer (Tessera's sheet, `side` on the root). Skeleton, Breadcrumb,
+Pagination and Table are server-safe. See **Examples / Orders** for all of them on one page: a
+filterable, sortable, paged orders table with loading Skeletons and an order Drawer.
+
 ## Stack
 
 React 19 · Base UI · Tailwind CSS v4 · cva + tailwind-merge · tsdown · Vitest browser mode ·

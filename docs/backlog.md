@@ -1,7 +1,7 @@
 # Tessera backlog
 
-Open follow-ups from the foundation, Phase A (2026-09-23), Phase B, Phase C and Phase D (2026-09-24)
-reviews.
+Open follow-ups from the foundation, Phase A (2026-09-23), Phase B, Phase C, Phase D (2026-09-24)
+and Phase E (2026-09-25) reviews.
 None block current use.
 
 ## Components
@@ -70,7 +70,7 @@ None block current use.
   Escape close (`eventDetails.cancel()` + `allowPropagation()`, not forwarded to the caller's
   `onOpenChange`) while a tooltip is open or was open at keydown (a window-capture listener records
   the event without stopping it); the tooltip closes itself with reason `"escape-key"`. Remaining
-  trade-offs: any new overlay root with Escape dismissal (Select and Combobox do; future Drawer)
+  trade-offs: any new overlay root with Escape dismissal (Select, Combobox and Drawer do)
   must wrap its `onOpenChange` with `useLayeredEscape`, and a raw Base UI overlay around a Tessera
   Tooltip still closes on the same Escape (with the tooltip's trigger focused, too — the tooltip now
   lets the event propagate). A controlled Tooltip whose owner ignores `onOpenChange(false)` keeps
@@ -111,6 +111,43 @@ None block current use.
   while the window is blurred (the timer tests assert `document.hasFocus()` so a headed run with
   another window in front fails fast instead of timing out).
 
+### Phase E notes
+Minor review findings deferred during Phase E (each re-checked against the code at the end of the
+phase; items fixed by a later commit are left out).
+- Forced-colors focus tests (Task 0): the Select item "no outline before ArrowDown" check is
+  conditional (`if (!…hasAttribute("data-highlighted"))`), so it can pass vacuously;
+  `forced-colors-focus.test.tsx` casts `role as "button"`; an invalid Switch's forced-colors
+  outline (1px idle / 2px focus) is untested; Accordion and Toast tests still send their own
+  reduced-motion CDP command instead of `test/emulation.ts`; `systemColor` has no return type.
+- Class strings (Task 1): cosmetic order differences against the spec's strings.
+- Table (Task 2): `TableHead` sets `aria-sort={sort}` after `{...props}`, so a caller's own
+  `aria-sort` is always overridden (even with `sort` unset) — document it or spread last. The
+  Sortable / Selectable stories hold their state logic inline.
+- Slider (Task 3): `thumbLabels` shorter than the values gives the extra thumbs an empty name; a
+  single-thumb slider ignores `thumbLabels` (the doc says ranges only); the disabled test never
+  tries to interact; the `slider-header` wrapper is not in the spec.
+- NumberField (Task 4): with `readOnly` the stepper buttons keep the pointer cursor and hover;
+  disabled buttons are dimmed twice (group and button `opacity-50` → 0.25); the "commits and
+  formats" test does not exercise a format; the clamp test never tries to pass the bound (it stops
+  when the button disables); group sizes are copied from `textFieldSizes`, not derived; the
+  transition comment in `number-field-variants.ts` is written around the test.
+- Combobox (Task 5): inside a `Field`, an `aria-label` on the trigger is ineffective (Base UI's
+  `aria-labelledby` wins; worth documenting); Select, Menu and Combobox each keep their own check /
+  chevron icons (extract shared ones); the AsyncWithStatus story mounts `ComboboxEmpty`
+  conditionally and its `.catch(() => {})` swallows errors; the InDialog story has no axe test;
+  `ComboboxChips` with `aria-invalid` outside a `Field` is untested.
+- Drawer (Task 6): the RightWithForm story's body lacks `flex-1`; `CloseIcon` is copied a third
+  time (Dialog, Toast, Drawer — extract it); verify-consumer has no needles for the drawer swipe
+  vars; the drag tests cast `dragAndDrop` options; the header keeps `pr-12` with
+  `showCloseButton={false}`; no mutation checks for `aria-modal`, `useLayeredEscape` or the
+  `transform` swipe binding.
+- Orders example (Task 7): `test/overlay.ts` `auditOpenOverlay` now accepts a Base UI inert marker
+  on an ancestor (Base UI keeps `[aria-live]` regions such as Slider's `<output>` exposed behind a
+  modal) and re-checks `elmPartiallyObscuring` contrast inside an open modal with the hidden page
+  made invisible; both are unit-tested in `test/overlay.test.ts`. The example's "Save changes" is
+  local state only, the breadcrumb links are `#`, and its axe tests run at a 1024px viewport (at
+  414px axe cannot decide the contrast of table cells scrolled out of view).
+
 ## Theming
 - No `.light` scope: a region cannot switch back to light inside `.dark` (documented limit).
 
@@ -131,5 +168,6 @@ None block current use.
 Follow the phases in the design-system spec §6
 (`docs/superpowers/specs/2026-09-23-tessera-design-system-v2.md`): Phase B forms (Label, Field, Input,
 Textarea, Checkbox, Switch, RadioGroup — use the `field*` / `switch-track` tokens), Phase C overlays,
-Phase D navigation and feedback. Phases B, C and D are done. Phase E candidates: Combobox, Slider,
-NumberField, DatePicker, Table, Breadcrumb, Pagination, Skeleton, Sheet/Drawer.
+Phase D navigation and feedback, Phase E data entry and display. Phases B–E are done. Phase F:
+Calendar, DatePicker, DateRangePicker, ToggleGroup, Toolbar, ScrollArea, Meter,
+HoverCard/PreviewCard, ContextMenu.

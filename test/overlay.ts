@@ -20,11 +20,20 @@ export async function waitForPopupSettled(popup: Element) {
  *   `aria-hidden` sentinels with `tabindex="0"` that bounce focus back into the popup; with an open
  *   `role="dialog"` axe reports them as `aria-hidden-focus` "needs review" (check
  *   `focusable-modal-open`) because it cannot tell that they redirect focus.
- * - Content that Base UI hid behind an open modal (`aria-hidden="true"` plus its
- *   `data-base-ui-inert` marker, e.g. the page holding the trigger) is reported as
+ * - Content that Base UI hid behind an open modal (`aria-hidden="true"` on or inside an element
+ *   carrying its `data-base-ui-inert` marker, e.g. the page holding the trigger) is reported as
  *   `aria-hidden-focus` "needs review" (check `focusable-modal-open`) for the same reason: axe sees
- *   a modal is open but cannot verify the focus trap. Only nodes carrying the marker and failing
- *   nothing but that check are dropped; the dialog tests assert the focus trap itself.
+ *   a modal is open but cannot verify the focus trap. Only such nodes failing nothing but that
+ *   check are dropped; the dialog tests assert the focus trap itself. The marker can sit on an
+ *   ancestor: Base UI keeps `[aria-live]` regions (e.g. Slider's `<output aria-live="off">`) and
+ *   their ancestors exposed, so `aria-hidden` lands on their siblings deeper in the tree while the
+ *   marker stays on the top-level outside element.
+ * - A `color-contrast` "needs review" with `elmPartiallyObscuring` on text inside the open modal is
+ *   re-checked: axe compares the stacks under each part of the text, *including* the page behind
+ *   the backdrop, so text over a boundary between two page elements (e.g. two table headers) is
+ *   left undecided although the popup's own opaque background is what sits under it. The node is
+ *   dropped only when axe's color-contrast passes it with the modal-hidden page
+ *   (`[data-base-ui-inert]`) made `visibility: hidden` for the re-check.
  * - An `aria-valid-attr-value` "needs review" on a trigger with `aria-haspopup` + `aria-controls`
  *   (message key `controlsWithinPopup`) is raised by axe unconditionally. axe keeps one review
  *   message per node and overwrites it attribute by attribute, so that key can mask an earlier
@@ -36,10 +45,19 @@ export async function auditOpenOverlay() {
     { include: [document.body], exclude: [["[data-base-ui-focus-guard]"]] },
     { rules: { region: { enabled: false } } },
   );
+  const contrastOverModal = await contrastPassesOverModal(
+    results.incomplete
+      .filter((result) => result.id === "color-contrast")
+      .flatMap((result) => result.nodes.filter(partiallyObscuredInModal)),
+  );
   const incomplete = results.incomplete.flatMap((result) =>
     result.nodes
       .filter((node) => !(result.id === "aria-valid-attr-value" && idrefsResolve(node)))
       .filter((node) => !(result.id === "aria-hidden-focus" && hiddenByOpenModal(node)))
+      .filter(
+        (node) =>
+          !(result.id === "color-contrast" && contrastOverModal.has(String(node.target[0]))),
+      )
       .map((node) => `${result.id}: ${node.target}`),
   );
   return {
@@ -53,8 +71,44 @@ function hiddenByOpenModal(node: axe.NodeResult) {
   if (!checks.every((check) => check.id === "focusable-modal-open")) return false;
   const element = document.querySelector(String(node.target[0]));
   return (
-    element?.getAttribute("aria-hidden") === "true" && element.hasAttribute("data-base-ui-inert")
+    element?.getAttribute("aria-hidden") === "true" &&
+    element.closest("[data-base-ui-inert]") !== null
   );
+}
+
+/** Text inside the open modal (not behind it) whose contrast axe left undecided over the page. */
+function partiallyObscuredInModal(node: axe.NodeResult) {
+  const checks = [...node.any, ...node.all, ...node.none];
+  if (!checks.every((check) => check.data?.messageKey === "elmPartiallyObscuring")) return false;
+  const element = document.querySelector(String(node.target[0]));
+  return (
+    element !== null &&
+    element.closest('[aria-modal="true"]') !== null &&
+    element.closest("[data-base-ui-inert]") === null
+  );
+}
+
+/** Re-runs color-contrast on `nodes` with the modal-hidden page hidden; returns those that pass. */
+async function contrastPassesOverModal(nodes: axe.NodeResult[]) {
+  const passed = new Set<string>();
+  const behind = [...document.querySelectorAll<HTMLElement>("[data-base-ui-inert]")];
+  if (nodes.length === 0 || behind.length === 0) return passed;
+  const visibility = behind.map((element) => element.style.visibility);
+  for (const element of behind) element.style.visibility = "hidden";
+  try {
+    const recheck = await axe.run(
+      { include: nodes.map((node) => [String(node.target[0])]) },
+      { runOnly: ["color-contrast"] },
+    );
+    for (const result of recheck.passes) {
+      for (const node of result.nodes) passed.add(String(node.target[0]));
+    }
+  } finally {
+    behind.forEach((element, index) => {
+      element.style.visibility = visibility[index] ?? "";
+    });
+  }
+  return passed;
 }
 
 const idrefAttributes = [

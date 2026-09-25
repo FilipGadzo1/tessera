@@ -78,6 +78,46 @@ describe("auditOpenOverlay", () => {
     expect(incomplete).toEqual([]);
   });
 
+  // Base UI keeps [aria-live] regions (and their ancestors) exposed behind a modal, so aria-hidden
+  // lands on their siblings while the marker stays on the top-level outside element.
+  it("drops focusable content hidden inside a marked element (an aria-live region kept exposed)", async () => {
+    mount(
+      `<div data-base-ui-inert><div aria-hidden="true"><button type="button">Behind</button></div>
+         <output aria-live="off">3</output></div>
+       <div role="dialog" aria-label="Open dialog"><button type="button">Inside</button></div>`,
+    );
+    const { violations, incomplete } = await auditOpenOverlay();
+    expect(violations).toEqual([]);
+    expect(incomplete).toEqual([]);
+  });
+
+  // Popup text wrapping onto two lines, each over a different page row behind the backdrop.
+  const modalOverTwoRows = (textColor: string) =>
+    `<div data-base-ui-inert aria-hidden="true">
+       <div style="height:30px;background:#eee"></div>
+       <div style="height:30px;background:#ddd"></div>
+     </div>
+     <div style="position:fixed;inset:0;z-index:9;background:rgb(0 0 0 / 0.5)"></div>
+     <div role="dialog" aria-modal="true" aria-label="Open dialog"
+       style="position:fixed;top:0;left:0;z-index:10;width:60px;padding:5px;background:#fff">
+       <p style="margin:0;line-height:30px;color:${textColor}">Order total</p>
+     </div>`;
+
+  // axe compares the stacks under each part of the text, page behind the backdrop included, so
+  // popup text over two different page elements is left undecided.
+  it("drops an undecided contrast over the modal-hidden page when the re-check passes", async () => {
+    mount(modalOverTwoRows("#111"));
+    const { violations, incomplete } = await auditOpenOverlay();
+    expect(violations).toEqual([]);
+    expect(incomplete).toEqual([]);
+  });
+
+  it("keeps an undecided contrast over the modal-hidden page when the re-check fails", async () => {
+    mount(modalOverTwoRows("#ccc"));
+    const { incomplete } = await auditOpenOverlay();
+    expect(incomplete).toEqual(["color-contrast: p"]);
+  });
+
   it("still reports aria-hidden focusable content that Base UI did not hide", async () => {
     mount(
       `<div aria-hidden="true"><button type="button">Behind</button></div>

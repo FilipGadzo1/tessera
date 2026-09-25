@@ -320,9 +320,8 @@ source files automatically (build output + `"use client"` directive checks).
   instantly under reduced motion.
   Tooltips and Dialogs inside take Escape first. Client component)
 
-Phase A (foundation), Phase B (forms), Phase C (overlays) and Phase D (navigation and feedback) are
-complete. Phase E (data entry and display) is in progress: Skeleton, Breadcrumb, Pagination, Table,
-Slider, NumberField, Combobox and Drawer are done; the Orders example page remains.
+Phase A (foundation), Phase B (forms), Phase C (overlays), Phase D (navigation and feedback) and
+Phase E (data entry and display) are complete.
 
 Composition: when a part is rendered through another (`<Fieldset render={<RadioGroup className=…/>}>`),
 the outer part's own classes win over conflicting classes on the render element (Base UI merges the
@@ -362,9 +361,16 @@ the Phase D components: Tabs (Profile / Notifications / Billing) with an Avatar,
 language Select; an Accordion of notification channels holding Switches; Progress bars and
 Separators for billing; and a "Save changes" Button that shows a success toast from `useToast()`.
 
-## Roadmap
+The Storybook story **Tessera/Examples/Orders** (`src/docs/examples/orders-page.tsx`) composes the
+Phase E components: a Breadcrumb (Home / Store / Orders); a toolbar with a customer Combobox and an
+order-total range Slider; a Table sortable by Total (`TableSortButton` + `sort` on `TableHead`)
+with Pagination under it (`getPaginationRange`, `<button>` page links through `render`); and a
+right Drawer with the order's line items, opened from each row's "View" button, whose quantities
+are NumberFields. The Drawer has no trigger of its own, so it is controlled and returns focus to
+that row's button with `finalFocus`. A `loading` toggle swaps the rows for Skeletons and marks the
+list `aria-busy`.
 
-Finishing Phase E: the Orders example page composing the Phase E components.
+## Roadmap
 
 Next, Phase F: Calendar, DatePicker, DateRangePicker, ToggleGroup, Toolbar, ScrollArea, Meter,
 HoverCard/PreviewCard, ContextMenu.
