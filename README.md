@@ -340,10 +340,32 @@ source files automatically (build output + `"use client"` directive checks).
   and the thumb tracks the visible fraction of the content. `ScrollBar`, `ScrollAreaViewport` and
   `ScrollAreaContent` are exported separately for a custom layout around Base UI's own
   `ScrollArea.Root`. Client component)
+- [x] Toggle, ToggleGroup, ToggleGroupItem, toggleVariants (a two-state `aria-pressed` button —
+  `variant` `ghost` (default) / `outline`, `size` `sm`/`md`/`lg`/`icon-sm`/`icon`/`icon-lg`,
+  heights matching Button. `ToggleGroup` shares pressed state across `ToggleGroupItem`s (`value` is
+  an array; `multiple` default `false`; roving focus with the arrow keys, one Tab stop), passing
+  its `variant`/`size` down (items can override). With `variant="outline"` the group is attached
+  (`gap-0`, items lose their inner radii and overlap borders by 1px; the focused item raises
+  above its neighbours with `focus-visible:z-10`). Nested inside a `Toolbar`, `ToggleGroup` and
+  `Toggle` detect it (Base UI) and defer to the toolbar's own roving focus — see `Toolbar` below.
+  Client component)
+- [x] Toolbar, ToolbarButton, ToolbarLink, ToolbarInput, ToolbarGroup, ToolbarSeparator (a
+  `role="toolbar"` container — pass `aria-label` — with a single roving Tab stop; arrows cross
+  every item, including a nested `ToggleGroup`, a `ToolbarLink` and a `ToolbarInput` (which keeps
+  ←/→ for its own caret; Tab still leaves it). `ToolbarButton` is styled like a ghost, neutral, sm
+  Button by default (`variant`/`color`/`size` override it) and composes with a popup trigger
+  through `render`: `<ToolbarButton render={<MenuTrigger />}>` (also `PopoverTrigger`,
+  `AlertDialogTrigger` / `DialogTrigger` / `SelectTrigger` per Base UI's docs) — the `ToolbarButton`
+  is outer. A `Toggle` composes the other way: nest a plain `<ToggleGroup>` directly inside
+  `<Toolbar>` with its `Toggle`/`ToggleGroupItem` children, no wrapper needed (verified against
+  `@base-ui/react/toggle-group`'s source — see the spec's *Amended in Task 2* note).
+  `ToolbarSeparator`'s own orientation defaults to the opposite of the toolbar's, so a horizontal
+  toolbar gets a vertical divider and vice versa. `orientation` on `Toolbar`: `horizontal`
+  (default) or `vertical`. Client component)
 
 Phase A (foundation), Phase B (forms), Phase C (overlays), Phase D (navigation and feedback) and
 Phase E (data entry and display) are complete. Phase F (dates, toolbars and surfaces) is in
-progress: Meter and ScrollArea are done.
+progress: Meter, ScrollArea, Toggle/ToggleGroup and Toolbar are done.
 
 Composition: when a part is rendered through another (`<Fieldset render={<RadioGroup className=…/>}>`),
 the outer part's own classes win over conflicting classes on the render element (Base UI merges the
@@ -394,7 +416,7 @@ list `aria-busy`.
 
 ## Roadmap
 
-Rest of Phase F: Calendar, DatePicker, DateRangePicker, ToggleGroup, Toolbar, PreviewCard,
-ContextMenu.
+Rest of Phase F: Calendar, DatePicker, DateRangePicker, PreviewCard, ContextMenu, and the Editor
+example page.
 
 Later: visual regression · React Compiler on output · publish to npm (`@tessera/ui` is free).

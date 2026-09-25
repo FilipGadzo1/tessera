@@ -60,6 +60,23 @@ The backlog lists copied icons (`CloseIcon` three times, `CheckIcon` four times,
 - `ToggleGroup`: Base UI `ToggleGroup` (`value` is an array; `multiple` default false). Layout `flex items-center gap-1 data-[orientation=vertical]:flex-col`, and it takes `variant`/`size` and passes them to its items through a small context (items can override). With `variant="outline"` the group is attached: `gap-0`, and items lose the inner radii and overlap borders (`rounded-none first:rounded-s-md last:rounded-e-md -ms-px first:ms-0` horizontal, the block-axis equivalent vertical). The focused item raises `focus-visible:z-10` so its ring isn't covered.
 - `ToggleGroupItem`: Base UI `Toggle` inside the group (`value` required).
 - Keyboard: roving focus with the arrow keys (Base UI). Only one Tab stop.
+- *Amended in Task 2*: the outline variant's `forced-colors:focus-visible:outline-[Highlight]` was
+  added to `toggle-variants.ts`'s `outline` variant (not the shared base string), because only the
+  outline variant's idle border (`border-field-border`, forced to `CanvasText`) risks equalling the
+  default `outline-ring` once forced colors also forces that to a system colour; verified by the
+  "keeps a forced-colors focus outline on the outline variant" test in `toggle.test.tsx`.
+- *Amended in Task 2*: verified the ToggleGroup-inside-Toolbar composition against
+  `node_modules/@base-ui/react/toggle-group/ToggleGroup.js` and `toggle/Toggle.js` (not just the
+  `.d.ts`): `ToggleGroup` calls `useToolbarRootContext(true)` and, when a toolbar ancestor exists,
+  renders a plain `<div role="group">` instead of wrapping its items in its own `CompositeRoot`,
+  ceding roving-focus/Tab-stop ownership to the Toolbar's single composite list. `Toggle` likewise
+  detects its own `ToggleGroupContext` (present regardless of the Toolbar) and renders as a
+  `CompositeItem` rather than a standalone `useRenderElement` button. So no `Toolbar.Group
+  render={<ToggleGroup />}` wrapper is needed or used — Tessera's `ToggleGroup` nests directly as a
+  child of `Toolbar`, with plain `Toggle` / `ToggleGroupItem` children, and the whole toolbar
+  (including the group's items) keeps exactly one Tab stop with arrows crossing in and out of the
+  group. Covered by "keeps a single Tab stop and arrows cross a Button, a nested ToggleGroup and a
+  Link" in `toolbar.test.tsx`.
 
 **Toolbar**
 - `Toolbar` (Root): `flex items-center gap-1 rounded-lg border border-border bg-background p-1 data-[orientation=vertical]:flex-col` + `data-slot`. It needs an accessible name (`aria-label`), which docs and tests use.
@@ -68,6 +85,16 @@ The backlog lists copied icons (`CloseIcon` three times, `CheckIcon` four times,
 - `ToolbarSeparator`: `mx-1 h-5 w-px shrink-0 bg-border` (vertical toolbar: `my-1 h-px w-5`).
 - `ToolbarLink`: `inline-flex h-8 cursor-pointer items-center rounded-md px-2 text-sm text-muted-foreground not-data-disabled:hover:text-foreground` + the toggle focus pattern.
 - `ToolbarInput`: `inputVariants({ size: "sm" })` on Base UI `Toolbar.Input`, width left to the caller.
+- *Amended in Task 2*: verified the `ToolbarButton` + popup-trigger composition order against
+  `node_modules/@base-ui/react/docs/react/components/toolbar.md` ("Using with Menu" / "Using with
+  Tooltip"): for Menu, AlertDialog, Dialog, Popover and Select, the trigger is passed to
+  `ToolbarButton`'s `render` prop (`<ToolbarButton render={<MenuTrigger />}>Insert</ToolbarButton>`)
+  — `ToolbarButton` is outer and contributes the toolbar's composite-item metadata (roving
+  tabindex, disabled state), the trigger's `render` merges the open behaviour onto the same
+  `<button>`. Tooltip is the one exception in Base UI's own docs (`<Tooltip.Trigger render={<Toolbar.Button
+  />}>`, reversed) — out of scope for Task 2 (no toolbar tooltip story), noted here for Task 6.
+  Covered by "opens a Menu composed via render={<MenuTrigger />} on ToolbarButton" in
+  `toolbar.test.tsx`.
 
 **PreviewCard**
 - `PreviewCard` (Root). Base UI owns open/close delays. If it has Escape dismissal, wrap `onOpenChange` with `useLayeredEscape`; the implementer checks the Root d.ts.

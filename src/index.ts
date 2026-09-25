@@ -378,6 +378,31 @@ export {
   useToast,
 } from "./components/toast";
 export {
+  Toggle,
+  ToggleGroup,
+  ToggleGroupItem,
+  type ToggleGroupItemProps,
+  type ToggleGroupProps,
+  type ToggleProps,
+  type ToggleVariantProps,
+  toggleDefaults,
+  toggleVariants,
+} from "./components/toggle";
+export {
+  Toolbar,
+  ToolbarButton,
+  type ToolbarButtonProps,
+  ToolbarGroup,
+  type ToolbarGroupProps,
+  ToolbarInput,
+  type ToolbarInputProps,
+  ToolbarLink,
+  type ToolbarLinkProps,
+  type ToolbarProps,
+  ToolbarSeparator,
+  type ToolbarSeparatorProps,
+} from "./components/toolbar";
+export {
   Tooltip,
   TooltipContent,
   type TooltipContentProps,
