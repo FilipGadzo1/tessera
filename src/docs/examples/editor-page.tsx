@@ -26,13 +26,12 @@ import { ToggleGroup, ToggleGroupItem } from "../../components/toggle";
 import { Toolbar, ToolbarButton, ToolbarSeparator } from "../../components/toolbar";
 import { toDay } from "../../lib/date";
 
-const bodyText = `Tessera Phase F rounds out the surface layer: Meter and ScrollArea join Progress
-and Table as ways to show quantity and overflow; Toggle, ToggleGroup and Toolbar give formatting
-controls a single Tab stop with roving arrows; PreviewCard and ContextMenu add hover and
-right-click surfaces on top of the same Menu items used everywhere else; and Calendar,
-RangeCalendar, DatePicker and DateRangePicker round out date entry to match Select and Input in
-height and keyboard behaviour. Every part still carries a data-slot, merges its className and
-reads correctly under axe in light, dark and forced-colors.`;
+// Rendered as separate <p> elements (not whitespace-pre-line over one string), so there are no
+// hard line breaks mid-sentence: each entry is one full paragraph.
+const bodyParagraphs = [
+  "Tessera Phase F rounds out the surface layer: Meter and ScrollArea join Progress and Table as ways to show quantity and overflow; Toggle, ToggleGroup and Toolbar give formatting controls a single Tab stop with roving arrows; PreviewCard and ContextMenu add hover and right-click surfaces on top of the same Menu items used everywhere else; and Calendar, RangeCalendar, DatePicker and DateRangePicker round out date entry to match Select and Input in height and keyboard behaviour.",
+  "Every part still carries a data-slot, merges its className and reads correctly under axe in light, dark and forced-colors.",
+];
 
 const characterMax = 2000;
 
@@ -69,7 +68,15 @@ function EditorToolbar({
         </ToggleGroupItem>
       </ToggleGroup>
       <ToolbarSeparator />
-      <ToggleGroup aria-label="Alignment" value={alignment} onValueChange={onAlignmentChange}>
+      <ToggleGroup
+        aria-label="Alignment"
+        value={alignment}
+        // A single-selection group: ignore a deselect to [] so exactly one alignment always stays
+        // pressed (Base UI's ToggleGroup allows toggling the only pressed item off).
+        onValueChange={(next) => {
+          if (next.length > 0) onAlignmentChange(next);
+        }}
+      >
         <ToggleGroupItem value="left" aria-label="Align left" size="icon-sm">
           <AlignLeft aria-hidden="true" />
         </ToggleGroupItem>
@@ -104,7 +111,11 @@ function EditorBody({ formatting, onToggleFormat }: EditorBodyProps) {
     <ContextMenu>
       <ContextMenuTrigger className="block rounded-md border border-border">
         <ScrollArea className="h-40">
-          <p className="whitespace-pre-line p-4 text-sm text-foreground">{bodyText}</p>
+          <div className="flex flex-col gap-3 p-4 text-sm text-foreground">
+            {bodyParagraphs.map((paragraph) => (
+              <p key={paragraph.slice(0, 24)}>{paragraph}</p>
+            ))}
+          </div>
         </ScrollArea>
       </ContextMenuTrigger>
       <ContextMenuContent>
@@ -254,7 +265,12 @@ export function EditorPage() {
           embargo={embargo}
           onEmbargoChange={setEmbargo}
         />
-        <Meter value={characterCount} max={characterMax} format={{}}>
+        <Meter
+          value={characterCount}
+          max={characterMax}
+          format={{}}
+          aria-valuetext={`${characterCount.toLocaleString()} of ${characterMax.toLocaleString()} characters`}
+        >
           <MeterLabel>Characters</MeterLabel>
           <MeterValue>
             {(formatted) => `${formatted} / ${characterMax.toLocaleString()}`}

@@ -159,14 +159,23 @@ describe("EditorPage example", () => {
     );
   });
 
-  it("shows the Meter's formatted value text", async () => {
+  it("shows the Meter's formatted value text and an aria-valuetext for screen readers", async () => {
     await render(<EditorPage />);
     await expect.element(page.getByText("Characters", { exact: true })).toBeVisible();
     const meter = document.querySelector('[role="meter"]') as HTMLElement;
     expect(meter.getAttribute("aria-valuenow")).toBe("1240");
     expect(meter.getAttribute("aria-valuemax")).toBe("2000");
+    expect(meter.getAttribute("aria-valuetext")).toBe("1,240 of 2,000 characters");
     const value = meter.querySelector('[data-slot="meter-value"]') as HTMLElement;
     expect(value.textContent).toBe("1,240 / 2,000");
+  });
+
+  it("keeps exactly one alignment pressed: clicking the pressed item does not deselect it", async () => {
+    await render(<EditorPage />);
+    const left = page.getByRole("button", { name: "Align left" });
+    await expect.element(left).toHaveAttribute("aria-pressed", "true");
+    await userEvent.click(left);
+    await expect.element(left).toHaveAttribute("aria-pressed", "true");
   });
 
   describe.each(["light", "dark"] as const)("axe (%s)", (theme) => {
