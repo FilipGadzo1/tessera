@@ -1,0 +1,131 @@
+# Tessera Phase F: Dates, Toolbars and Surfaces (Spec Addendum)
+
+**Date:** 2026-09-25
+**Status:** Claude made these decisions under the owner's standing delegation ("do not ask me questions, keep implementing"). The owner started the phase with "okay continue with F".
+**Builds on:**
+- design-system-v2 §4: tokens, sizes, focus (`outline-none` controls / `outline-hidden` surfaces), cursor, motion, server safety.
+- Phase B §3: composition rule, `mergeClassName`, `textFieldBase` / `textFieldSizes`.
+- Phase C §1–§4: the overlay pattern (`popupSurface`, `popupMotion`, `menuItemBase`, z tokens, `container`, `auditOpenOverlay`).
+- Phase D §0: `useLayeredEscape` on every overlay root with Escape dismissal.
+- Phase E §0 and §3: forced-colors focus tests (`test/emulation.ts`), `data-slot` on every part, axe in both themes.
+
+**Scope:** Toggle, ToggleGroup, Toolbar, ScrollArea, Meter, PreviewCard, ContextMenu (all on Base UI 1.8 primitives), plus Calendar, DatePicker and DateRangePicker (hand-built, because Base UI 1.8 has no calendar primitive), and an Editor example page.
+
+**Scope rulings:**
+- *No date library.* Dates are plain JS `Date` objects that stand for a local calendar day (time ignored, normalised to local midnight). Formatting uses `Intl.DateTimeFormat`, and the week start uses `Intl.Locale#getWeekInfo()` (falling back to the `weekInfo` getter, then Monday). Reason: a component library should not force `date-fns` / `dayjs` onto every consumer for about 15 small helpers, and Temporal isn't available in every target browser yet. Cost if wrong: consumers on Temporal convert at the boundary. The helpers live in `src/lib/date.ts`, are pure and are unit-tested.
+- *The name is `PreviewCard`, not `HoverCard`.* It is Base UI's name. The component previews a link's destination and also opens on keyboard focus, so "hover" would undersell it.
+- *ContextMenu reuses the Menu items.* Base UI's `ContextMenu.*` re-exports the `Menu` item parts (`ContextMenu.Item === Menu.Item`, same context), so Tessera's `MenuItem`, `MenuCheckboxItem`, `MenuRadioGroup`/`MenuRadioItem`, `MenuGroup`/`MenuGroupLabel`, `MenuSeparator`, `MenuSub*` and `MenuShortcut` work inside a `ContextMenuContent` unchanged. Tessera only adds `ContextMenu`, `ContextMenuTrigger` and `ContextMenuContent`, so the items aren't duplicated. A test proves the reuse.
+- *DatePicker opens a button-triggered calendar; there's no typed date input.* A masked, locale-aware typed date field is a component of its own (segments, parsing, invalid partial states), and Base UI's `otp-field` doesn't fit it. Backlog item: "DateField (typed segments)".
+- *Month and year dropdowns in the calendar caption are deferred* (backlog). Keyboard users jump by year with Shift+PageUp/PageDown, and pointer users get the prev/next buttons. Cost if wrong: picking a birth date takes many clicks. Revisit with the DateField.
+
+## 0. Carry-over: shared icons and render cloning (Task 0, first)
+
+The backlog lists copied icons (`CloseIcon` three times, `CheckIcon` four times, `ChevronRightIcon` three times, `ChevronDownIcon` three times, `EllipsisIcon` twice) and the duplicated server-safe `render` clone logic in `BreadcrumbLink` / `PaginationLink`. Phase F adds chevron-left, calendar and more chevrons, so this cleanup goes first:
+- `src/lib/icons.tsx`: server-safe (no directive, no hooks). It exports `CheckIcon, ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, ChevronUpDownIcon (if one is in use), CloseIcon, EllipsisIcon, DotIcon, CalendarIcon, MinusIcon, PlusIcon` (only icons that are actually used). Each renders a 24×24 stroke SVG with `aria-hidden="true"` and takes an optional `className`. Every existing copy is replaced. Paths are kept byte-identical to the current copies, so the rendered output doesn't change (the existing tests are the guard, plus one unit test per icon asserting `aria-hidden` and the viewBox).
+- `src/lib/clone-render.ts`: server-safe `cloneRender(render, props, { slot, className })` holding the shared logic now in `BreadcrumbLink` and `PaginationLink` (merge props, keep `data-slot`, merge `className` with later Tailwind utilities winning). Both components use it; their existing tests are the guard, plus unit tests for the helper.
+- It isn't exported from `src/index.ts` (internal). verify-consumer server-safe checks stay green.
+- The backlog items it resolves are removed.
+
+## 1. Components
+
+| Export | Base UI | Client? | Notes |
+|---|---|---|---|
+| `Meter`, `MeterLabel`, `MeterValue` | `Meter.*` | yes | Progress's twin, see §2. |
+| `ScrollArea`, `ScrollBar` (+ `ScrollAreaViewport`, `ScrollAreaContent` for custom layouts) | `ScrollArea.*` | yes | See §2. |
+| `Toggle`, `ToggleGroup`, `ToggleGroupItem`, `toggleVariants` | `Toggle`, `ToggleGroup` | yes | See §2. |
+| `Toolbar`, `ToolbarButton`, `ToolbarLink`, `ToolbarInput`, `ToolbarGroup`, `ToolbarSeparator` | `Toolbar.*` | yes | See §2. |
+| `PreviewCard`, `PreviewCardTrigger`, `PreviewCardContent` | `PreviewCard.*` | yes | See §2. |
+| `ContextMenu`, `ContextMenuTrigger`, `ContextMenuContent` | `ContextMenu.*` | yes | Items are the Menu items (ruling above). |
+| `Calendar`, `RangeCalendar` | none | yes | Hand-built, see §3. |
+| `DatePicker`, `DateRangePicker` | Popover | yes | See §3. |
+
+## 2. Details (Base UI components)
+
+**Meter**
+- It mirrors `Progress` exactly: the same props shape (`color` tone, default primary; `size` sm/md/lg, h-1.5 / h-2 / h-3), header row for `MeterLabel` / `MeterValue` children, track `relative w-full overflow-hidden rounded-full bg-muted` + forced-colors outline, indicator `h-full rounded-full bg-tone transition-[width] duration-300 ease-out motion-reduce:transition-none forced-colors:bg-[Highlight]`. It has no indeterminate state. Where Progress and Meter share class strings, extract the strings (not a component) into `src/components/progress/progress-classes.ts` and reuse them.
+- `role="meter"` comes from Base UI. The implementer verifies it and that `aria-valuenow/min/max` and `aria-valuetext` (from `format`) are present. `MeterLabel` names it; otherwise the caller passes `aria-label`.
+- Differs from Progress: meant for a measurement within a known range (disk usage, password strength), not task completion. Docs say so.
+
+**ScrollArea**
+- `ScrollArea` = Root (`relative overflow-hidden` + className) → Viewport (`size-full rounded-[inherit] overscroll-contain` + the text-field-free focus pattern `outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:-outline-offset-2`, because Base UI makes the viewport focusable when it overflows; the implementer verifies the tabIndex behaviour and records it) → Content → children, plus `ScrollBar` per `orientation` prop: `"vertical"` (default) | `"horizontal"` | `"both"` (`both` adds `ScrollArea.Corner`).
+- `ScrollBar` (exported for custom layouts): `flex touch-none select-none p-0.5 transition-opacity duration-150 motion-reduce:transition-none opacity-0 data-hovering:opacity-100 data-scrolling:opacity-100` (use the real Base UI attribute names from its DataAttributes d.ts), vertical `h-full w-2.5 border-l border-l-transparent`, horizontal `h-2.5 flex-col border-t border-t-transparent`. Thumb `relative flex-1 rounded-full bg-border hover:bg-muted-foreground/50 forced-colors:bg-[CanvasText]`.
+- Viewport content keeps native wheel/touch/keyboard scrolling. The bars are only visual plus pointer-draggable.
+- Forced colors: the thumb is visible (`CanvasText`), and the bar is visible whenever the area is hovered or scrolling.
+
+**Toggle / ToggleGroup**
+- `toggleVariants({ variant, size })` (cva, server-safe, in `toggle-variants.ts`): base `inline-flex shrink-0 cursor-pointer select-none items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap transition-[color,background-color,border-color,outline-color,box-shadow] duration-150 ease-out motion-reduce:transition-none outline-none outline-offset-2 outline-ring focus-visible:outline-2 focus-visible:outline-solid data-disabled:cursor-not-allowed data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0`. Rest `text-muted-foreground not-data-disabled:hover:bg-muted not-data-disabled:hover:text-foreground`, pressed `data-pressed:bg-accent data-pressed:text-accent-foreground`, forced colors pressed `forced-colors:data-pressed:bg-[Highlight] forced-colors:data-pressed:text-[HighlightText]` (repeated for hover, as the active pagination link does) and `forced-colors:focus-visible:outline-[Highlight]` where it would otherwise equal the border colour.
+  - `variant`: `ghost` (default, no border) | `outline` (`border border-field-border bg-transparent`, pressed keeps the border).
+  - `size`: `sm` h-8 px-2.5 min-w-8 · `md` h-10 px-3 min-w-10 (default) · `lg` h-12 px-4 min-w-12 · `icon-sm` size-8 · `icon` size-10 · `icon-lg` size-12 (heights line up with Button).
+- `Toggle`: Base UI `Toggle` (`aria-pressed`) with `variant`/`size`, `data-slot="toggle"`, `data-variant`, `data-size`. Icon-only toggles need `aria-label` (docs + story).
+- `ToggleGroup`: Base UI `ToggleGroup` (`value` is an array; `multiple` default false). Layout `flex items-center gap-1 data-[orientation=vertical]:flex-col`, and it takes `variant`/`size` and passes them to its items through a small context (items can override). With `variant="outline"` the group is attached: `gap-0`, and items lose the inner radii and overlap borders (`rounded-none first:rounded-s-md last:rounded-e-md -ms-px first:ms-0` horizontal, the block-axis equivalent vertical). The focused item raises `focus-visible:z-10` so its ring isn't covered.
+- `ToggleGroupItem`: Base UI `Toggle` inside the group (`value` required).
+- Keyboard: roving focus with the arrow keys (Base UI). Only one Tab stop.
+
+**Toolbar**
+- `Toolbar` (Root): `flex items-center gap-1 rounded-lg border border-border bg-background p-1 data-[orientation=vertical]:flex-col` + `data-slot`. It needs an accessible name (`aria-label`), which docs and tests use.
+- `ToolbarButton`: Base UI `Toolbar.Button` styled with `buttonVariants({ variant: "ghost", color: "neutral", size: "sm" })` by default, exposing `variant`/`color`/`size` (Button's). Compose it with a `Toggle` (`render={<Toggle />}`), a `MenuTrigger`, or a `PopoverTrigger` through Base UI `render`. The implementer verifies the composition order Base UI documents (for example `<ToolbarButton render={<MenuTrigger />}>` vs `<MenuTrigger render={<ToolbarButton />}>`) and records it.
+- `ToolbarGroup`: `flex items-center gap-1`. Nesting a `ToggleGroup` inside a Toolbar must keep a single roving tab stop for the whole toolbar. The implementer verifies how Base UI composes `ToggleGroup` inside `Toolbar` (via `Toolbar.Group render={<ToggleGroup/>}` or the ToggleGroup detecting the toolbar), documents it, and tests it: Tab enters the toolbar once and arrows cross from the group into the next button.
+- `ToolbarSeparator`: `mx-1 h-5 w-px shrink-0 bg-border` (vertical toolbar: `my-1 h-px w-5`).
+- `ToolbarLink`: `inline-flex h-8 cursor-pointer items-center rounded-md px-2 text-sm text-muted-foreground not-data-disabled:hover:text-foreground` + the toggle focus pattern.
+- `ToolbarInput`: `inputVariants({ size: "sm" })` on Base UI `Toolbar.Input`, width left to the caller.
+
+**PreviewCard**
+- `PreviewCard` (Root). Base UI owns open/close delays. If it has Escape dismissal, wrap `onOpenChange` with `useLayeredEscape`; the implementer checks the Root d.ts.
+- `PreviewCardTrigger`: Base UI `Trigger` (an `<a>`). Unstyled by default, like `MenuTrigger`, and styled by the caller (link styles) or via `render`.
+- `PreviewCardContent`: Portal → Positioner (`z-(--z-overlay)`, `side` bottom, `align` center, `sideOffset` 8, `container`) → Popup `popupSurface popupMotion w-72 p-4 text-sm`. An optional arrow is YAGNI; Tooltip has none either.
+- Opens on hover and on keyboard focus of the trigger (Base UI; the implementer verifies focus opening, and if Base UI doesn't open on focus it records that and the tests assert the real behaviour). The content is supplementary: the docs say never to put the only copy of important information or actions in a preview card.
+
+**ContextMenu**
+- `ContextMenu` (Root, wraps `onOpenChange` with `useLayeredEscape` if the prop exists; `ContextMenuRootProps` omits then re-adds `onOpenChange`, so the implementer checks the d.ts).
+- `ContextMenuTrigger`: Base UI `ContextMenu.Trigger`, a `div` area: `data-slot`, and when open `data-popup-open:` gives the caller a hook for styling. No default styling except `select-none` only when the caller asks (the default is none). The stories show a dashed drop-zone-like area.
+- `ContextMenuContent`: Portal → `ContextMenu.Positioner` (`z-(--z-overlay)`, `container`) → `ContextMenu.Popup` with the same classes as `MenuContent` (`popupMotion popupSurface` + `min-w-32 max-h-(--available-height) overflow-y-auto p-1`). It doesn't size to the anchor width, because the anchor is the whole area. If it can be done without behaviour change, share the class string with `menu.tsx` by exporting a `menuContentClasses` constant from a server-safe module.
+- Opens at the pointer on right-click or `contextmenu` and on touch long-press (Base UI). Keyboard: the implementer verifies whether Base UI opens on the ContextMenu key / Shift+F10 when the trigger area is focused and records the result. Either way, docs note that a context menu must only duplicate actions that are reachable elsewhere.
+
+## 3. Details (dates)
+
+**`src/lib/date.ts`** (server-safe, pure, unit-tested, internal): `toDay(d)` (local midnight copy), `isSameDay`, `addDays`, `addMonths` (clamps day-of-month: Jan 31 + 1 month = Feb 28/29), `addYears`, `startOfMonth`, `startOfWeek(d, weekStartsOn)`, `endOfWeek`, `compareDay`, `isBetweenDays(d, a, b)` (inclusive, any order), `clampDay(d, min, max)`, `getWeekStartsOn(locale)` (via `Intl.Locale`, returns 0–6 with 0 = Sunday; fallback 1), `getMonthGrid(month, weekStartsOn): Date[][]` (always 6 weeks, so the height never jumps), `toISODate(d)` → `YYYY-MM-DD` (local), and `parseISODate(s)` → Date | null. The tests include DST transition days (add days across the transition returns the next calendar day at local midnight), leap years, `en-US` → 0 and `de-DE` / `en-GB` → 1.
+
+**Calendar** (single) and **RangeCalendar** (range) share one internal `CalendarBase` (the grid, the caption and keyboard handling).
+- Props (`Calendar`): `value` / `defaultValue` (`Date | null`), `onValueChange(date)`, `month` / `defaultMonth` / `onMonthChange` (controllable visible month; the default is the value's month or today's), `min`, `max`, `isDateDisabled(date)`, `locale` (default: the document's `lang`, then the browser default), `weekStartsOn` (overrides the locale), `showOutsideDays` (default true), `autoFocus` (focus the selected, today's, or first enabled day on mount; DatePicker uses it), plus `className` / div props.
+- `RangeCalendar`: `value` / `defaultValue` (`{ start: Date | null; end: Date | null }`), `onValueChange(range)`, `numberOfMonths` (1 | 2, default 1; DateRangePicker uses 2 from `sm:` up via a prop, not a media query, so the story decides), plus the rest as Calendar. Selecting: the first activation sets `start` (clears `end`), and the second sets `end`. If the second date is earlier, the two swap. A third activation starts over. While only `start` is set, the hovered or focused day previews the range (`data-range-preview` on in-between days).
+- Structure: root `div` (`data-slot="calendar"`, `inline-flex flex-col gap-3 p-3`, or `flex-row gap-6` for two months, each with its own grid) → header (`flex items-center justify-between`) with prev and next buttons (`buttonVariants({ variant: "ghost", color: "neutral", size: "icon-sm" })`, `aria-label` "Previous month" / "Next month", overridable via `labels` prop for i18n; disabled when navigation would leave `min`/`max` months) and caption (`text-sm font-medium`, `aria-live="polite"`, id wired to the grid) → `<table role="grid" aria-labelledby={captionId}>` with `<thead>` weekday `<th scope="col" abbr={long name}>` showing the `narrow`/`short` weekday (`text-xs font-normal text-muted-foreground size-9`), and `<tbody>` 6 rows × 7 `<td role="gridcell">` each holding a day `<button type="button">`.
+- Day button: `size-9 rounded-md text-sm tabular-nums cursor-pointer` + the toggle focus pattern (`outline-none outline-offset-2 outline-ring focus-visible:outline-2 focus-visible:outline-solid forced-colors:focus-visible:outline-[Highlight]`) + states:
+  - rest `not-data-disabled:hover:bg-muted`
+  - `data-today`: `font-semibold` plus a `2px` underline dot (e.g. `after:` bar; the implementer picks a stable one) and `aria-current="date"`
+  - `data-outside` (outside day): `text-muted-foreground/60`
+  - `data-selected` (and range `data-range-start` / `data-range-end`): `bg-primary text-primary-foreground not-data-disabled:hover:bg-primary-hover`, plus `aria-selected="true"` on the gridcell
+  - range middle `data-range-middle` / `data-range-preview`: `bg-primary-soft text-primary-soft-foreground rounded-none` (with a continuous band: start `rounded-e-none`, end `rounded-s-none`)
+  - `data-disabled`: `cursor-not-allowed opacity-40 line-through` + `aria-disabled="true"` (stays focusable so keyboard navigation doesn't jump, per the APG date picker)
+  - forced colors: selected / range ends `forced-colors:bg-[Highlight] forced-colors:text-[HighlightText]`, middle `forced-colors:outline` style distinguishable (the implementer picks one and tests it)
+- Roving tabindex: exactly one day button has `tabIndex=0` (focused, selected, today, or the first enabled day of the visible month, in that priority), all others `-1`. Keyboard per the APG date grid: ←/→ ±1 day, ↑/↓ ±7, Home/End start/end of the week (locale week), PageUp/PageDown ±1 month (same day, clamped), Shift+PageUp/PageDown ±1 year, Enter/Space select. Moving focus onto a day outside the visible month changes the month. Keys clamp at `min`/`max` (focus doesn't move beyond them). An outside day's button is focusable and selectable only if `showOutsideDays`.
+- Accessible names: each day button's `aria-label` is the full date (`Intl.DateTimeFormat(locale, { dateStyle: "full" })`), and selected or range state comes from `aria-selected` on the gridcell. Weekday names come from `abbr`.
+- Locale: everything via Intl (caption month/year, weekday names, full-date labels, and week start). `dir="rtl"` flips ←/→ (the implementer tests with `dir="rtl"` on a wrapper).
+
+**DatePicker**
+- `DatePicker`: `value` / `defaultValue` / `onValueChange` (Date | null), `placeholder` (default "Pick a date"), `format` (Intl.DateTimeFormatOptions, default `{ dateStyle: "medium" }`), `locale`, `min`, `max`, `isDateDisabled`, `weekStartsOn`, `disabled`, `name` (renders `<input type="hidden" name value={toISODate}>` for FormData, empty string when null), `size` (sm/md/lg, same as Select), `id`, `aria-label` / `aria-labelledby`, `container`, `open` / `defaultOpen` / `onOpenChange`.
+- Trigger: a Tessera `PopoverTrigger` rendering a `<button>` styled like the Select trigger (`selectTriggerVariants({ size })`, text left-aligned, leading `CalendarIcon`, placeholder in `text-muted-foreground`), `data-slot="date-picker-trigger"`, and `data-placeholder` when empty. The button's accessible name: from Field / `aria-labelledby` / `aria-label`. The value text follows (the implementer verifies the resulting name reads for example "Due date, Sep 25, 2026" or uses `aria-describedby`; whichever axe and the Field pattern accept, recorded).
+- Content: `PopoverContent` (`align` start, `sideOffset` 6, `p-0 w-auto`) holding a `Calendar` with `autoFocus`. Selecting a day closes the popover and returns focus to the trigger (Popover's Escape closes too, layered via Popover's existing `useLayeredEscape`). The popup's accessible name: `aria-label` "Choose date" (overridable via `labels`).
+- In `Field`: label names the trigger, invalid → danger border (as Select trigger), disabled. Clear: no built-in clear button (YAGNI; the caller can render a Button beside it). Backlog.
+
+**DateRangePicker**
+- As DatePicker with a `RangeCalendar` (`numberOfMonths` default 2), `value` `{ start, end }`, trigger text "Sep 1 – Sep 12, 2026" via `Intl.DateTimeFormat#formatRange` (placeholder "Pick a date range"), `startName` / `endName` hidden inputs. The popover closes only when the end is chosen; Escape or an outside click with only `start` chosen reverts to the previous committed value (and `onValueChange` fires only with complete ranges: `{ start, end }` both set, or both null after a reset, which only the caller can do).
+
+## 4. Tests (every component)
+
+- Every component: `data-slot` on every part, className merge, axe in light and dark (violations and incomplete both `[]`), forced colors: interactive parts have no outline until focused, and focus is visible.
+- Interactive parts: the Tab-focus test (2px solid outline, text-field-like 1px) and the cursor.
+- **Meter:** `role="meter"` with value/min/max/valuetext, label naming, indicator width matches the value (±1px), forced-colors indicator colour, and reduced motion has no transition.
+- **ScrollArea:** content taller than the root scrolls (wheel via `scrollTop` change after `userEvent` wheel or keyboard on the focused viewport), the vertical bar appears on hover/scroll (the data attribute plus computed opacity), the thumb size is proportional (±2px), `orientation="both"` renders the corner, the viewport focus ring when focusable, and forced-colors thumb colour.
+- **Toggle / ToggleGroup:** `aria-pressed` toggles on click/Space/Enter; single group allows one value, `multiple` many; arrows move focus (roving, one Tab stop); the outline variant attached (the middle item's radius 0, neighbouring borders overlap by 1px: geometry); the focused item is above its neighbours (z-index); pressed forced colors Highlight at rest and on hover; heights match Button per size.
+- **Toolbar:** `role="toolbar"` with name; one Tab stop and arrows cross Buttons, a nested ToggleGroup, a Link and a Menu trigger; `ToolbarInput` keeps ←/→ for the caret (Base UI) and Tab leaves; separators `role="separator"` with orientation; vertical orientation uses ↑/↓.
+- **PreviewCard:** opens on hover after the delay (using Base UI's `delay` prop set small in tests, not sleeps where avoidable), and on focus if supported; Escape closes and a layered tooltip closes first if applicable; z 50; portal plus `container`; axe open light/dark.
+- **ContextMenu:** right-click (`contextmenu` event at coordinates) opens with the popup's top-left at the pointer (±2px); `MenuItem` / `MenuCheckboxItem` / submenu work inside it (the reuse ruling); Escape closes and focus returns to where it was; keyboard opening per what Base UI supports (asserted either way); axe open light/dark.
+- **date.ts:** table-driven unit tests per §3.
+- **Calendar / RangeCalendar:** 6×7 grid, `role="grid"` named by the caption; weekday headers per locale (`en-US` starts Sunday, `de-DE` Monday, `weekStartsOn` overrides); today `aria-current="date"`; click and Enter select (`aria-selected`); the full APG key table (each key, including across a month boundary and Shift+PageUp across Feb 29 → Feb 28); min/max clamp keys and disable days (`aria-disabled`, not selectable), and prev/next are disabled at the bounds; `isDateDisabled`; exactly one `tabIndex=0`; the caption live region updates when the month changes; RTL arrows; range: two clicks set start/end, reverse order swaps, a third click restarts, preview on hover and focus, two months side by side with continuous keyboard navigation across them; forced colors: selected Highlight, focus visible.
+- **DatePicker / DateRangePicker:** the trigger opens the calendar with focus on the selected day (or today); selecting closes and focus returns to the trigger showing the formatted value; Escape closes without changing; FormData contains the ISO date(s) (and empty when unset); in `Field`: label names the trigger, invalid border, disabled; the range picker stays open after the start, closes after the end, and reverts on Escape with only the start chosen; `formatRange` text; sizes line up with Select/Input heights; axe open and closed, light and dark.
+
+## 5. Docs
+
+- Stories for each component (`title: "Components/<Name>"`, autodocs). Calendar stories: Default, Range, Two months, Min/Max, Disabled weekends, Locales (en-US, de-DE, ar-EG RTL), Week starts Monday. DatePicker: Default, In Field (with invalid), Sizes, Min/Max, Range, In Dialog.
+- A `Tessera/Examples/Editor` page: a "New post" editor card. It has a Toolbar (a formatting ToggleGroup multiple Bold/Italic/Underline with icons and `aria-label`, an alignment ToggleGroup single, a separator, and an "Insert" Menu trigger), the editor body in a `ScrollArea` (fixed height, long sample text) with a `ContextMenu` (Cut / Copy / Paste / a Format submenu reusing the Menu items), an author line whose `@name` is a `PreviewCardTrigger` showing an Avatar card, a "Publish on" `DatePicker` and an "Embargo" `DateRangePicker` in a Field row, and a `Meter` for "Characters 1,240 / 2,000".
+- README: the component list complete for Phase F; roadmap next: Phase G (candidates: DateField, Menubar, NavigationMenu, Autocomplete, OTP field, Collapsible, CheckboxGroup, Form, Sidebar/app shell). Backlog updated.
