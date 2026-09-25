@@ -5,6 +5,7 @@ import {
   type KeyboardEvent,
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -101,7 +102,8 @@ export interface CalendarBaseProps extends CalendarSharedProps {
   onPreviewDay?: (date: Date | null) => void;
 }
 
-function resolveLocale(locale: string | undefined): string | undefined {
+/** The `locale` prop, else the document's `lang`, canonicalised; `undefined` (the browser default) if invalid. */
+export function resolveLocale(locale: string | undefined): string | undefined {
   const candidate =
     locale ?? (typeof document === "undefined" ? undefined : document.documentElement.lang);
   if (!candidate) return undefined;
@@ -126,7 +128,8 @@ function useFormatters(locale: string | undefined, weekStartsOn: WeekDay) {
       (_, i) => new Date(2026, 0, 4 + ((weekStartsOn + i) % 7)),
     );
     const shorts = week.map((date) => shortWeekday.format(date));
-    // Some locales' "short" names are whole words (ar-EG): fall back to "narrow" to fit the column.
+    // A short name longer than 3 code units won't fit the size-9 column: whole words (ar-EG) or
+    // dotted/longer abbreviations (fr-FR "lun.", pl-PL "niedz."). Then the whole row goes narrow.
     const useNarrow = shorts.some((name) => name.length > 3);
     const weekdays = week.map((date, i) => ({
       key: date.getDay(),
@@ -211,8 +214,10 @@ export function CalendarBase({
     pendingFocus.current = null;
     document.getElementById(dayId(date))?.focus();
   };
-  // After every render: focus the day a keyboard move asked for (it may be in a new month).
-  useEffect(focusPending);
+  // After every render, before paint: focus the day a keyboard move asked for (it may be in a new
+  // month). A layout effect, not a passive one: when the month changes the focused button unmounts,
+  // and focus must not sit on <body> until after paint (a Popover would read that as focus leaving).
+  useLayoutEffect(focusPending);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: focus once, on mount.
   useEffect(() => {
@@ -236,6 +241,9 @@ export function CalendarBase({
   };
 
   const onDayKeyDown = (event: KeyboardEvent<HTMLButtonElement>, date: Date) => {
+    // Alt/Ctrl/Meta combinations belong to the browser and OS (Alt+ArrowLeft is Back). Shift stays:
+    // Shift+PageUp/PageDown move by a year.
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
     const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
     let next: Date;
     switch (event.key) {

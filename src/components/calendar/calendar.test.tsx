@@ -245,6 +245,38 @@ describe("Calendar: keyboard (APG date grid)", () => {
     expect(focusedLabel()).toBe(fullDate(d(2026, 9, 16)));
   });
 
+  it.each([
+    ["Alt+ArrowRight", "{Alt>}{ArrowRight}{/Alt}"],
+    ["Control+Home", "{Control>}{Home}{/Control}"],
+    ["Meta+ArrowDown", "{Meta>}{ArrowDown}{/Meta}"],
+  ])("leaves %s to the browser (focus stays, not default-prevented)", async (_, key) => {
+    const screen = await render(<Calendar locale="en-US" defaultMonth={d(2026, 9, 1)} />);
+    const prevented: boolean[] = [];
+    const record = (event: KeyboardEvent) => {
+      if (event.key !== "Alt" && event.key !== "Control" && event.key !== "Meta") {
+        prevented.push(event.defaultPrevented);
+      }
+    };
+    // Bubble phase on window: runs after React's root listener, so it sees the handler's verdict.
+    window.addEventListener("keydown", record);
+    try {
+      dayElement(d(2026, 9, 15)).focus();
+      await userEvent.keyboard(key);
+    } finally {
+      window.removeEventListener("keydown", record);
+    }
+    expect(prevented).toEqual([false]);
+    expect(focusedLabel()).toBe(fullDate(d(2026, 9, 15)));
+    expect(tabbableDays(screen.container)).toEqual([document.activeElement]);
+  });
+
+  it("still moves by a year with Shift+PageDown (Shift is not a browser modifier here)", async () => {
+    await render(<Calendar locale="en-US" defaultMonth={d(2026, 9, 1)} />);
+    dayElement(d(2026, 9, 15)).focus();
+    await userEvent.keyboard("{Shift>}{PageDown}{/Shift}");
+    expect(focusedLabel()).toBe(fullDate(d(2027, 9, 15)));
+  });
+
   it("uses the locale's week for Home / End (de-DE starts on Monday)", async () => {
     await render(<Calendar locale="de-DE" defaultMonth={d(2026, 9, 1)} />);
     dayElement(d(2026, 9, 15), "de-DE").focus();
