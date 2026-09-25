@@ -194,10 +194,9 @@ describe("ContextMenu", () => {
             </Area>
           </div>,
         );
-        const popup = await openAt(100, 100);
+        await openAt(100, 100);
         await userEvent.click(item("More tools"));
         await expect.element(item("Developer tools")).toBeVisible();
-        void popup;
         const { violations, incomplete } = await auditOpenOverlay();
         expect(violations).toEqual([]);
         expect(incomplete).toEqual([]);

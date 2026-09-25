@@ -7,7 +7,7 @@ import { menuContentClasses, popupMotion, popupSurface } from "../../lib/overlay
 import { useLayeredEscape } from "../../lib/tooltip-escape";
 
 /**
- * A submenu-less anchor: the trigger is the whole area, not one item, so a fixed floor replaces
+ * The trigger has no single anchor item (the whole area opens the menu), so a fixed floor replaces
  * `MenuContent`'s `min-w-(--anchor-width)` (see spec ruling).
  */
 const contextMenuContentBase = cn("min-w-32", menuContentClasses);

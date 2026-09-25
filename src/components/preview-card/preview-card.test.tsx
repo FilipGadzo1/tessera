@@ -98,7 +98,7 @@ describe("PreviewCard", () => {
     await expect.poll(() => popup()).toBeNull();
   });
 
-  it("portals the content to document.body with the tooltip-layer z-index", async () => {
+  it("portals the content to document.body with the popup-layer z-index", async () => {
     const screen = await render(<Basic />);
     const card = await openByHover();
     expect(screen.container.contains(card)).toBe(false);
