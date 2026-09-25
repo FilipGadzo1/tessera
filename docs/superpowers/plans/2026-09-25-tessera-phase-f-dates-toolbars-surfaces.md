@@ -62,3 +62,13 @@ Spec §3 DatePicker / DateRangePicker + §4.
 Spec §5. Files `src/docs/examples/editor-page.{tsx,test.tsx,stories.tsx}`; README, backlog, intro mdx.
 - [ ] Test: keyboard-only flow — Tab into the toolbar, toggle Bold with Space (`aria-pressed`), arrow to alignment and pick Center, open Insert menu; open the editor's context menu (pointer), pick Format → a submenu item; hover/focus the author link to open the PreviewCard; pick a Publish date with the keyboard (open, arrow, Enter → trigger text); pick an embargo range; the Meter's value text; axe light/dark with and without an overlay open.
 - [ ] Implement; README (Phase F complete; roadmap next Phase G per spec §5); backlog; intro; gate; visual check on 6107 (screenshots `editor-*.png` light/dark, calendar open, forced colors) → stop server; commit `docs(examples): editor page composing Phase F components`.
+
+### Task 7: Owner follow-ups — Tooltip theme tokens, palette tooltips, week-start data
+Spec §6.1 and §6.3.
+- [ ] Tests first: tooltip computed colours per theme × surface palette + contrast ≥ 4.5:1 (RED in dark: near-white); corrected region table rows (RED for SA/YE/AE/MA/TN).
+- [ ] Implement tokens (`--tooltip*` + Tailwind colour exposure, generator contrast gate if it owns theme.css), TooltipContent classes, palette tiles on Tessera Tooltip, date.ts region sets; README/theme docs mention the tokens; gate; commits `fix(tooltip): theme-following tooltip tokens`, `docs(palettes): tile tooltips`, `fix(date): CLDR region week starts`.
+
+### Task 8: Calendar month and year views
+Spec §6.2.
+- [ ] Tests per §6.2 (views by click/keyboard, focus clamping, paging, min/max, Escape steps back inside an open DatePicker, RTL, two-month range pane, forced colors, axe per view light/dark, stable footprint).
+- [ ] Implement in CalendarBase (views state, caption buttons, month/year grids, labels), keep calendar-base.tsx focused (split views into calendar-views.tsx if large); stories "Month and year views" + DatePicker "Birthday"; README; backlog (remove the dropdowns item); gate; visual check on 6107 (screenshots of each view, light/dark, inside an open DatePicker) → stop server; commit `feat(calendar): month and year views`.
