@@ -138,6 +138,13 @@ export {
   type ContextMenuTriggerProps,
 } from "./components/context-menu";
 export {
+  DatePicker,
+  type DatePickerLabels,
+  type DatePickerProps,
+  DateRangePicker,
+  type DateRangePickerProps,
+} from "./components/date-picker";
+export {
   Dialog,
   DialogClose,
   type DialogCloseProps,

@@ -46,6 +46,8 @@ export interface PopoverContentProps extends BasePopover.Popup.Props {
    * (`data-primary`, `data-surface`, `.dark` on an inner element) so the popover inherits it.
    */
   container?: BasePopover.Portal.Props["container"];
+  /** The popup's `data-slot`; a component built on PopoverContent names its own part. @default "popover-content" */
+  "data-slot"?: string;
 }
 
 /**
@@ -61,6 +63,7 @@ export function PopoverContent({
   collisionPadding,
   container,
   className,
+  "data-slot": dataSlot = "popover-content",
   ...props
 }: PopoverContentProps) {
   return (
@@ -75,7 +78,7 @@ export function PopoverContent({
       >
         <BasePopover.Popup
           {...props}
-          data-slot="popover-content"
+          data-slot={dataSlot}
           className={mergeClassName(cn(popupMotion, popupSurface, popoverContentBase), className)}
         />
       </BasePopover.Positioner>

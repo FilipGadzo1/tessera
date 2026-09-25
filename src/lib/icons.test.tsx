@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import {
+  CalendarIcon,
   CheckIcon,
   ChevronDownIcon,
   ChevronLeftIcon,
@@ -13,6 +14,7 @@ import {
 } from "./icons";
 
 const icons = {
+  CalendarIcon,
   CheckIcon,
   ChevronDownIcon,
   ChevronLeftIcon,

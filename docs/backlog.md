@@ -156,6 +156,19 @@ phase; items fixed by a later commit are left out).
   pager's width changes as the user pages (the Previous/Next controls move); consider an optional
   steady-width mode that always returns the same count (padding with extra pages near the edges).
 
+### Phase F notes
+- DateRangePicker (Task 5): a range may span disabled days (`isDateDisabled`, e.g. weekends or
+  booked nights). Only the two ends are checked (each must be an enabled day); the days between
+  are not validated, and the picker accepts the range. A caller that needs contiguous availability
+  validates in `onValueChange`. Possible later: an `allowsNonContiguousRanges`-style prop.
+- DatePicker / DateRangePicker (Task 5): no built-in clear button (spec §3, YAGNI; render a Button
+  beside the picker that sets the value to `null` / `{ start: null, end: null }`).
+- DatePicker / DateRangePicker (Task 5): Field wiring uses two Base UI internals
+  (`@base-ui/react/internals/field-root-context`, `…/internals/labelable-provider`); they are in the
+  package's `exports` but undocumented, so a Base UI upgrade can move them. The Field tests
+  (label name, description, invalid, disabled) are the guard. Field `validate` / `required` are not
+  wired (the picker doesn't register as a Field control).
+
 ## Theming
 - No `.light` scope: a region cannot switch back to light inside `.dark` (documented limit).
 

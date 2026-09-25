@@ -395,11 +395,24 @@ source files automatically (build output + `"use client"` directive checks).
   (swapped if earlier), a third starts over; while only the start is set the hovered or focused day
   previews the band. `numberOfMonths={2}` shows two months side by side with keyboard navigation
   running across both (the days between them aren't repeated as outside days). Client component)
+- [x] DatePicker, DateRangePicker (a Select-styled trigger — same `size` scale and heights as
+  Select and Input, a leading calendar icon — opening a Calendar in a Popover; no typed date field.
+  Focus lands on the picked day (or today); picking closes and returns focus to the trigger, Escape
+  or an outside click closes unchanged. `value` / `defaultValue` / `onValueChange`, `placeholder`,
+  `format` (Intl options, default `{ dateStyle: "medium" }`), `locale`, `min` / `max`,
+  `isDateDisabled`, `weekStartsOn`, `disabled`, `open` / `defaultOpen` / `onOpenChange`,
+  `container`, `labels` (`dialog`, `previousMonth`, `nextMonth`), and `name` for a hidden
+  `YYYY-MM-DD` input. Inside a `Field` the label names the trigger followed by the value ("Due date
+  Sep 25, 2026"), the description describes it, and invalid / disabled apply. `DateRangePicker`
+  shows two months (`numberOfMonths`), stays open after the start and closes after the end, reverts
+  an unfinished pick on Escape or an outside click, reports only complete ranges, shows the range
+  via `formatRange` ("Sep 1 – 12, 2026") and submits `startName` / `endName`. No clear button:
+  render a Button beside it. Client component)
 
 Phase A (foundation), Phase B (forms), Phase C (overlays), Phase D (navigation and feedback) and
 Phase E (data entry and display) are complete. Phase F (dates, toolbars and surfaces) is in
-progress: Meter, ScrollArea, Toggle/ToggleGroup, Toolbar, PreviewCard, ContextMenu, Calendar and
-RangeCalendar are done.
+progress: Meter, ScrollArea, Toggle/ToggleGroup, Toolbar, PreviewCard, ContextMenu, Calendar,
+RangeCalendar, DatePicker and DateRangePicker are done.
 
 Composition: when a part is rendered through another (`<Fieldset render={<RadioGroup className=…/>}>`),
 the outer part's own classes win over conflicting classes on the render element (Base UI merges the

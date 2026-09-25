@@ -1,0 +1,349 @@
+"use client";
+
+/*
+ * Field wiring goes through two Base UI internals (exported by the package, not documented): the
+ * Field root context (disabled / invalid state) and the labelable context (the control id the
+ * FieldLabel points at, the label's id, and the description ids). They are the same hooks Base UI's
+ * own SelectTrigger uses; no public API lets a custom control join a Field.
+ */
+import { useFieldRootContext } from "@base-ui/react/internals/field-root-context";
+import { useLabelableContext, useLabelableId } from "@base-ui/react/internals/labelable-provider";
+import { type ComponentProps, type ReactNode, useId, useRef, useState } from "react";
+import { cn } from "../../lib/cn";
+import { toISODate, type WeekDay } from "../../lib/date";
+import { CalendarIcon } from "../../lib/icons";
+import { Calendar, type DateRange, RangeCalendar } from "../calendar";
+import { type CalendarLabels, resolveLocale } from "../calendar/calendar-base";
+import { Popover, PopoverContent, type PopoverContentProps, PopoverTrigger } from "../popover";
+import { type SelectTriggerVariantProps, selectDefaults, selectTriggerVariants } from "../select";
+
+/** Translatable strings: the popup's name plus the calendar's month buttons. */
+export interface DatePickerLabels extends CalendarLabels {
+  /** The popup dialog's accessible name. @default "Choose date" ("Choose date range" for DateRangePicker) */
+  dialog?: string;
+}
+
+/** Trigger and popup props shared by `DatePicker` and `DateRangePicker`. */
+interface PickerTriggerProps
+  extends Omit<
+    ComponentProps<"button">,
+    "value" | "defaultValue" | "onChange" | "children" | "type" | "name" | "disabled"
+  > {
+  /** Disables the trigger (a disabled `Field` does too). */
+  disabled?: boolean;
+  /** Trigger height, padding and text size, as Select and Input. @default "md" */
+  size?: SelectTriggerVariantProps["size"];
+  /** Whether the calendar is open, controlled. */
+  open?: boolean;
+  /** Whether the calendar is initially open. @default false */
+  defaultOpen?: boolean;
+  /** Called when the calendar opens or closes. */
+  onOpenChange?: (open: boolean) => void;
+  /** Element to portal the popup into (default `document.body`), e.g. inside a nested theme scope. */
+  container?: PopoverContentProps["container"];
+}
+
+/** Calendar and formatting props shared by `DatePicker` and `DateRangePicker`. */
+interface PickerSharedProps extends PickerTriggerProps {
+  /** Trigger text while nothing is picked. */
+  placeholder?: string;
+  /** How the trigger shows the value. @default { dateStyle: "medium" } */
+  format?: Intl.DateTimeFormatOptions;
+  /** BCP 47 locale for the trigger text and the calendar. @default the document's `lang`, else the browser's */
+  locale?: string;
+  /** The earliest selectable day. */
+  min?: Date | null;
+  /** The latest selectable day. */
+  max?: Date | null;
+  /** Disables individual days in the calendar (they stay focusable). */
+  isDateDisabled?: (date: Date) => boolean;
+  /** First day of the week, 0 = Sunday … 6 = Saturday. @default the locale's */
+  weekStartsOn?: WeekDay;
+  /** Translated labels. */
+  labels?: DatePickerLabels;
+}
+
+const triggerExtras = "justify-start";
+const valueBase = "min-w-0 truncate";
+const iconBase = "size-4 shrink-0 text-muted-foreground";
+const contentBase = "p-0 w-auto";
+
+function useControllable<T>(value: T | undefined, defaultValue: T) {
+  const [internal, setInternal] = useState(defaultValue);
+  const controlled = value !== undefined;
+  const set = (next: T) => {
+    if (!controlled) setInternal(next);
+  };
+  return [controlled ? (value as T) : internal, set] as const;
+}
+
+interface PickerShellProps extends PickerTriggerProps {
+  /** The formatted value, or `null` to show the placeholder. */
+  text: string | null;
+  placeholder: string;
+  dialogLabel: string;
+  hiddenInputs: ReactNode;
+  /** Renders the calendar; `close` closes the popup (focus returns to the trigger). */
+  renderCalendar: (close: () => void) => ReactNode;
+  /** Runs whenever the popup closes, whatever the reason. */
+  onClosed?: () => void;
+}
+
+/**
+ * The trigger + popover shared by both pickers. Joins a Field: the FieldLabel names the trigger
+ * (`<label for>` through the labelable id), FieldDescription describes it, and an invalid or
+ * disabled Field marks it.
+ */
+function PickerShell({
+  text,
+  placeholder,
+  dialogLabel,
+  hiddenInputs,
+  renderCalendar,
+  onClosed,
+  disabled,
+  size,
+  open: openProp,
+  defaultOpen = false,
+  onOpenChange,
+  container,
+  id: idProp,
+  className,
+  ...props
+}: PickerShellProps) {
+  const field = useFieldRootContext();
+  const { labelId: fieldLabelId, getDescriptionProps } = useLabelableContext();
+  const id = useLabelableId({ id: idProp });
+  const valueId = useId();
+  const popupRef = useRef<HTMLDivElement>(null);
+
+  const [internalOpen, setInternalOpen] = useState(defaultOpen);
+  const open = openProp ?? internalOpen;
+  const setOpen = (next: boolean) => {
+    if (next === open) return;
+    if (openProp === undefined) setInternalOpen(next);
+    onOpenChange?.(next);
+    if (!next) onClosed?.();
+  };
+
+  const isDisabled = disabled || field.state.disabled;
+  const invalid = field.state.valid === false;
+
+  // The name is the label followed by the value ("Due date Sep 25, 2026"): on its own, a
+  // <label for> or aria-label would replace the button's content — the value — as its name.
+  const ariaLabel = props["aria-label"];
+  const ariaLabelledByProp = props["aria-labelledby"];
+  const labelSource = ariaLabelledByProp ?? (ariaLabel ? id : fieldLabelId);
+  const ariaLabelledBy =
+    labelSource && text !== null ? `${labelSource} ${valueId}` : ariaLabelledByProp;
+  const { "aria-describedby": ariaDescribedBy } = getDescriptionProps({
+    "aria-describedby": props["aria-describedby"],
+  });
+
+  return (
+    <Popover open={open} onOpenChange={(next) => setOpen(next)}>
+      <PopoverTrigger
+        {...props}
+        id={id}
+        type="button"
+        disabled={isDisabled}
+        aria-labelledby={ariaLabelledBy}
+        aria-describedby={ariaDescribedBy}
+        aria-invalid={invalid ? true : props["aria-invalid"]}
+        data-slot="date-picker-trigger"
+        data-size={size ?? selectDefaults.size}
+        data-placeholder={text === null ? "" : undefined}
+        data-invalid={invalid ? "" : undefined}
+        data-disabled={isDisabled ? "" : undefined}
+        className={selectTriggerVariants({ size, className: cn(triggerExtras, className) })}
+      >
+        <CalendarIcon data-slot="date-picker-icon" className={iconBase} />
+        <span
+          id={valueId}
+          data-slot="date-picker-value"
+          className={cn(valueBase, text === null && "text-muted-foreground")}
+        >
+          {text ?? placeholder}
+        </span>
+      </PopoverTrigger>
+      {hiddenInputs}
+      <PopoverContent
+        ref={popupRef}
+        container={container}
+        align="start"
+        sideOffset={6}
+        aria-label={dialogLabel}
+        data-slot="date-picker-content"
+        className={contentBase}
+        // Focus the calendar's Tab stop (the selected day, else today), not the Previous button.
+        initialFocus={() =>
+          popupRef.current?.querySelector<HTMLElement>(
+            '[data-slot="calendar-day"][tabindex="0"]',
+          ) ?? true
+        }
+      >
+        {renderCalendar(() => setOpen(false))}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+export interface DatePickerProps extends PickerSharedProps {
+  /** The picked day, controlled (`null` for none). */
+  value?: Date | null;
+  /** The initially picked day. @default null */
+  defaultValue?: Date | null;
+  /** Called with the day the user picks. */
+  onValueChange?: (value: Date | null) => void;
+  /** Submits the value as `YYYY-MM-DD` (empty when unset) through a hidden input. @default the Field's `name` */
+  name?: string;
+  /** @default "Pick a date" */
+  placeholder?: string;
+}
+
+/**
+ * A Select-styled button that opens a `Calendar` in a popover. Picking a day closes it and
+ * returns focus to the trigger; Escape or an outside click closes it unchanged. Name it with a
+ * `Field` label, `aria-labelledby` or `aria-label`; the value text follows the name.
+ */
+export function DatePicker({
+  value: valueProp,
+  defaultValue = null,
+  onValueChange,
+  name,
+  placeholder = "Pick a date",
+  format = { dateStyle: "medium" },
+  locale,
+  min,
+  max,
+  isDateDisabled,
+  weekStartsOn,
+  labels,
+  ...props
+}: DatePickerProps) {
+  const field = useFieldRootContext();
+  const [value, setValue] = useControllable(valueProp, defaultValue);
+  const formatter = new Intl.DateTimeFormat(resolveLocale(locale), format);
+  const inputName = name ?? field.name;
+
+  return (
+    <PickerShell
+      {...props}
+      text={value ? formatter.format(value) : null}
+      placeholder={placeholder}
+      dialogLabel={labels?.dialog ?? "Choose date"}
+      hiddenInputs={
+        inputName && <input type="hidden" name={inputName} value={value ? toISODate(value) : ""} />
+      }
+      renderCalendar={(close) => (
+        <Calendar
+          value={value}
+          onValueChange={(date) => {
+            setValue(date);
+            onValueChange?.(date);
+            close();
+          }}
+          locale={locale}
+          min={min}
+          max={max}
+          isDateDisabled={isDateDisabled}
+          weekStartsOn={weekStartsOn}
+          labels={labels}
+        />
+      )}
+    />
+  );
+}
+
+export interface DateRangePickerProps extends PickerSharedProps {
+  /** The picked range, controlled. */
+  value?: DateRange;
+  /** The initially picked range. @default { start: null, end: null } */
+  defaultValue?: DateRange;
+  /** Called only with a complete range (both ends set), when the end is picked. */
+  onValueChange?: (value: DateRange) => void;
+  /** Submits the start as `YYYY-MM-DD` (empty when unset) through a hidden input. */
+  startName?: string;
+  /** Submits the end as `YYYY-MM-DD` (empty when unset) through a hidden input. */
+  endName?: string;
+  /** Months shown side by side in the popup. @default 2 */
+  numberOfMonths?: 1 | 2;
+  /** @default "Pick a date range" */
+  placeholder?: string;
+}
+
+const emptyRange: DateRange = { start: null, end: null };
+
+/**
+ * A Select-styled button that opens a `RangeCalendar` (two months by default). The first pick
+ * sets the start and keeps it open; the second sets the end, commits and closes. Escape or an
+ * outside click with only the start chosen reverts to the previous range. The trigger shows the
+ * range with `Intl.DateTimeFormat#formatRange` ("Sep 1 – 12, 2026"). A range may span disabled
+ * days: only its two ends are checked.
+ */
+export function DateRangePicker({
+  value: valueProp,
+  defaultValue = emptyRange,
+  onValueChange,
+  startName,
+  endName,
+  numberOfMonths = 2,
+  placeholder = "Pick a date range",
+  format = { dateStyle: "medium" },
+  locale,
+  min,
+  max,
+  isDateDisabled,
+  weekStartsOn,
+  labels,
+  ...props
+}: DateRangePickerProps) {
+  const [value, setValue] = useControllable(valueProp, defaultValue);
+  // The pick in progress (only the start chosen): never reported, dropped on close.
+  const [draft, setDraft] = useState<DateRange | null>(null);
+  const formatter = new Intl.DateTimeFormat(resolveLocale(locale), format);
+
+  const { start, end } = value;
+  const text =
+    start && end ? formatter.formatRange(start, end) : start ? formatter.format(start) : null;
+
+  return (
+    <PickerShell
+      {...props}
+      text={text}
+      placeholder={placeholder}
+      dialogLabel={labels?.dialog ?? "Choose date range"}
+      onClosed={() => setDraft(null)}
+      hiddenInputs={
+        <>
+          {startName && (
+            <input type="hidden" name={startName} value={start ? toISODate(start) : ""} />
+          )}
+          {endName && <input type="hidden" name={endName} value={end ? toISODate(end) : ""} />}
+        </>
+      }
+      renderCalendar={(close) => (
+        <RangeCalendar
+          value={draft ?? value}
+          onValueChange={(next) => {
+            if (!next.start || !next.end) {
+              setDraft(next);
+              return;
+            }
+            setDraft(null);
+            setValue(next);
+            onValueChange?.(next);
+            close();
+          }}
+          numberOfMonths={numberOfMonths}
+          locale={locale}
+          min={min}
+          max={max}
+          isDateDisabled={isDateDisabled}
+          weekStartsOn={weekStartsOn}
+          labels={labels}
+        />
+      )}
+    />
+  );
+}
