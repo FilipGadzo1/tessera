@@ -380,10 +380,26 @@ source files automatically (build output + `"use client"` directive checks).
   `onTouchMove` are wired, no `keydown` handler) — *Amended in Task 3*, see the spec. Escape closes
   it and focus returns to where it was. A context menu should only duplicate actions reachable
   elsewhere. Client component)
+- [x] Calendar, RangeCalendar (hand-built month grids — Base UI has no calendar primitive —
+  following the WAI-ARIA APG date picker grid: a `role="grid"` table per month named by its live
+  caption, one roving Tab stop (the focused, selected, today's or first enabled day), ←/→ days
+  (flipped under `dir="rtl"`), ↑/↓ weeks, Home/End the locale's week, PageUp/PageDown months,
+  Shift+PageUp/PageDown years, Enter/Space select; moving onto another month's day turns the page.
+  Dates are plain `Date`s standing for local days, no date library. `value` / `defaultValue` /
+  `onValueChange`, `month` / `defaultMonth` / `onMonthChange`, `min` / `max` (days beyond are
+  disabled and keys stop there; prev/next disable at the bounds), `isDateDisabled` (days stay
+  focusable, `aria-disabled`), `locale` (default: the document's `lang`, then the browser's —
+  caption, weekday names, full-date labels and week start all come from `Intl`), `weekStartsOn`,
+  `showOutsideDays` (default true), `autoFocus`, and `labels` for the prev/next buttons.
+  `RangeCalendar` takes a `{ start, end }` value: the first pick sets the start, the second the end
+  (swapped if earlier), a third starts over; while only the start is set the hovered or focused day
+  previews the band. `numberOfMonths={2}` shows two months side by side with keyboard navigation
+  running across both (the days between them aren't repeated as outside days). Client component)
 
 Phase A (foundation), Phase B (forms), Phase C (overlays), Phase D (navigation and feedback) and
 Phase E (data entry and display) are complete. Phase F (dates, toolbars and surfaces) is in
-progress: Meter, ScrollArea, Toggle/ToggleGroup, Toolbar, PreviewCard and ContextMenu are done.
+progress: Meter, ScrollArea, Toggle/ToggleGroup, Toolbar, PreviewCard, ContextMenu, Calendar and
+RangeCalendar are done.
 
 Composition: when a part is rendered through another (`<Fieldset render={<RadioGroup className=…/>}>`),
 the outer part's own classes win over conflicting classes on the render element (Base UI merges the
@@ -434,7 +450,6 @@ list `aria-busy`.
 
 ## Roadmap
 
-Rest of Phase F: Calendar, DatePicker, DateRangePicker, PreviewCard, ContextMenu, and the Editor
-example page.
+Rest of Phase F: DatePicker, DateRangePicker, and the Editor example page.
 
 Later: visual regression · React Compiler on output · publish to npm (`@tessera/ui` is free).

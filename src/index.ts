@@ -70,6 +70,14 @@ export {
   buttonVariants,
 } from "./components/button";
 export {
+  Calendar,
+  type CalendarLabels,
+  type CalendarProps,
+  type DateRange,
+  RangeCalendar,
+  type RangeCalendarProps,
+} from "./components/calendar";
+export {
   Card,
   CardContent,
   CardDescription,
