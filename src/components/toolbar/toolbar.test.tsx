@@ -1,7 +1,8 @@
 import axe from "axe-core";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
+import { emulateForcedColors, resetEmulatedMedia, systemColor } from "../../../test/emulation";
 import { Menu, MenuContent, MenuItem, MenuTrigger } from "../menu/menu";
 import { ToggleGroup, ToggleGroupItem } from "../toggle/toggle";
 import {
@@ -40,6 +41,10 @@ function Editor() {
   );
 }
 
+afterEach(async () => {
+  await resetEmulatedMedia();
+});
+
 describe("Toolbar", () => {
   it("is a named toolbar with data-slot on every part", async () => {
     const screen = await render(<Editor />);
@@ -54,6 +59,43 @@ describe("Toolbar", () => {
     const separator = toolbar.element().querySelector('[data-slot="toolbar-separator"]');
     expect(separator).not.toBeNull();
     expect(separator?.getAttribute("role")).toBe("separator");
+  });
+
+  it("sets data-slot=toolbar-group on ToolbarGroup", async () => {
+    const screen = await render(<Editor />);
+    const group = screen.container.querySelector('[aria-label="Actions"]');
+    expect(group?.getAttribute("data-slot")).toBe("toolbar-group");
+  });
+
+  it("shows a visible 2px solid focus ring on Tab-focus for ToolbarButton and ToolbarLink", async () => {
+    const screen = await render(<Editor />);
+    const undo = screen.getByRole("button", { name: "Undo" }).element() as HTMLElement;
+    const link = screen.getByRole("link", { name: "Edited 51m ago" }).element() as HTMLElement;
+    for (const element of [undo, link]) {
+      element.focus();
+      expect(document.activeElement).toBe(element);
+      const style = getComputedStyle(element);
+      expect(style.outlineStyle).toBe("solid");
+      expect(style.outlineWidth).toBe("2px");
+    }
+  });
+
+  it("forced colors: ToolbarButton and ToolbarLink show no outline until focused, then a visible ring", async () => {
+    await emulateForcedColors(true);
+    const screen = await render(<Editor />);
+    const undo = screen.getByRole("button", { name: "Undo" }).element() as HTMLElement;
+    const link = screen.getByRole("link", { name: "Edited 51m ago" }).element() as HTMLElement;
+    for (const element of [undo, link]) {
+      const idle = getComputedStyle(element);
+      expect(idle.outlineStyle).toBe("none");
+      element.focus();
+      expect(document.activeElement).toBe(element);
+      const focused = getComputedStyle(element);
+      expect(focused.outlineStyle).toBe("solid");
+      expect(Number.parseFloat(focused.outlineWidth)).toBeGreaterThanOrEqual(1);
+      expect(focused.outlineColor).not.toBe(systemColor("Canvas"));
+      element.blur();
+    }
   });
 
   it("merges className on the root", async () => {
