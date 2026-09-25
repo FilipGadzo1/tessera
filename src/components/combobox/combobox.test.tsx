@@ -348,6 +348,16 @@ describe("Combobox", () => {
   });
 
   describe("trigger and clear", () => {
+    it("a disabled trigger keeps its colour on hover", async () => {
+      await render(<Fruit disabled />);
+      const trigger = document.querySelector("[data-slot=combobox-trigger]") as HTMLElement;
+      expect(trigger.hasAttribute("data-disabled")).toBe(true);
+      const color = getComputedStyle(trigger).color;
+      await userEvent.hover(trigger);
+      expect(trigger.matches(":hover")).toBe(true);
+      expect(getComputedStyle(trigger).color).toBe(color);
+    });
+
     it("the trigger is named, out of the Tab order, and toggles the list", async () => {
       await render(<Fruit />);
       const trigger = page.getByRole("button", { name: "Show options" });
@@ -564,6 +574,19 @@ describe("Combobox", () => {
       expect(getComputedStyle(chipsOf(input("Read-only toppings"))).backgroundColor).toBe(
         getComputedStyle(screen.getByTestId("ref").element()).backgroundColor,
       );
+    });
+
+    // v2 §4: hover styles are gated with `not-data-disabled:`.
+    it("a disabled chip remove button keeps its background and colour on hover", async () => {
+      await render(<Toppings disabled defaultValue={["Cheese"]} />);
+      const remove = document.querySelector("[data-slot=combobox-chip-remove]") as HTMLElement;
+      expect(remove.hasAttribute("data-disabled")).toBe(true);
+      const before = getComputedStyle(remove);
+      const [background, color] = [before.backgroundColor, before.color];
+      await userEvent.hover(remove);
+      expect(remove.matches(":hover")).toBe(true);
+      expect(getComputedStyle(remove).backgroundColor).toBe(background);
+      expect(getComputedStyle(remove).color).toBe(color);
     });
 
     it("inside an invalid Field: named by the label, danger border on the chips field", async () => {

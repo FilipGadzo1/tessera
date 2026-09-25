@@ -294,8 +294,8 @@ source files automatically (build output + `"use client"` directive checks).
   increment/decrement buttons are excluded from the Tab order (Base UI: the input already handles
   keyboard stepping) and come pre-named "Increase"/"Decrease". Supports `format`
   (`Intl.NumberFormatOptions`), `min`/`max`/`step`/`smallStep`/`largeStep`, `readOnly`, `disabled`,
-  and works inside a `Field` (label names the input; invalid shows the danger border on the group).
-  Client component)
+  and works inside a `Field` (label names the input; invalid shows the danger border on the group,
+  as does `aria-invalid` on a `NumberFieldInput` outside a `Field`). Client component)
 - [x] Combobox, ComboboxInput, ComboboxTrigger, ComboboxClear, ComboboxContent, ComboboxList,
   ComboboxItem, ComboboxEmpty, ComboboxStatus, ComboboxGroup, ComboboxGroupLabel, ComboboxCollection,
   ComboboxSeparator, ComboboxValue, ComboboxChips, ComboboxChip, ComboboxChipRemove (on Base UI

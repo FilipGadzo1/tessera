@@ -14,6 +14,27 @@ export const textFieldBase: string[] = [
   "transition-[color,background-color,border-color,outline-color,box-shadow,translate] duration-150 ease-out motion-reduce:transition-none",
 ];
 
+/**
+ * The `textFieldBase` look for a container whose `<input>` sits inside it (NumberField group,
+ * Combobox input group). Written out rather than derived from `textFieldBase` by string surgery:
+ * - Focus lives on the child input, so the ring uses `focus-within` instead of `focus`.
+ * - A `<div>` never matches `:read-only` / `:disabled`, so it keys off Base UI's `data-readonly` /
+ *   `data-disabled` / `data-invalid` (the group gets the Root / Field state), plus
+ *   `has-aria-invalid:` for an `aria-invalid` set directly on the input without a `Field`.
+ * - The transition list drops `outline-color` (Phase E spec, *Amended in Task 4*): transitioning
+ *   it on a `:focus-within` ring (an ancestor of the focused element) leaves the ring interpolating
+ *   from its pre-focus colour right after the focus change — a momentary wrong-colour flash —
+ *   unlike a `:focus` ring on the focused element itself. Without it the ring colour snaps.
+ */
+export const textFieldGroupBase: string[] = [
+  "inline-flex w-full min-w-0 items-stretch overflow-hidden rounded-md border border-field-border bg-field text-foreground shadow-xs",
+  "not-data-disabled:not-data-invalid:not-has-aria-invalid:not-focus-within:hover:border-field-border-hover",
+  "outline-none focus-within:outline-1 focus-within:outline-solid focus-within:outline-ring focus-within:border-ring forced-colors:focus-within:outline-[Highlight]",
+  "data-invalid:border-danger data-invalid:focus-within:outline-danger has-aria-invalid:border-danger has-aria-invalid:focus-within:outline-danger",
+  "data-disabled:cursor-not-allowed data-disabled:opacity-50 data-readonly:bg-muted",
+  "transition-[color,background-color,border-color,box-shadow,translate] duration-150 ease-out motion-reduce:transition-none",
+];
+
 /** Height, inline padding and text size per `size` (shared with the Select trigger). */
 export const textFieldSizes = {
   sm: "h-8 px-2.5 text-sm",

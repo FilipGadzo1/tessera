@@ -256,6 +256,57 @@ describe("NumberField", () => {
     }
   });
 
+  it("warns once per instance, not on every render", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const tree = (value: number) => (
+        <NumberField aria-label="Quantity" value={value}>
+          <NumberFieldGroup>
+            <NumberFieldInput />
+          </NumberFieldGroup>
+        </NumberField>
+      );
+      const screen = await render(tree(1));
+      await screen.rerender(tree(2));
+      await screen.rerender(tree(3));
+      expect(warn).toHaveBeenCalledTimes(1);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it("an aria-invalid input outside a Field gives the group the danger border", async () => {
+    const screen = await render(
+      <div>
+        <NumberField defaultValue={1}>
+          <NumberFieldGroup>
+            <NumberFieldInput aria-label="Quantity" aria-invalid />
+          </NumberFieldGroup>
+        </NumberField>
+        <div data-testid="ref" className="border border-danger" />
+      </div>,
+    );
+    const group = screen.container.querySelector('[data-slot="number-field-group"]') as HTMLElement;
+    expect(group.hasAttribute("data-invalid")).toBe(false);
+    expect(getComputedStyle(group).borderTopColor).toBe(
+      getComputedStyle(screen.getByTestId("ref").element()).borderTopColor,
+    );
+  });
+
+  // v2 §4: hover styles are gated with `not-data-disabled:`. At its bound a stepper is disabled.
+  it("a disabled stepper button keeps its background and colour on hover", async () => {
+    const screen = await render(<NumberField aria-label="Quantity" defaultValue={5} max={5} />);
+    const increment = incrementOf(screen.container);
+    expect(increment.hasAttribute("data-disabled")).toBe(true);
+    const before = getComputedStyle(increment);
+    const [background, color] = [before.backgroundColor, before.color];
+    await userEvent.hover(increment);
+    expect(increment.matches(":hover")).toBe(true);
+    expect(getComputedStyle(increment).backgroundColor).toBe(background);
+    expect(getComputedStyle(increment).color).toBe(color);
+    await userEvent.hover(document.body, { position: { x: 0, y: 0 } });
+  });
+
   it("does not warn when aria-label is used with the childless convenience default", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     try {

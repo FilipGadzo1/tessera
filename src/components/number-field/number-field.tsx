@@ -1,6 +1,7 @@
 "use client";
 
 import { NumberField as BaseNumberField } from "@base-ui/react/number-field";
+import { useEffect, useRef } from "react";
 import { mergeClassName } from "../../lib/merge-class-name";
 import {
   type NumberFieldGroupVariantProps,
@@ -29,18 +30,20 @@ export function NumberField({
   "aria-labelledby": ariaLabelledBy,
   ...props
 }: NumberFieldProps) {
-  if (
-    process.env.NODE_ENV !== "production" &&
-    children != null &&
-    (ariaLabel != null || ariaLabelledBy != null)
-  ) {
-    console.warn(
-      "NumberField: `aria-label`/`aria-labelledby` is ignored when `children` is given — it " +
-        "can't be forwarded to a custom subtree, and Base UI's Root renders a plain, non-labelable " +
-        "`<div>`, so it isn't applied there either. Set `aria-label`/`aria-labelledby` directly on " +
-        "your own `NumberFieldInput` instead.",
-    );
-  }
+  const ignoredLabel = children != null && (ariaLabel != null || ariaLabelledBy != null);
+  const warned = useRef(false);
+  useEffect(() => {
+    // Once per instance, not on every render.
+    if (process.env.NODE_ENV !== "production" && ignoredLabel && !warned.current) {
+      warned.current = true;
+      console.warn(
+        "NumberField: `aria-label`/`aria-labelledby` is ignored when `children` is given — it " +
+          "can't be forwarded to a custom subtree, and Base UI's Root renders a plain, " +
+          "non-labelable `<div>`, so it isn't applied there either. Set " +
+          "`aria-label`/`aria-labelledby` directly on your own `NumberFieldInput` instead.",
+      );
+    }
+  }, [ignoredLabel]);
   return (
     <BaseNumberField.Root {...props} data-slot="number-field">
       {children ?? (
@@ -90,7 +93,7 @@ export function NumberFieldInput({ className, ...props }: NumberFieldInputProps)
 }
 
 const numberFieldButtonBase =
-  "flex aspect-square h-full cursor-pointer items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground data-disabled:cursor-not-allowed data-disabled:opacity-50";
+  "flex aspect-square h-full cursor-pointer items-center justify-center text-muted-foreground not-data-disabled:hover:bg-muted not-data-disabled:hover:text-foreground data-disabled:cursor-not-allowed data-disabled:opacity-50";
 
 export type NumberFieldIncrementProps = BaseNumberField.Increment.Props;
 

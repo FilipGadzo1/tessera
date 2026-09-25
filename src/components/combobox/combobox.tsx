@@ -20,7 +20,7 @@ const comboboxChipsInputBase =
 /* Trigger and clear: Base UI renders both with `tabIndex={-1}` (the input owns the keyboard), so
  * they are mouse-only and carry no focus ring. */
 const comboboxButtonBase =
-  "flex shrink-0 cursor-pointer items-center justify-center rounded-sm px-1 text-muted-foreground outline-none hover:text-foreground data-disabled:cursor-not-allowed data-disabled:hover:text-muted-foreground [&_svg]:size-4";
+  "flex shrink-0 cursor-pointer items-center justify-center rounded-sm px-1 text-muted-foreground outline-none not-data-disabled:hover:text-foreground data-disabled:cursor-not-allowed [&_svg]:size-4";
 const comboboxContentBase =
   "min-w-(--anchor-width) max-h-[min(var(--available-height),20rem)] overflow-y-auto p-1";
 // A listbox must own options: while filtering leaves none, hide it (it stays in the DOM, so the
@@ -37,7 +37,7 @@ const comboboxSeparatorBase = "-mx-1 my-1 h-px bg-border";
 const comboboxChipBase =
   "inline-flex h-6 items-center gap-1 rounded-md bg-muted px-1.5 text-xs text-foreground outline-none outline-offset-1 outline-ring focus-visible:outline-2 focus-visible:outline-solid forced-colors:focus-visible:outline-[Highlight] data-disabled:opacity-50";
 const comboboxChipRemoveBase =
-  "-me-0.5 flex size-4 cursor-pointer items-center justify-center rounded-sm text-muted-foreground outline-none hover:bg-foreground/10 hover:text-foreground disabled:cursor-not-allowed aria-disabled:cursor-not-allowed [&_svg]:size-3";
+  "-me-0.5 flex size-4 cursor-pointer items-center justify-center rounded-sm text-muted-foreground outline-none not-data-disabled:hover:bg-foreground/10 not-data-disabled:hover:text-foreground disabled:cursor-not-allowed aria-disabled:cursor-not-allowed [&_svg]:size-3";
 
 /*
  * `Combobox.Chips` holds no input group, so Base UI anchors the popup to the (narrow) `<input>`
