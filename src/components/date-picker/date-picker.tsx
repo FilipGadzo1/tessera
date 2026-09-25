@@ -56,7 +56,14 @@ interface PickerSharedProps extends PickerTriggerProps {
   placeholder?: string;
   /** How the trigger shows the value. @default { dateStyle: "medium" } */
   format?: Intl.DateTimeFormatOptions;
-  /** BCP 47 locale for the trigger text and the calendar. @default the document's `lang`, else the browser's */
+  /**
+   * BCP 47 locale for the trigger text and the calendar.
+   * @default the document's `lang`, else the browser's
+   *
+   * Pass it explicitly when server-rendering (see `Calendar`'s `locale` doc): the default reads
+   * `document.documentElement.lang` on the client only, which can disagree with the server and
+   * cause a hydration mismatch.
+   */
   locale?: string;
   /** The earliest selectable day. */
   min?: Date | null;

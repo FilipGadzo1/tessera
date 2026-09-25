@@ -397,7 +397,9 @@ source files automatically (build output + `"use client"` directive checks).
   `RangeCalendar` takes a `{ start, end }` value: the first pick sets the start, the second the end
   (swapped if earlier), a third starts over; while only the start is set the hovered or focused day
   previews the band. `numberOfMonths={2}` shows two months side by side with keyboard navigation
-  running across both (the days between them aren't repeated as outside days). Client component)
+  running across both (the days between them aren't repeated as outside days). Pass `locale`
+  explicitly when server-rendering; an inline Calendar's today marker is computed on the client.
+  Client component)
 - [x] DatePicker, DateRangePicker (a Select-styled trigger — same `size` scale and heights as
   Select and Input, a leading calendar icon — opening a Calendar in a Popover; no typed date field.
   Focus lands on the picked day (or today); picking closes and returns focus to the trigger, Escape
@@ -410,7 +412,8 @@ source files automatically (build output + `"use client"` directive checks).
   shows two months (`numberOfMonths`), stays open after the start and closes after the end, reverts
   an unfinished pick on Escape or an outside click, reports only complete ranges, shows the range
   via `formatRange` ("Sep 1 – 12, 2026") and submits `startName` / `endName`. No clear button:
-  render a Button beside it. Client component)
+  render a Button beside it. Pass `locale` explicitly when server-rendering; an inline Calendar's
+  today marker is computed on the client. Client component)
 
 Phase A (foundation), Phase B (forms), Phase C (overlays), Phase D (navigation and feedback),
 Phase E (data entry and display) and Phase F (dates, toolbars and surfaces — Meter, ScrollArea,

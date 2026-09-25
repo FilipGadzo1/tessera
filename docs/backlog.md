@@ -157,6 +157,66 @@ phase; items fixed by a later commit are left out).
   steady-width mode that always returns the same count (padding with extra pages near the edges).
 
 ### Phase F notes
+- Calendar / DatePicker (final review I1, SSR/hydration): `calendar-base.tsx` resolves the locale
+  from `document.documentElement.lang` and computes "today" during render (`calendar-base.tsx`
+  `resolveLocale` and the `today` local; `date-picker.tsx`'s pickers inherit both through
+  `Calendar`/`RangeCalendar`). When a client component is server-rendered, the server (no
+  `document`, no reliable "now") and the client can disagree, causing a hydration mismatch. The
+  README and the `locale` prop's JSDoc now say to pass `locale` explicitly when server-rendering.
+  Real fix later: a `today` prop (so the caller controls it, e.g. from a server-computed value), or
+  compute "today" in an effect instead of during render.
+- Calendar caption (final review I2, spec scope ruling): month/year dropdowns in the calendar
+  caption were ruled out of scope for Phase F; the caption is a plain live region with only
+  prev/next navigation. Reconsider for a future phase if a long date range (e.g. a birthdate
+  picker) makes paging by month impractical.
+- Calendar (final review I2): the visible month doesn't follow a controlled `value` changed after
+  mount on the standalone `Calendar` (`DatePicker` is covered — it always shows the picked day's
+  month once open). A caller that controls `value` and jumps it far from the visible month must
+  also update `month` itself.
+- `date.ts` (final review I2): years 0–99 are handled inconsistently — `parseISODate` keeps them
+  literal (via `setFullYear`), but the `Date(year, month, day)` constructor used elsewhere (e.g.
+  `toDay`, `addDays`) maps a 0–99 year to 1900–1999, per the spec. A round trip through
+  `parseISODate` then any other helper can silently jump a century for such years.
+- Calendar (final review I2): the two-month Tab-stop fallback (`CalendarBase`'s `firstEnabledDay`)
+  only searches the first visible month, so with `numberOfMonths={2}` and every day of the first
+  month disabled, the Tab stop can land on a disabled day instead of falling through to the second
+  month.
+- Calendar (final review I2): with `numberOfMonths={2}`, both months render their own `aria-live`
+  caption, so a month change that touches both (e.g. jumping a year) can announce twice.
+- Calendar (final review I2): no test asserts that a controlled `month` which ignores
+  `onMonthChange` (the app keeps `month` fixed) is respected — i.e. that the calendar doesn't
+  silently move anyway.
+- Calendar (final review I2): no test exercises the prev/next month buttons' cursor (`min`/`max`
+  disable them at the bounds) directly — only keyboard clamping is covered.
+- DateRangePicker (final review I2): a partial controlled range (only `start` set, passed via
+  `value`) isn't reverted on Escape or an outside click the way an uncontrolled in-progress pick
+  is — `RangePickerCalendar`'s draft-drop logic only clears its own internal draft, not a
+  caller-controlled `value`.
+- DatePicker (final review I2): a caller's own `aria-invalid` on the trigger doesn't set
+  `data-invalid` (only the Field's `invalid` state does), so the invalid border only applies
+  through a Field, not a bare `aria-invalid` prop.
+- Field validation registration (final review I2): if Base UI 1.8 has landed
+  `internals/field-register-control` (a documented way for a custom control to register with a
+  Field, unlike the two internals `DatePicker` currently uses), pick it up — it may let the pickers
+  register as a Field control and wire `validate` / `required` (see the Task 5 note below).
+- ToggleGroup (final review I2): vertical attached geometry (`variant="outline"` +
+  `orientation="vertical"`) has no test — only the horizontal attached case
+  (`attachedClasses.vertical` in `toggle.tsx`) is exercised.
+- Tooling (final review I2): `test/pointer.ts` parks the real pointer at `(0, 0)` between tests,
+  which collides with hover fixtures rendered at the page origin (see the `m-4` workaround note in
+  `scroll-area.test.tsx`'s `TallList`). A fixture that must sit at the origin needs its own
+  workaround; there's no general fix yet.
+- Separators (final review I2): `bg-border` is invisible in forced colors library-wide — Separator,
+  Menu (`MenuSeparator`), Select (`SelectSeparator`), Combobox (`ComboboxSeparator`) and Toolbar
+  (`ToolbarSeparator`) all render a `bg-border` divider with no forced-colors override, so Windows
+  High Contrast shows no visible line. A shared forced-colors class (e.g.
+  `forced-colors:bg-[CanvasText]`, as `ScrollArea`'s thumb already does) would fix all five at
+  once.
+- Editor example (final review I2): the formatting/alignment `ToggleGroup` state is cosmetic —
+  toggling Bold/Italic/Underline or the alignment doesn't style `bodyParagraphs`' rendered text (no
+  real rich-text engine backs the example). The byline avatar loads from an external host
+  (`i.pravatar.cc`), which is fine for a Storybook example but not for an offline/CSP-restricted
+  build.
 - DateRangePicker (Task 5): a range may span disabled days (`isDateDisabled`, e.g. weekends or
   booked nights). Only the two ends are checked (each must be an enabled day); the days between
   are not validated, and the picker accepts the range. A caller that needs contiguous availability

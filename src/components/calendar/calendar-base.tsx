@@ -65,7 +65,17 @@ export interface CalendarSharedProps
   max?: Date | null;
   /** Disables individual days (they stay focusable, as the APG date grid recommends). */
   isDateDisabled?: (date: Date) => boolean;
-  /** BCP 47 locale for names, labels and the week start. @default the document's `lang`, else the browser's */
+  /**
+   * BCP 47 locale for names, labels and the week start.
+   * @default the document's `lang`, else the browser's
+   *
+   * When server-rendering, the default resolves `document.documentElement.lang` on the client
+   * only (there is no DOM on the server), and "today" is also computed at render time — both can
+   * disagree between the server and the client and cause a hydration mismatch. Pass `locale`
+   * explicitly when server-rendering; an inline Calendar's today marker is computed on the client
+   * (see the backlog: a real fix would add a `today` prop, or move the "today" computation into
+   * an effect).
+   */
   locale?: string;
   /** First day of the week, 0 = Sunday … 6 = Saturday. @default the locale's */
   weekStartsOn?: WeekDay;
