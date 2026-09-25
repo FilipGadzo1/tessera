@@ -75,10 +75,18 @@ function hiddenByOpenModal(node: axe.NodeResult) {
   if (!checks.every((check) => check.id === "focusable-modal-open")) return false;
   const element = document.querySelector(String(node.target[0]));
   if (element?.getAttribute("aria-hidden") !== "true") return false;
-  // The marker on an ancestor counts only for Base UI's aria-live carve-out (see above); an app's
-  // own aria-hidden under a marked subtree without a live region is still reported.
   const marked = element.closest("[data-base-ui-inert]");
-  return marked === element || marked?.querySelector("[aria-live]") != null;
+  if (marked === element) return true;
+  // The marker on an ancestor counts only for Base UI's aria-live carve-out (see above).
+  // `markOthers` keeps every [aria-live] region and its ancestors exposed and hides their other
+  // children, so an element it hid has a parent holding a live region and holds none itself. An
+  // app's own aria-hidden elsewhere in a marked subtree is still reported.
+  return (
+    marked != null &&
+    element.parentElement?.querySelector("[aria-live]") != null &&
+    element.querySelector("[aria-live]") == null &&
+    !element.hasAttribute("aria-live")
+  );
 }
 
 /** Text inside the open modal (not behind it) whose contrast axe left undecided over the page. */

@@ -142,6 +142,33 @@ describe("auditOpenOverlay", () => {
     expect(incomplete).toEqual(["aria-hidden-focus: #app-hidden"]);
   });
 
+  // Base UI hides only the non-live siblings along the path to a live region: the hidden element's
+  // parent holds the live region. A live region elsewhere in the marked subtree does not excuse it.
+  it("still reports app-set aria-hidden content whose parent holds no aria-live region", async () => {
+    mount(
+      `<div data-base-ui-inert>
+         <div><div aria-hidden="true" id="app-hidden"><button type="button">Behind</button></div></div>
+         <output aria-live="off">3</output>
+       </div>
+       <div role="dialog" aria-label="Open dialog"><button type="button">Inside</button></div>`,
+    );
+    const { incomplete } = await auditOpenOverlay();
+    expect(incomplete).toEqual(["aria-hidden-focus: #app-hidden"]);
+  });
+
+  it("still reports aria-hidden content that itself contains the live region", async () => {
+    mount(
+      `<div data-base-ui-inert>
+         <div aria-hidden="true" id="app-hidden"><button type="button">Behind</button>
+           <output aria-live="off">3</output></div>
+         <output aria-live="off">4</output>
+       </div>
+       <div role="dialog" aria-label="Open dialog"><button type="button">Inside</button></div>`,
+    );
+    const { incomplete } = await auditOpenOverlay();
+    expect(incomplete).toEqual(["aria-hidden-focus: #app-hidden"]);
+  });
+
   it("still reports aria-hidden focusable content that Base UI did not hide", async () => {
     mount(
       `<div aria-hidden="true"><button type="button">Behind</button></div>
