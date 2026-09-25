@@ -91,20 +91,68 @@ type LocaleWithWeekInfo = Intl.Locale & {
   weekInfo?: WeekInfo;
 };
 
+// CLDR weekData "firstDay sun" / "firstDay sat" (a region-based fallback for runtimes whose
+// `Intl.Locale` exposes no week info at all, e.g. Firefox — see MDN `Intl.Locale.prototype.
+// getWeekInfo`). Not exhaustive: the main Sunday- and Saturday-start regions. AU is Monday in
+// CLDR, so it is intentionally not in the Sunday set.
+const sundayRegions = new Set([
+  "US",
+  "CA",
+  "MX",
+  "BR",
+  "JP",
+  "IL",
+  "IN",
+  "KR",
+  "TW",
+  "HK",
+  "PH",
+  "ZA",
+]);
+const saturdayRegions = new Set([
+  "EG",
+  "SA",
+  "AE",
+  "QA",
+  "BH",
+  "KW",
+  "OM",
+  "JO",
+  "SY",
+  "IQ",
+  "LY",
+  "DZ",
+  "MA",
+  "TN",
+  "YE",
+]);
+
+/**
+ * The region-based CLDR fallback used only when the runtime's `Intl.Locale` exposes no week info
+ * at all (Firefox may lack both `getWeekInfo` and `weekInfo`). Exported for a unit test that can't
+ * otherwise force that runtime gap in Chromium, which does support `getWeekInfo`.
+ */
+export function regionWeekStartsOn(region: string | undefined): WeekDay {
+  if (region && sundayRegions.has(region)) return 0;
+  if (region && saturdayRegions.has(region)) return 6;
+  return 1;
+}
+
 /**
  * The locale's first day of the week (0 = Sunday), from `Intl.Locale#getWeekInfo()`, falling back
- * to the older `weekInfo` getter, then Monday. Without `locale`, uses the runtime's default.
+ * to the older `weekInfo` getter, then a region-based CLDR table (`regionWeekStartsOn`), then
+ * Monday. Without `locale`, uses the runtime's default.
  */
 export function getWeekStartsOn(locale?: string): WeekDay {
   try {
-    const info = new Intl.Locale(
-      locale ?? new Intl.DateTimeFormat().resolvedOptions().locale,
-    ) as LocaleWithWeekInfo;
+    const tag = locale ?? new Intl.DateTimeFormat().resolvedOptions().locale;
+    const info = new Intl.Locale(tag) as LocaleWithWeekInfo;
     const weekInfo = info.getWeekInfo?.() ?? info.weekInfo;
     // Intl numbers the days 1 (Monday) … 7 (Sunday).
     if (weekInfo && weekInfo.firstDay >= 1 && weekInfo.firstDay <= 7) {
       return (weekInfo.firstDay % 7) as WeekDay;
     }
+    return regionWeekStartsOn(new Intl.Locale(tag).maximize().region);
   } catch {
     // Invalid locale tag: fall through to Monday.
   }

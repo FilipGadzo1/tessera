@@ -13,6 +13,7 @@ import {
   isSameDay,
   isSameMonth,
   parseISODate,
+  regionWeekStartsOn,
   startOfMonth,
   startOfWeek,
   toDay,
@@ -218,6 +219,32 @@ describe("getWeekStartsOn", () => {
 
   it("falls back to Monday for an invalid locale", () => {
     expect(getWeekStartsOn("not a locale!")).toBe(1);
+  });
+
+  // The region-based CLDR fallback (`regionWeekStartsOn`) only runs when the runtime's
+  // `Intl.Locale` exposes no week info at all (Firefox may lack both `getWeekInfo` and
+  // `weekInfo`). Chromium (this suite's runtime) does support `getWeekInfo`, so the fallback is
+  // exercised directly here instead of through `getWeekStartsOn`.
+  describe("regionWeekStartsOn (the Firefox fallback path)", () => {
+    it.each([
+      ["US", 0],
+      ["CA", 0],
+      ["MX", 0],
+      ["JP", 0],
+      ["DE", 1],
+      ["GB", 1],
+      ["AU", 1],
+      ["EG", 6],
+      ["SA", 6],
+      ["AE", 6],
+    ] as const)("region %s starts the week on %i", (region, expected) => {
+      expect(regionWeekStartsOn(region)).toBe(expected);
+    });
+
+    it("falls back to Monday for an unmapped or missing region", () => {
+      expect(regionWeekStartsOn("FR")).toBe(1);
+      expect(regionWeekStartsOn(undefined)).toBe(1);
+    });
   });
 });
 
