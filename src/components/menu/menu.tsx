@@ -5,10 +5,15 @@ import type { ComponentProps } from "react";
 import { cn } from "../../lib/cn";
 import { CheckIcon, ChevronRightIcon, DotIcon } from "../../lib/icons";
 import { mergeClassName } from "../../lib/merge-class-name";
-import { menuItemBase, popupMotion, popupSurface } from "../../lib/overlay-classes";
+import {
+  menuContentClasses,
+  menuItemBase,
+  popupMotion,
+  popupSurface,
+} from "../../lib/overlay-classes";
 import { useLayeredEscape } from "../../lib/tooltip-escape";
 
-const menuContentBase = "min-w-(--anchor-width) max-h-(--available-height) overflow-y-auto p-1";
+const menuContentBase = cn("min-w-(--anchor-width)", menuContentClasses);
 /**
  * A submenu's anchor is its trigger item, as wide as the parent menu: sizing to it would make
  * every short submenu as wide as its parent. It gets a fixed floor instead and grows to content.

@@ -122,6 +122,14 @@ export {
   comboboxInputGroupVariants,
 } from "./components/combobox";
 export {
+  ContextMenu,
+  ContextMenuContent,
+  type ContextMenuContentProps,
+  type ContextMenuProps,
+  ContextMenuTrigger,
+  type ContextMenuTriggerProps,
+} from "./components/context-menu";
+export {
   Dialog,
   DialogClose,
   type DialogCloseProps,
@@ -279,6 +287,14 @@ export {
   PopoverTrigger,
   type PopoverTriggerProps,
 } from "./components/popover";
+export {
+  PreviewCard,
+  PreviewCardContent,
+  type PreviewCardContentProps,
+  type PreviewCardProps,
+  PreviewCardTrigger,
+  type PreviewCardTriggerProps,
+} from "./components/preview-card";
 export {
   Progress,
   ProgressLabel,

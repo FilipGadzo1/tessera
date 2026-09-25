@@ -40,6 +40,8 @@ export default defineConfig({
       "@base-ui/react/combobox",
       "@base-ui/react/drawer",
       "@base-ui/react/toast",
+      "@base-ui/react/preview-card",
+      "@base-ui/react/context-menu",
       // Icons used by the docs examples (src/docs/examples).
       "lucide-react",
     ],

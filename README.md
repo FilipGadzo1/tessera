@@ -362,10 +362,28 @@ source files automatically (build output + `"use client"` directive checks).
   `ToolbarSeparator`'s own orientation defaults to the opposite of the toolbar's, so a horizontal
   toolbar gets a vertical divider and vice versa. `orientation` on `Toolbar`: `horizontal`
   (default) or `vertical`. Client component)
+- [x] PreviewCard, PreviewCardTrigger, PreviewCardContent (Base UI's name for what other libraries
+  call HoverCard — it also opens on keyboard focus, not just hover, so "hover" undersold it. The
+  trigger is an unstyled `<a>`, like `MenuTrigger`; style it as any link, or compose with `render`.
+  Opens after `delay` (default 600ms) on hover or immediately on focus, closes after `closeDelay`
+  (default 300ms) on unhover or immediately on blur; Escape closes it, yielding first to a layered
+  Tooltip open inside it. No arrow (Tooltip has none either). Client component)
+- [x] ContextMenu, ContextMenuTrigger, ContextMenuContent (opens on right-click or long-press,
+  positioned at the pointer. `ContextMenuTrigger` is an unstyled `<div>` drop-zone-like area —
+  `data-slot` and, while open, `data-popup-open` to style it. Its items are the `Menu` parts
+  unchanged (`MenuItem`, `MenuCheckboxItem`, `MenuRadioGroup`/`MenuRadioItem`, `MenuGroup`/
+  `MenuGroupLabel`, `MenuSeparator`, `MenuSub`/`MenuSubTrigger`/`MenuSubContent`, `MenuShortcut`):
+  Base UI's `ContextMenu.*` re-exports the same `Menu` item parts, so Tessera only adds the Root,
+  Trigger and Content. `ContextMenuContent` doesn't size to an anchor width like `MenuContent`
+  (`min-w-32` instead): its anchor is the whole trigger area, not one item. Base UI 1.8 has no
+  keyboard opening for the trigger (checked its source: only `onContextMenu` / `onTouchStart` /
+  `onTouchMove` are wired, no `keydown` handler) — *Amended in Task 3*, see the spec. Escape closes
+  it and focus returns to where it was. A context menu should only duplicate actions reachable
+  elsewhere. Client component)
 
 Phase A (foundation), Phase B (forms), Phase C (overlays), Phase D (navigation and feedback) and
 Phase E (data entry and display) are complete. Phase F (dates, toolbars and surfaces) is in
-progress: Meter, ScrollArea, Toggle/ToggleGroup and Toolbar are done.
+progress: Meter, ScrollArea, Toggle/ToggleGroup, Toolbar, PreviewCard and ContextMenu are done.
 
 Composition: when a part is rendered through another (`<Fieldset render={<RadioGroup className=…/>}>`),
 the outer part's own classes win over conflicting classes on the render element (Base UI merges the

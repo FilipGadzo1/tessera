@@ -29,3 +29,11 @@ export const popupSurface =
  */
 export const menuItemBase =
   "relative flex cursor-pointer select-none items-center gap-2 rounded-md px-2 py-1.5 text-sm outline-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:cursor-not-allowed data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 data-highlighted:outline-2 data-highlighted:outline-solid data-highlighted:outline-transparent data-highlighted:-outline-offset-2";
+
+/**
+ * Menu popup content shared between `MenuContent` and `ContextMenuContent` (Base UI's `ContextMenu`
+ * re-exports the `Menu` popup, and Tessera gives it the same look): scrolls when taller than the
+ * viewport, padded for its items. Each caller adds its own minimum width (`MenuContent` sizes to
+ * its anchor; `ContextMenuContent`'s anchor is the whole trigger area, so it gets a fixed floor).
+ */
+export const menuContentClasses = "max-h-(--available-height) overflow-y-auto p-1";
