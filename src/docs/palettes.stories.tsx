@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { CSSProperties } from "react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../components/tooltip";
 
 const STEPS = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950] as const;
 const SURFACE_STEPS = [0, ...STEPS] as const;
@@ -43,20 +44,29 @@ function Tile({
   const token = `--tsr-${palette}-${step}`;
   const onDark = step >= 500;
   return (
-    <div
-      title={token}
-      className="group relative h-(--tile-size) flex-1 rounded-[3px] transition-[rotate,scale] duration-200 ease-out hover:z-10 hover:scale-125 hover:rotate-(--tile-tilt) motion-reduce:transition-none"
-      style={
-        { background: `var(${token})`, "--tile-tilt": `${tilt(row, column)}deg` } as CSSProperties
-      }
-    >
-      <span
-        className="absolute bottom-1 left-1.5 font-mono text-[10px] opacity-0 transition-opacity group-hover:opacity-100"
-        style={{ color: `var(--tsr-${palette}-${onDark ? 50 : 900})` }}
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <div
+            className="group relative h-(--tile-size) flex-1 rounded-[3px] transition-[rotate,scale] duration-200 ease-out hover:z-10 hover:scale-125 hover:rotate-(--tile-tilt) motion-reduce:transition-none"
+            style={
+              {
+                background: `var(${token})`,
+                "--tile-tilt": `${tilt(row, column)}deg`,
+              } as CSSProperties
+            }
+          />
+        }
       >
-        {step}
-      </span>
-    </div>
+        <span
+          className="absolute bottom-1 left-1.5 font-mono text-[10px] opacity-0 transition-opacity group-hover:opacity-100"
+          style={{ color: `var(--tsr-${palette}-${onDark ? 50 : 900})` }}
+        >
+          {step}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent className="font-mono">{token}</TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -77,31 +87,33 @@ function Palettes() {
             <h2 className="font-semibold text-lg">{group.title}</h2>
             <p className="text-muted-foreground text-xs">{group.note}</p>
           </div>
-          <div className="flex flex-col gap-[3px] rounded-lg bg-border p-[3px]">
-            {group.palettes.map((palette, row) => (
-              // Tile height is the flex width rounded to a whole pixel: aspect-square would copy
-              // the 1/64px width remainders flexbox hands the first tiles, and on a row at a
-              // fractional y those heights snap to alternating pixel rows.
-              <div
-                key={palette}
-                className="@container flex items-center gap-[3px]"
-                style={
-                  {
-                    "--tiles": group.steps.length,
-                    "--tile-size":
-                      "round(calc((100cqw - 6rem - var(--tiles) * 3px) / var(--tiles)), 1px)",
-                  } as CSSProperties
-                }
-              >
-                <span className="w-24 shrink-0 px-2 font-medium text-foreground text-xs capitalize">
-                  {palette}
-                </span>
-                {group.steps.map((step, column) => (
-                  <Tile key={step} palette={palette} step={step} row={row} column={column} />
-                ))}
-              </div>
-            ))}
-          </div>
+          <TooltipProvider delay={150} closeDelay={0}>
+            <div className="flex flex-col gap-[3px] rounded-lg bg-border p-[3px]">
+              {group.palettes.map((palette, row) => (
+                // Tile height is the flex width rounded to a whole pixel: aspect-square would copy
+                // the 1/64px width remainders flexbox hands the first tiles, and on a row at a
+                // fractional y those heights snap to alternating pixel rows.
+                <div
+                  key={palette}
+                  className="@container flex items-center gap-[3px]"
+                  style={
+                    {
+                      "--tiles": group.steps.length,
+                      "--tile-size":
+                        "round(calc((100cqw - 6rem - var(--tiles) * 3px) / var(--tiles)), 1px)",
+                    } as CSSProperties
+                  }
+                >
+                  <span className="w-24 shrink-0 px-2 font-medium text-foreground text-xs capitalize">
+                    {palette}
+                  </span>
+                  {group.steps.map((step, column) => (
+                    <Tile key={step} palette={palette} step={step} row={row} column={column} />
+                  ))}
+                </div>
+              ))}
+            </div>
+          </TooltipProvider>
         </section>
       ))}
     </div>
