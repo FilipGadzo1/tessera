@@ -125,6 +125,9 @@ async function openByClick(name = "Fruit") {
 afterEach(async () => {
   document.documentElement.classList.remove("dark");
   await resetEmulatedMedia();
+  // Park the real (Playwright) pointer at the page's top-left corner, where no test renders a
+  // control, so hover styles never leak into the next test's colour comparisons.
+  await userEvent.hover(document.body, { position: { x: 0, y: 0 } });
 });
 
 describe("Combobox", () => {
@@ -473,6 +476,49 @@ describe("Combobox", () => {
       await userEvent.keyboard("{Escape}");
     });
 
+    it("forwards a ref to the chips element and still anchors the list to it", async () => {
+      const objectRef = { current: null as HTMLDivElement | null };
+      const callbackRef = vi.fn();
+      function Both() {
+        return (
+          <div className="p-16">
+            {(
+              [
+                ["Toppings 0", objectRef],
+                ["Toppings 1", callbackRef],
+              ] as const
+            ).map(([name, ref]) => (
+              <Combobox key={name} items={toppings} multiple defaultValue={["Cheese"]}>
+                <ComboboxChips ref={ref}>
+                  <ComboboxInput aria-label={name} />
+                </ComboboxChips>
+                <ComboboxContent>
+                  <ComboboxList>
+                    {(item: string) => (
+                      <ComboboxItem key={item} value={item}>
+                        {item}
+                      </ComboboxItem>
+                    )}
+                  </ComboboxList>
+                </ComboboxContent>
+              </Combobox>
+            ))}
+          </div>
+        );
+      }
+      const screen = await render(<Both />);
+      expect(objectRef.current).toBe(chipsOf(input("Toppings 0")));
+      expect(callbackRef).toHaveBeenLastCalledWith(chipsOf(input("Toppings 1")));
+      const element = await openByClick("Toppings 0");
+      const chips = chipsOf(input("Toppings 0")).getBoundingClientRect();
+      expect(Math.round(element.getBoundingClientRect().left)).toBe(Math.round(chips.left));
+      expect(element.getBoundingClientRect().width).toBeGreaterThanOrEqual(Math.floor(chips.width));
+      await userEvent.keyboard("{Escape}");
+      await screen.unmount();
+      expect(objectRef.current).toBeNull();
+      expect(callbackRef).toHaveBeenLastCalledWith(null);
+    });
+
     it("the chips field matches Input's height and look, with a focus-within ring", async () => {
       const screen = await render(
         <div>
@@ -487,7 +533,7 @@ describe("Combobox", () => {
       expect(style.backgroundColor).toBe(reference.backgroundColor);
       expect(style.borderTopColor).toBe(reference.borderTopColor);
       expect(style.outlineStyle).toBe("none");
-      await userEvent.click(page.getByRole("textbox", { name: "Reference" }));
+      (page.getByRole("textbox", { name: "Reference" }).element() as HTMLInputElement).focus();
       await userEvent.tab();
       expect(document.activeElement).toBe(input("Toppings"));
       expect(getComputedStyle(chips).outlineStyle).toBe("solid");

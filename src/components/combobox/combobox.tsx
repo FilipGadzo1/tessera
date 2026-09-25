@@ -1,7 +1,7 @@
 "use client";
 
 import { Combobox as BaseCombobox } from "@base-ui/react/combobox";
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, type Ref, useCallback, useContext, useMemo, useState } from "react";
 import { cn } from "../../lib/cn";
 import { mergeClassName } from "../../lib/merge-class-name";
 import { menuItemBase, popupMotion, popupSurface } from "../../lib/overlay-classes";
@@ -391,18 +391,43 @@ export type ComboboxChipsProps = BaseCombobox.Chips.Props;
  * `ComboboxValue`) followed by a `ComboboxInput`. ArrowLeft from the start of the input moves into
  * the chips; Backspace in an empty input removes the last chip. The list anchors to this field.
  */
-export function ComboboxChips({ className, ...props }: ComboboxChipsProps) {
+export function ComboboxChips({ className, ref, ...props }: ComboboxChipsProps) {
   const chips = useContext(ChipsAnchorContext);
+  const setElement = chips?.setElement;
+  // Compose the caller's ref with the anchor registration, so both receive the element. The
+  // returned cleanup (React 19) detaches both, honouring a callback ref's own cleanup.
+  const composedRef = useCallback(
+    (element: HTMLDivElement | null) => {
+      setElement?.(element);
+      const cleanup = assignRef(ref, element);
+      return () => {
+        setElement?.(null);
+        if (cleanup) cleanup();
+        else assignRef(ref, null);
+      };
+    },
+    [setElement, ref],
+  );
   return (
     <InsideChipsContext.Provider value={true}>
       <BaseCombobox.Chips
         {...props}
-        ref={chips?.setElement}
+        ref={composedRef}
         data-slot="combobox-chips"
         className={mergeClassName(cn(comboboxChipsBase), className)}
       />
     </InsideChipsContext.Provider>
   );
+}
+
+/** Sets a callback or object ref; returns the callback ref's cleanup, if any. */
+function assignRef<T>(ref: Ref<T> | undefined, value: T | null) {
+  if (typeof ref === "function") {
+    const cleanup = ref(value);
+    return typeof cleanup === "function" ? cleanup : undefined;
+  }
+  if (ref) ref.current = value;
+  return undefined;
 }
 
 export type ComboboxChipProps = BaseCombobox.Chip.Props;
