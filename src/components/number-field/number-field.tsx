@@ -17,9 +17,11 @@ export type NumberFieldProps = BaseNumberField.Root.Props;
  * renders an unlabelable `<div>`, so those props would otherwise land somewhere assistive tech
  * never reads). Pass children to compose the parts yourself (e.g. a non-default `size`, or a
  * `NumberFieldScrubArea`) — in that case set `aria-label`/`aria-labelledby` on your own
- * `NumberFieldInput` directly, since this component can no longer thread them to it. Works inside
- * a `Field`: the `FieldLabel` names the input, and an invalid `Field` gives the group a danger
- * border.
+ * `NumberFieldInput` directly: this component can no longer thread them to it, and — since a label
+ * on a generic, non-labelable `<div>` isn't valid ARIA — it never forwards them to the Root either;
+ * passing both `children` and a plain `aria-label`/`aria-labelledby` here logs a dev warning. Works
+ * inside a `Field`: the `FieldLabel` names the input, and an invalid `Field` gives the group a
+ * danger border.
  */
 export function NumberField({
   children,
@@ -27,6 +29,18 @@ export function NumberField({
   "aria-labelledby": ariaLabelledBy,
   ...props
 }: NumberFieldProps) {
+  if (
+    process.env.NODE_ENV !== "production" &&
+    children != null &&
+    (ariaLabel != null || ariaLabelledBy != null)
+  ) {
+    console.warn(
+      "NumberField: `aria-label`/`aria-labelledby` is ignored when `children` is given — it " +
+        "can't be forwarded to a custom subtree, and Base UI's Root renders a plain, non-labelable " +
+        "`<div>`, so it isn't applied there either. Set `aria-label`/`aria-labelledby` directly on " +
+        "your own `NumberFieldInput` instead.",
+    );
+  }
   return (
     <BaseNumberField.Root {...props} data-slot="number-field">
       {children ?? (

@@ -42,10 +42,10 @@ export const Sizes: Story = {
       {(["sm", "md", "lg"] as const).map((size) => (
         <div key={size} className="flex items-center gap-3">
           <Input aria-label={`Input ${size}`} size={size} placeholder={size} className="w-24" />
-          <NumberField aria-label={`Quantity ${size}`} defaultValue={1}>
+          <NumberField defaultValue={1}>
             <NumberFieldGroup size={size} className="w-32">
               <NumberFieldDecrement />
-              <NumberFieldInput />
+              <NumberFieldInput aria-label={`Quantity ${size}`} />
               <NumberFieldIncrement />
             </NumberFieldGroup>
           </NumberField>
@@ -66,13 +66,13 @@ export const InFieldInvalid: Story = {
 
 export const ScrubAreaLabel: Story = {
   render: () => (
-    <NumberField aria-label="Volume" defaultValue={50} min={0} max={100}>
+    <NumberField defaultValue={50} min={0} max={100}>
       <NumberFieldScrubArea className="text-sm font-medium text-foreground">
         Volume
       </NumberFieldScrubArea>
       <NumberFieldGroup className="mt-1.5 w-40">
         <NumberFieldDecrement />
-        <NumberFieldInput />
+        <NumberFieldInput aria-label="Volume" />
         <NumberFieldIncrement />
       </NumberFieldGroup>
     </NumberField>

@@ -220,11 +220,11 @@ describe("NumberField", () => {
 
   it("a ScrubArea wraps a label and offers click-drag scrubbing", async () => {
     const screen = await render(
-      <NumberField aria-label="Volume" defaultValue={10}>
+      <NumberField defaultValue={10}>
         <NumberFieldScrubArea>Volume</NumberFieldScrubArea>
         <NumberFieldGroup>
           <NumberFieldDecrement />
-          <NumberFieldInput />
+          <NumberFieldInput aria-label="Volume" />
           <NumberFieldIncrement />
         </NumberFieldGroup>
       </NumberField>,
@@ -232,6 +232,38 @@ describe("NumberField", () => {
     const scrubArea = screen.getByText("Volume").element() as HTMLElement;
     expect(scrubArea.getAttribute("data-slot")).toBe("number-field-scrub-area");
     expect(getComputedStyle(scrubArea).cursor).toBe("ew-resize");
+    // The ScrubArea labels nothing by itself (it's presentational, not a `<label>`); the input
+    // gets its name from its own `aria-label`, set directly since `NumberField` has children here.
+    await expect.element(screen.getByRole("textbox", { name: "Volume" })).toBeInTheDocument();
+  });
+
+  it("warns in dev when aria-label is passed together with children (it can't be forwarded)", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      await render(
+        <NumberField aria-label="Quantity" defaultValue={1}>
+          <NumberFieldGroup>
+            <NumberFieldDecrement />
+            <NumberFieldInput />
+            <NumberFieldIncrement />
+          </NumberFieldGroup>
+        </NumberField>,
+      );
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn.mock.calls[0]?.[0]).toMatch(/aria-label.*children/i);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it("does not warn when aria-label is used with the childless convenience default", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      await render(<NumberField aria-label="Quantity" defaultValue={1} />);
+      expect(warn).not.toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   describe("inside Field", () => {
