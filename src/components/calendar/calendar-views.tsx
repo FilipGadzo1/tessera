@@ -13,8 +13,8 @@ import {
 
 /*
  * The calendar caption's month and year buttons and the month and year views they open (spec
- * §6.2), rendered by `CalendarBase`, which owns the state. Both views are a page of 12 cells in 3
- * rows of 4, addressed by an ordinal: a month is `year * 12 + monthIndex`, a year is the year
+ * §6.2), rendered by `CalendarBase`, which owns the state. Both views are a page of 12 cells in 4
+ * rows of 3, addressed by an ordinal: a month is `year * 12 + monthIndex`, a year is the year
  * itself. A page always starts at a multiple of 12 (the month view shows one year, the year view
  * the 12-year block `floor(year / 12) * 12`), so paging, clamping and keyboard moves are the same
  * arithmetic for both.
@@ -83,7 +83,8 @@ export interface CalendarPaneView {
 }
 
 export const PAGE_SIZE = 12;
-const COLUMNS = 4;
+/** 3 columns × 4 rows: wide chips in the day grid's footprint (fix round 2). */
+const COLUMNS = 3;
 
 /** The first ordinal of the page holding `ordinal`. */
 export const pageStart = (ordinal: number) => Math.floor(ordinal / PAGE_SIZE) * PAGE_SIZE;
@@ -313,7 +314,7 @@ export interface CalendarViewGridProps {
 }
 
 /**
- * A page of 12 months or years as a `role="grid"` table of 3 rows × 4 gridcells, each holding a
+ * A page of 12 months or years as a `role="grid"` table of 4 rows × 3 gridcells, each holding a
  * button: the day grid's pattern (roving tabindex, `aria-selected` on the gridcell, `aria-disabled`
  * buttons that stay focusable, keys clamped at `min` / `max`), in the day grid's footprint.
  */

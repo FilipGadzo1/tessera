@@ -392,7 +392,7 @@ source files automatically (build output + `"use client"` directive checks).
   caption, one roving Tab stop (the focused, selected, today's or first enabled day), ←/→ days
   (flipped under `dir="rtl"`), ↑/↓ weeks, Home/End the locale's week, PageUp/PageDown months,
   Shift+PageUp/PageDown years, Enter/Space select; moving onto another month's day turns the page.
-  The caption's month and year are buttons that open a month view (a 4×3 grid of months) and a
+  The caption's month and year are buttons that open a month view (3 columns × 4 rows of months) and a
   year view (12 years at a time); choosing a year opens its months, choosing a month returns to the
   days with focus on the same day number; the year view's range button, or Escape, returns to the
   days (Escape without closing a surrounding DatePicker). Both views have the same arrow/Home/End/PageUp/PageDown keys and keep

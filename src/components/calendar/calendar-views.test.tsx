@@ -114,15 +114,15 @@ describe("Calendar views: caption buttons", () => {
 });
 
 describe("Calendar views: month view", () => {
-  it("opens by click: a 4×3 grid of months, the visible month selected, the current month marked, focus on it", async () => {
+  it("opens by click: a 3-column × 4-row grid of months, the visible month selected, the current month marked, focus on it", async () => {
     const screen = await render(<Calendar locale="en-US" defaultMonth={d(2026, 9, 1)} />);
     await monthButton().click();
     const grid = screen.getByRole("grid", { name: "Months, 2026" });
     await expect.element(grid).toBeVisible();
     expect(screen.container.querySelector('[data-slot="calendar-grid"]')).toBeNull();
     const rows = grid.element().querySelectorAll("tbody tr");
-    expect(rows).toHaveLength(3);
-    for (const row of rows) expect(row.querySelectorAll('[role="gridcell"]')).toHaveLength(4);
+    expect(rows).toHaveLength(4);
+    for (const row of rows) expect(row.querySelectorAll('[role="gridcell"]')).toHaveLength(3);
     const items = grid.element().querySelectorAll('[data-slot="calendar-month-item"]');
     expect([...items].map((b) => b.textContent)).toEqual([
       "Jan",
@@ -165,14 +165,14 @@ describe("Calendar views: month view", () => {
     const steps: [string, string, string][] = [
       ["{ArrowRight}", "October 2026", "Months, 2026"],
       ["{ArrowLeft}", "September 2026", "Months, 2026"],
-      ["{ArrowUp}", "May 2026", "Months, 2026"],
+      ["{ArrowUp}", "June 2026", "Months, 2026"],
       ["{ArrowDown}", "September 2026", "Months, 2026"],
       ["{Home}", "January 2026", "Months, 2026"],
       ["{End}", "December 2026", "Months, 2026"],
       ["{ArrowRight}", "January 2027", "Months, 2027"],
       ["{PageUp}", "January 2026", "Months, 2026"],
       ["{PageDown}", "January 2027", "Months, 2027"],
-      ["{ArrowUp}", "September 2026", "Months, 2026"],
+      ["{ArrowUp}", "October 2026", "Months, 2026"],
     ];
     for (const [key, expected, grid] of steps) {
       await userEvent.keyboard(key);
@@ -307,7 +307,7 @@ describe("Calendar views: year view", () => {
     expect([...items].map((b) => b.textContent)).toEqual(
       Array.from({ length: 12 }, (_, i) => String(2016 + i)),
     );
-    expect(grid.element().querySelectorAll("tbody tr")).toHaveLength(3);
+    expect(grid.element().querySelectorAll("tbody tr")).toHaveLength(4);
     const current = yearItem(2026).element() as HTMLElement;
     expect(cellOf(current).getAttribute("aria-selected")).toBe("true");
     expect(current.getAttribute("aria-current")).toBe("date");
@@ -348,7 +348,7 @@ describe("Calendar views: year view", () => {
       ["{ArrowRight}", "2027", 2016],
       ["{ArrowRight}", "2028", 2028],
       ["{ArrowLeft}", "2027", 2016],
-      ["{ArrowUp}", "2023", 2016],
+      ["{ArrowUp}", "2024", 2016],
       ["{ArrowDown}", "2027", 2016],
       ["{Home}", "2016", 2016],
       ["{End}", "2027", 2016],
@@ -530,7 +530,7 @@ describe("Calendar views: footprint, forced colors and axe", () => {
   });
 
   it.each(["month", "year"] as const)(
-    "the %s cells fill the grid evenly (no sparse rows)",
+    "the %s cells are wide chips filling the grid evenly (3 columns × 4 rows)",
     async (view) => {
       const screen = await render(<Calendar locale="en-US" defaultMonth={d(2026, 9, 1)} />);
       await (view === "month" ? monthButton() : yearButton()).click();
@@ -538,11 +538,14 @@ describe("Calendar views: footprint, forced colors and axe", () => {
       const items = [...grid.querySelectorAll("button")];
       const box = (i: number) => items[i]?.getBoundingClientRect() as DOMRect;
       const g = grid.getBoundingClientRect();
-      // Taller than a day (36px), and the three rows span the grid with small, even gaps.
-      expect(box(0).height).toBeGreaterThanOrEqual(56);
+      // Wide chips (3 columns × 4 rows, fix round 2): taller than a day (36px) and wider than
+      // tall, and the four rows span the grid with small, even gaps.
+      expect(box(0).height).toBeGreaterThanOrEqual(52);
+      expect(box(0).width).toBeGreaterThan(box(0).height);
+      expect(box(0).width).toBeGreaterThanOrEqual(72);
       expect(box(0).top - g.top).toBeLessThanOrEqual(12);
       expect(g.bottom - box(11).bottom).toBeLessThanOrEqual(12);
-      const rowGap = box(4).top - box(0).bottom;
+      const rowGap = box(3).top - box(0).bottom;
       const columnGap = box(1).left - box(0).right;
       expect(Math.abs(rowGap - columnGap)).toBeLessThanOrEqual(8);
     },

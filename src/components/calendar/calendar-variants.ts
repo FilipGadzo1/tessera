@@ -64,11 +64,11 @@ export function calendarViewItemClasses(state: {
   disabled: boolean;
 }): string {
   return cn(
-    "relative inline-flex h-19 w-full cursor-pointer select-none items-center justify-center rounded-md text-sm tabular-nums",
+    "relative inline-flex h-13.75 w-full cursor-pointer select-none items-center justify-center rounded-md text-sm tabular-nums",
     focusRing,
     "not-data-disabled:hover:bg-muted",
     state.current &&
-      cn(currentMarker, "after:bottom-3 after:left-1/2 after:w-3 after:-translate-x-1/2"),
+      cn(currentMarker, "after:bottom-2 after:left-1/2 after:w-3 after:-translate-x-1/2"),
     state.selected && selectedClasses,
     state.disabled && disabledClasses,
   );
