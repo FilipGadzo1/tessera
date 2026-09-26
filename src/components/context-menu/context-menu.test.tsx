@@ -47,6 +47,7 @@ function Area({ onDelete, children, ...props }: AreaProps) {
 }
 
 const menu = () => page.getByRole("menu");
+const menus = () => document.querySelectorAll('[role="menu"]');
 const area = () => page.getByTestId("area");
 const item = (name: string) => page.getByRole("menuitem", { name, exact: false });
 
@@ -197,6 +198,11 @@ describe("ContextMenu", () => {
         await openAt(100, 100);
         await userEvent.click(item("More tools"));
         await expect.element(item("Developer tools")).toBeVisible();
+        await expect.poll(() => menus().length).toBe(2);
+        // The submenu is a second, independently-animating popup: without waiting for its own
+        // enter transition to settle, axe can audit it mid-fade (partial opacity), which once
+        // flagged a color-contrast violation on its text.
+        await waitForPopupSettled(menus()[1] as HTMLElement);
         const { violations, incomplete } = await auditOpenOverlay();
         expect(violations).toEqual([]);
         expect(incomplete).toEqual([]);
