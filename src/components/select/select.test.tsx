@@ -2,6 +2,7 @@ import { type ReactNode, useRef } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
+import { emulateForcedColors, resetEmulatedMedia, systemColor } from "../../../test/emulation";
 import { auditOpenOverlay, waitForPopupSettled } from "../../../test/overlay";
 import { Button } from "../button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "../dialog";
@@ -90,8 +91,9 @@ async function focusTrigger() {
   expect(document.activeElement).toBe(trigger().element());
 }
 
-afterEach(() => {
+afterEach(async () => {
   document.documentElement.classList.remove("dark");
+  await resetEmulatedMedia();
 });
 
 describe("Select", () => {
@@ -678,4 +680,14 @@ describe("Select", () => {
       }
     },
   );
+
+  it("keeps SelectSeparator visible in forced colors", async () => {
+    await emulateForcedColors(true);
+    expect(matchMedia("(forced-colors: active)").matches).toBe(true);
+    await render(<Fruit defaultOpen />);
+    const sep = popup()?.querySelector('[data-slot="select-separator"]') as HTMLElement;
+    const style = getComputedStyle(sep);
+    expect(style.backgroundColor).toBe(systemColor("CanvasText"));
+    expect(style.backgroundColor).not.toBe(systemColor("Canvas"));
+  });
 });

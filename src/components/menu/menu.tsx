@@ -28,7 +28,7 @@ const menuIndicatorItem = "pl-8";
 const menuItemIndicatorBase = "absolute left-2 flex size-4 items-center justify-center";
 const menuSubTriggerBase = "data-popup-open:bg-accent";
 const menuSubTriggerChevron = "ml-auto";
-const menuSeparatorBase = "-mx-1 my-1 h-px bg-border";
+const menuSeparatorBase = "-mx-1 my-1 h-px bg-border forced-colors:bg-[CanvasText]";
 const menuGroupLabelBase = "px-2 py-1.5 text-xs font-medium text-muted-foreground";
 const menuShortcutBase = "ml-auto text-xs tracking-widest text-muted-foreground";
 

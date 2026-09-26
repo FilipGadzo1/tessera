@@ -210,4 +210,20 @@ describe("Toolbar", () => {
     expect(results.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
     expect(results.incomplete.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
   });
+
+  it("keeps ToolbarSeparator visible in forced colors", async () => {
+    await emulateForcedColors(true);
+    expect(matchMedia("(forced-colors: active)").matches).toBe(true);
+    const screen = await render(
+      <Toolbar aria-label="H">
+        <ToolbarButton>A</ToolbarButton>
+        <ToolbarSeparator />
+        <ToolbarButton>B</ToolbarButton>
+      </Toolbar>,
+    );
+    const sep = screen.container.querySelector('[data-slot="toolbar-separator"]') as HTMLElement;
+    const style = getComputedStyle(sep);
+    expect(style.backgroundColor).toBe(systemColor("CanvasText"));
+    expect(style.backgroundColor).not.toBe(systemColor("Canvas"));
+  });
 });

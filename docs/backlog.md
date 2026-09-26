@@ -202,12 +202,6 @@ phase; items fixed by a later commit are left out).
   which collides with hover fixtures rendered at the page origin (see the `m-4` workaround note in
   `scroll-area.test.tsx`'s `TallList`). A fixture that must sit at the origin needs its own
   workaround; there's no general fix yet.
-- Separators (final review I2): `bg-border` is invisible in forced colors library-wide — Separator,
-  Menu (`MenuSeparator`), Select (`SelectSeparator`), Combobox (`ComboboxSeparator`) and Toolbar
-  (`ToolbarSeparator`) all render a `bg-border` divider with no forced-colors override, so Windows
-  High Contrast shows no visible line. A shared forced-colors class (e.g.
-  `forced-colors:bg-[CanvasText]`, as `ScrollArea`'s thumb already does) would fix all five at
-  once.
 - Editor example (final review I2): the formatting/alignment `ToggleGroup` state is cosmetic —
   toggling Bold/Italic/Underline or the alignment doesn't style `bodyParagraphs`' rendered text (no
   real rich-text engine backs the example). The byline avatar loads from an external host

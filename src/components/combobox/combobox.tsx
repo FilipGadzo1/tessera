@@ -34,7 +34,7 @@ const comboboxItemIndicatorBase = "absolute left-2 flex size-4 items-center just
 const comboboxEmptyBase = "px-2 py-6 text-center text-sm text-muted-foreground empty:p-0";
 const comboboxStatusBase = "px-2 py-1.5 text-sm text-muted-foreground empty:p-0";
 const comboboxGroupLabelBase = "px-2 py-1.5 text-xs font-medium text-muted-foreground";
-const comboboxSeparatorBase = "-mx-1 my-1 h-px bg-border";
+const comboboxSeparatorBase = "-mx-1 my-1 h-px bg-border forced-colors:bg-[CanvasText]";
 const comboboxChipBase =
   "inline-flex h-6 items-center gap-1 rounded-md bg-muted px-1.5 text-xs text-foreground outline-none outline-offset-1 outline-ring focus-visible:outline-2 focus-visible:outline-solid forced-colors:focus-visible:outline-[Highlight] data-disabled:opacity-50";
 const comboboxChipRemoveBase =

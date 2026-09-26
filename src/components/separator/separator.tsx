@@ -23,7 +23,7 @@ export function Separator({
     "data-slot": "separator",
     "data-orientation": orientation,
     className: cn(
-      "shrink-0 bg-border",
+      "shrink-0 bg-border forced-colors:bg-[CanvasText]",
       orientation === "horizontal" ? "h-px w-full" : "w-px self-stretch",
       className,
     ),

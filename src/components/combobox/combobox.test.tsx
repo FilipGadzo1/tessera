@@ -998,6 +998,33 @@ describe("Combobox", () => {
       );
       await userEvent.keyboard("{Escape}");
     });
+
+    it("keeps ComboboxSeparator visible in forced colors", async () => {
+      await emulateForcedColors(true);
+      expect(matchMedia("(forced-colors: active)").matches).toBe(true);
+      await render(
+        <div className="p-16">
+          <Combobox items={fruits} defaultOpen>
+            <ComboboxInput aria-label="Fruit" />
+            <ComboboxContent>
+              <ComboboxEmpty>No fruit found.</ComboboxEmpty>
+              <ComboboxList>
+                <ComboboxGroup>
+                  <ComboboxGroupLabel>Fruits</ComboboxGroupLabel>
+                  <ComboboxItem value="Apple">Apple</ComboboxItem>
+                </ComboboxGroup>
+                <ComboboxSeparator data-testid="sep" />
+                <ComboboxItem value="Banana">Banana</ComboboxItem>
+              </ComboboxList>
+            </ComboboxContent>
+          </Combobox>
+        </div>,
+      );
+      const sep = document.querySelector('[data-testid="sep"]') as HTMLElement;
+      const style = getComputedStyle(sep);
+      expect(style.backgroundColor).toBe(systemColor("CanvasText"));
+      expect(style.backgroundColor).not.toBe(systemColor("Canvas"));
+    });
   });
 
   describe("layering", () => {

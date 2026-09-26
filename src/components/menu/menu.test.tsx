@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
+import { emulateForcedColors, resetEmulatedMedia, systemColor } from "../../../test/emulation";
 import { auditOpenOverlay, waitForPopupSettled } from "../../../test/overlay";
 import { Button, buttonVariants } from "../button";
 import {
@@ -112,6 +113,10 @@ function highlighted() {
     el.textContent?.trim(),
   );
 }
+
+afterEach(async () => {
+  await resetEmulatedMedia();
+});
 
 afterEach(() => {
   document.documentElement.classList.remove("dark");
@@ -417,7 +422,9 @@ describe("Menu", () => {
     expect(slot("menu-group-label").className).toBe(
       "px-2 py-1.5 text-xs font-medium text-muted-foreground",
     );
-    expect(slot("menu-separator").className).toBe("-mx-1 my-1 h-px bg-border");
+    expect(slot("menu-separator").className).toBe(
+      "-mx-1 my-1 h-px bg-border forced-colors:bg-[CanvasText]",
+    );
     expect(slot("menu-shortcut").tagName).toBe("SPAN");
     expect(slot("menu-shortcut").className).toBe(
       "ml-auto text-xs tracking-widest text-muted-foreground",
@@ -530,4 +537,19 @@ describe("Menu", () => {
       }
     },
   );
+
+  it("keeps MenuSeparator visible in forced colors", async () => {
+    await emulateForcedColors(true);
+    expect(matchMedia("(forced-colors: active)").matches).toBe(true);
+    await render(
+      <Actions>
+        <MenuSeparator data-testid="sep" />
+      </Actions>,
+    );
+    await openByClick();
+    const sep = document.querySelector('[data-testid="sep"]') as HTMLElement;
+    const style = getComputedStyle(sep);
+    expect(style.backgroundColor).toBe(systemColor("CanvasText"));
+    expect(style.backgroundColor).not.toBe(systemColor("Canvas"));
+  });
 });

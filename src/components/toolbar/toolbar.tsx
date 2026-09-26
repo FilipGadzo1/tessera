@@ -113,7 +113,7 @@ export function ToolbarSeparator({ className, ...props }: ToolbarSeparatorProps)
       {...props}
       data-slot="toolbar-separator"
       className={mergeClassName(
-        "mx-1 h-5 w-px shrink-0 bg-border data-[orientation=horizontal]:mx-0 data-[orientation=horizontal]:my-1 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-5",
+        "mx-1 h-5 w-px shrink-0 bg-border forced-colors:bg-[CanvasText] data-[orientation=horizontal]:mx-0 data-[orientation=horizontal]:my-1 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-5",
         className,
       )}
     />

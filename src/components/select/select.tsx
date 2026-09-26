@@ -22,7 +22,7 @@ const selectContentBase = "min-w-(--anchor-width) max-h-(--available-height) ove
 const selectItemBase = "pl-8 data-selected:font-medium";
 const selectItemIndicatorBase = "absolute left-2 flex size-4 items-center justify-center";
 const selectGroupLabelBase = "px-2 py-1.5 text-xs font-medium text-muted-foreground";
-const selectSeparatorBase = "-mx-1 my-1 h-px bg-border";
+const selectSeparatorBase = "-mx-1 my-1 h-px bg-border forced-colors:bg-[CanvasText]";
 
 /**
  * Base UI Select.Root props: `value` / `defaultValue` + `onValueChange`, `items` (value → label, so

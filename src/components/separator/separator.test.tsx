@@ -1,7 +1,12 @@
 import axe from "axe-core";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
+import { emulateForcedColors, resetEmulatedMedia, systemColor } from "../../../test/emulation";
 import { Separator } from "./separator";
+
+afterEach(async () => {
+  await resetEmulatedMedia();
+});
 
 describe("Separator", () => {
   it("is decorative and horizontal by default", async () => {
@@ -105,5 +110,15 @@ describe("Separator", () => {
     const results = await axe.run(screen.container);
     expect(results.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
     expect(results.incomplete.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+  });
+
+  it("stays visible in forced colors", async () => {
+    await emulateForcedColors(true);
+    expect(matchMedia("(forced-colors: active)").matches).toBe(true);
+    const screen = await render(<Separator data-testid="sep" />);
+    const sep = screen.getByTestId("sep").element();
+    const style = getComputedStyle(sep);
+    expect(style.backgroundColor).toBe(systemColor("CanvasText"));
+    expect(style.backgroundColor).not.toBe(systemColor("Canvas"));
   });
 });
