@@ -20,10 +20,15 @@ export const calendarCaptionButtonClasses = buttonVariants({
   variant: "ghost",
   color: "neutral",
   size: "sm",
-  className: "px-1.5 font-medium",
+  className: "px-1.5 font-medium forced-colors:focus-visible:outline-[Highlight]",
 });
-/** The year view's "2016 – 2027" header text. */
-export const calendarYearRangeClasses = "px-1.5 text-sm font-medium tabular-nums";
+/** The header's previous/next buttons. */
+export const calendarNavClasses = buttonVariants({
+  variant: "ghost",
+  color: "neutral",
+  size: "icon-sm",
+  className: "forced-colors:focus-visible:outline-[Highlight]",
+});
 export const calendarGridClasses = "border-collapse";
 export const calendarWeekdayClasses = "size-9 p-0 text-xs font-normal text-muted-foreground";
 export const calendarCellClasses = "p-0 text-center";
@@ -33,7 +38,7 @@ export const calendarCellClasses = "p-0 text-center";
  * six weeks, 7 × size-9 high), so switching views never resizes the calendar or its popover.
  */
 export const calendarViewGridClasses = "h-63 w-63 table-fixed";
-export const calendarViewCellClasses = "p-0 px-1 text-center";
+export const calendarViewCellClasses = "p-1 text-center";
 
 const focusRing = cn(
   toggleFocusClasses,
@@ -59,10 +64,11 @@ export function calendarViewItemClasses(state: {
   disabled: boolean;
 }): string {
   return cn(
-    "relative inline-flex h-9 w-full cursor-pointer select-none items-center justify-center rounded-md text-sm tabular-nums",
+    "relative inline-flex h-19 w-full cursor-pointer select-none items-center justify-center rounded-md text-sm tabular-nums",
     focusRing,
     "not-data-disabled:hover:bg-muted",
-    state.current && cn(currentMarker, "after:left-1/2 after:w-3 after:-translate-x-1/2"),
+    state.current &&
+      cn(currentMarker, "after:bottom-3 after:left-1/2 after:w-3 after:-translate-x-1/2"),
     state.selected && selectedClasses,
     state.disabled && disabledClasses,
   );

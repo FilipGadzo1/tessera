@@ -52,6 +52,7 @@ import {
   monthOrdinal,
   ordinalBounds,
   PAGE_SIZE,
+  viewCaption,
 } from "./calendar-views";
 
 /** Translatable strings for the calendar's controls. */
@@ -242,6 +243,8 @@ export function CalendarBase({
   // Roving tabindex: the focused day, else the selected day, else today (when visible), else the
   // first enabled day of the first visible month.
   const [focusedDay, setFocusedDay] = useState<Date | null>(null);
+  // Month and year views (spec §6.2): one pane at a time shows one; see calendar-views.tsx.
+  const [view, setView] = useState<CalendarView>({ kind: "day" });
   const firstEnabledDay = () => {
     for (let day = firstMonth; isSameMonth(day, firstMonth); day = addDays(day, 1)) {
       if (!isDisabled(day)) return day;
@@ -261,7 +264,19 @@ export function CalendarBase({
     // One attempt only: the month change and the focus move render together, so a day that isn't
     // there now (a controlled `month` that ignored `onMonthChange`) must not steal focus later.
     pendingFocus.current = null;
-    document.getElementById(target)?.focus();
+    const element = document.getElementById(target);
+    if (element) {
+      element.focus();
+      return;
+    }
+    // The target isn't rendered (a controlled `month` ignored `onMonthChange`). If focus was lost
+    // with it (a chosen month cell unmounted), fall back to this calendar's Tab stop, never <body>.
+    if (document.activeElement && document.activeElement !== document.body) return;
+    document
+      .getElementById(`${id}-caption-0`)
+      ?.closest('[data-slot="calendar"]')
+      ?.querySelector<HTMLElement>('[data-slot="calendar-day"][tabindex="0"]')
+      ?.focus();
   };
   // After every render, before paint: focus the day a keyboard move asked for (it may be in a new
   // month). A layout effect, not a passive one: when the month changes the focused button unmounts,
@@ -287,6 +302,11 @@ export function CalendarBase({
           : addMonths(startOfMonth(date), -(numberOfMonths - 1)),
       );
     }
+  };
+
+  /** Day-grid interaction closes an open month/year view (in the other pane, with two months). */
+  const closeViewForDays = () => {
+    if (view.kind !== "day") setView({ kind: "day" });
   };
 
   const onDayKeyDown = (event: KeyboardEvent<HTMLButtonElement>, date: Date) => {
@@ -324,18 +344,18 @@ export function CalendarBase({
         return;
     }
     event.preventDefault();
+    closeViewForDays();
     moveFocus(clampDay(next, min, max));
   };
 
   const onDayClick = (date: Date) => {
+    closeViewForDays();
     if (isDisabled(date)) return;
     onDaySelect(date);
     if (isVisible(date)) setFocusedDay(date);
     else moveFocus(date);
   };
 
-  // Month and year views (spec §6.2): one pane at a time shows one; see calendar-views.tsx.
-  const [view, setView] = useState<CalendarView>({ kind: "day" });
   const boundsOf = (kind: "month" | "year") => ordinalBounds(kind, min, max);
   const openView = (kind: "month" | "year", pane: number, focus: number) => {
     const clamped = clampOrdinal(focus, boundsOf(kind));
@@ -350,8 +370,15 @@ export function CalendarBase({
   };
   const chooseMonth = (pane: number, ordinal: number) => {
     const month = monthFromOrdinal(ordinal);
-    // The pane shows the chosen month; with two months the pair shifts around it.
-    setMonth(addMonths(month, -pane));
+    // The pane shows the chosen month; with two months the pair shifts around it, but never so far
+    // that the other pane lies entirely outside min/max.
+    let first = addMonths(month, -pane);
+    if (max) {
+      const latest = addMonths(startOfMonth(max), -(numberOfMonths - 1));
+      if (compareDay(first, latest) > 0) first = latest;
+    }
+    if (min && compareDay(first, startOfMonth(min)) < 0) first = startOfMonth(min);
+    setMonth(first);
     // Focus the Tab stop's day number in the chosen month, clamped to its length and min/max.
     const length = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
     const day = new Date(
@@ -399,7 +426,7 @@ export function CalendarBase({
                 aria-live="polite"
                 className={calendarCaptionClasses}
               >
-                {formatters.caption.format(month)}
+                {paneView ? viewCaption(paneView, formatters) : formatters.caption.format(month)}
               </div>
               {paneView ? (
                 <CalendarViewHeader
@@ -409,6 +436,8 @@ export function CalendarBase({
                   formatters={formatters}
                   onFocusChange={(focus) => setView({ ...paneView, focus })}
                   onOpenYears={(year) => openView("year", index, year)}
+                  caption={formatters.caption.format(month)}
+                  onShowDays={() => closeView(tabStop)}
                 />
               ) : (
                 <>
@@ -417,7 +446,10 @@ export function CalendarBase({
                       direction="prev"
                       label={labels?.previousMonth ?? "Previous month"}
                       disabled={prevDisabled}
-                      onPage={() => setMonth(addMonths(firstMonth, -1))}
+                      onPage={() => {
+                        closeViewForDays();
+                        setMonth(addMonths(firstMonth, -1));
+                      }}
                     />
                   ) : (
                     spacer
@@ -439,7 +471,10 @@ export function CalendarBase({
                       direction="next"
                       label={labels?.nextMonth ?? "Next month"}
                       disabled={nextDisabled}
-                      onPage={() => setMonth(addMonths(firstMonth, 1))}
+                      onPage={() => {
+                        closeViewForDays();
+                        setMonth(addMonths(firstMonth, 1));
+                      }}
                     />
                   ) : (
                     spacer

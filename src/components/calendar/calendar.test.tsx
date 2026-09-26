@@ -63,6 +63,7 @@ describe("Calendar: structure", () => {
       "calendar-month",
       "calendar-header",
       "calendar-caption",
+      "calendar-caption-buttons",
       "calendar-month-button",
       "calendar-year-button",
       "calendar-prev",

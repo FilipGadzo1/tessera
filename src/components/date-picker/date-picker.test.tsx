@@ -689,6 +689,34 @@ describe("DateRangePicker", () => {
     await expect.poll(() => document.activeElement).toBe(triggerEl());
   });
 
+  it("Escape in a month or year view keeps the popover open and the half-chosen range; the next Escape reverts", async () => {
+    const onOpenChange = vi.fn();
+    const onValueChange = vi.fn();
+    const committed = { start: d(2026, 9, 1), end: d(2026, 9, 12) };
+    await render(
+      <Range defaultValue={committed} onOpenChange={onOpenChange} onValueChange={onValueChange} />,
+    );
+    await open();
+    await userEvent.click(dayButton(d(2026, 9, 20)));
+    await expect.element(dayButton(d(2026, 9, 20))).toHaveAttribute("data-range-start");
+    onOpenChange.mockClear();
+    for (const name of ["Choose month, October 2026", "Choose year, 2026"]) {
+      await userEvent.click(page.getByRole("button", { name }).last());
+      await expect.element(page.getByRole("grid", { name: /^(Months|Years)/ })).toBeVisible();
+      await userEvent.keyboard("{Escape}");
+      await expect.element(page.getByRole("grid", { name: "October 2026" })).toBeVisible();
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      await expect.element(dialog()).toBeVisible();
+      expect(onOpenChange).not.toHaveBeenCalled();
+      await expect.element(dayButton(d(2026, 9, 20))).toHaveAttribute("data-range-start");
+    }
+    await userEvent.keyboard("{Escape}");
+    await expect.element(dialog()).not.toBeInTheDocument();
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(onValueChange).not.toHaveBeenCalled();
+    expect(triggerEl().textContent).toBe(rangeText(committed.start, committed.end));
+  });
+
   it("reverts on Escape with only the start chosen", async () => {
     const onValueChange = vi.fn();
     const committed = { start: d(2026, 9, 1), end: d(2026, 9, 12) };

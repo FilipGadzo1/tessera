@@ -2,14 +2,13 @@
 
 import type { KeyboardEvent } from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "../../lib/icons";
-import { buttonVariants } from "../button/button-variants";
 import {
   calendarCaptionButtonClasses,
   calendarCaptionGroupClasses,
+  calendarNavClasses,
   calendarViewCellClasses,
   calendarViewGridClasses,
   calendarViewItemClasses,
-  calendarYearRangeClasses,
 } from "./calendar-variants";
 
 /*
@@ -41,6 +40,12 @@ export interface CalendarViewLabels {
   previousYears?: string;
   /** @default "Next 12 years" */
   nextYears?: string;
+  /**
+   * The year view's range button, which returns to the days, given the caption ("September
+   * 2026"). Its name is the range followed by this ("2016 – 2027, Show days, September 2026").
+   * @default "Show days"
+   */
+  showDays?: CalendarValueLabel;
   /** The month view's grid, given the year ("2026"). @default "Months" */
   monthGrid?: CalendarValueLabel;
   /** The year view's grid, given the range ("2016 – 2027"). @default "Years" */
@@ -137,8 +142,6 @@ function viewKeyTarget(event: KeyboardEvent<HTMLElement>, ordinal: number): numb
   }
 }
 
-const navClasses = buttonVariants({ variant: "ghost", color: "neutral", size: "icon-sm" });
-
 /**
  * The header's previous/next button. Disabled with `aria-disabled` (still focusable, clicks
  * ignored), so paging to a bound doesn't drop focus to `<body>`.
@@ -162,7 +165,7 @@ export function CalendarNavButton({
       aria-label={label}
       aria-disabled={disabled || undefined}
       data-disabled={disabled ? "" : undefined}
-      className={navClasses}
+      className={calendarNavClasses}
       onClick={() => {
         if (!disabled) onPage();
       }}
@@ -210,7 +213,7 @@ export function CalendarCaptionButtons({
     </button>
   );
   return (
-    <div className={calendarCaptionGroupClasses}>
+    <div data-slot="calendar-caption-buttons" className={calendarCaptionGroupClasses}>
       {formatters.yearFirst ? [yearButton, monthButton] : [monthButton, yearButton]}
     </div>
   );
@@ -218,8 +221,14 @@ export function CalendarCaptionButtons({
 
 /**
  * A pane's header in the month or year view: paging by a year (or 12 years) around the year
- * button (month view) or the page's range as text (year view).
+ * button (month view → year view) or the range button (year view → back to the days).
  */
+/** The live caption's text while a pane shows a view: the page ("2027" or "2016 – 2027"). */
+export function viewCaption(view: CalendarPaneView, formatters: CalendarViewFormatters) {
+  const start = pageStart(view.focus);
+  return view.kind === "month" ? formatters.yearOf(start / 12) : formatters.yearRange(start);
+}
+
 export function CalendarViewHeader({
   view,
   bounds,
@@ -227,6 +236,8 @@ export function CalendarViewHeader({
   formatters,
   onFocusChange,
   onOpenYears,
+  caption,
+  onShowDays,
 }: {
   view: CalendarPaneView;
   bounds: OrdinalBounds;
@@ -235,6 +246,9 @@ export function CalendarViewHeader({
   /** Moves the Tab stop (and so the page) without moving focus. */
   onFocusChange: (ordinal: number) => void;
   onOpenYears: (year: number) => void;
+  /** The pane's day caption ("September 2026"), for the range button's name. */
+  caption: string;
+  onShowDays: () => void;
 }) {
   const start = pageStart(view.focus);
   const page = (delta: number) => onFocusChange(clampOrdinal(view.focus + delta, bounds));
@@ -263,9 +277,15 @@ export function CalendarViewHeader({
           {formatters.yearOf(year)}
         </button>
       ) : (
-        <span data-slot="calendar-year-range" className={calendarYearRangeClasses}>
+        <button
+          type="button"
+          data-slot="calendar-year-range"
+          aria-label={`${formatters.yearRange(start)}, ${valueLabel(labels?.showDays, "Show days", caption)}`}
+          className={calendarCaptionButtonClasses}
+          onClick={onShowDays}
+        >
           {formatters.yearRange(start)}
-        </span>
+        </button>
       )}
       <CalendarNavButton
         direction="next"

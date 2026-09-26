@@ -394,8 +394,8 @@ source files automatically (build output + `"use client"` directive checks).
   Shift+PageUp/PageDown years, Enter/Space select; moving onto another month's day turns the page.
   The caption's month and year are buttons that open a month view (a 4×3 grid of months) and a
   year view (12 years at a time); choosing a year opens its months, choosing a month returns to the
-  days with focus on the same day number, and Escape steps back to the days (without closing a
-  surrounding DatePicker). Both views have the same arrow/Home/End/PageUp/PageDown keys and keep
+  days with focus on the same day number; the year view's range button, or Escape, returns to the
+  days (Escape without closing a surrounding DatePicker). Both views have the same arrow/Home/End/PageUp/PageDown keys and keep
   the day grid's size, so a popover never jumps.
   Dates are plain `Date`s standing for local days, no date library. `value` / `defaultValue` /
   `onValueChange`, `month` / `defaultMonth` / `onMonthChange`, `min` / `max` (days beyond are
@@ -415,7 +415,8 @@ source files automatically (build output + `"use client"` directive checks).
   Focus lands on the picked day (or today); picking closes and returns focus to the trigger, Escape
   or an outside click closes unchanged. `value` / `defaultValue` / `onValueChange`, `placeholder`,
   `format` (Intl options, default `{ dateStyle: "medium" }`), `locale`, `min` / `max`,
-  `defaultMonth` (the month shown while nothing is picked, e.g. decades back for a birthday),
+  `defaultMonth` (the month shown while nothing is picked, e.g. decades back for a birthday; a
+  picked value's month wins, unlike `Calendar`, whose `defaultMonth` wins over the selected day),
   `isDateDisabled`, `weekStartsOn`, `disabled`, `open` / `defaultOpen` / `onOpenChange`,
   `container`, `labels` (`dialog` plus the Calendar's labels), and `name` for a hidden
   `YYYY-MM-DD` input. Inside a `Field` the label names the trigger followed by the value ("Due date

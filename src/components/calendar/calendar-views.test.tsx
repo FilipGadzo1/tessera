@@ -297,7 +297,7 @@ describe("Calendar views: month view", () => {
 });
 
 describe("Calendar views: year view", () => {
-  it("opens by click: 12 years containing the visible year, the range in the header, focus on the year", async () => {
+  it("opens by click: 12 years containing the visible year, the range button in the header, focus on the year", async () => {
     const screen = await render(<Calendar locale="en-US" defaultMonth={d(2026, 9, 1)} />);
     await yearButton().click();
     const grid = screen.getByRole("grid", { name: `Years, ${yearRange(2016)}` });
@@ -314,7 +314,8 @@ describe("Calendar views: year view", () => {
     expect(document.activeElement).toBe(current);
     const range = screen.container.querySelector('[data-slot="calendar-year-range"]');
     expect(range).toHaveTextContent("2016 – 2027");
-    expect(range?.tagName).not.toBe("BUTTON");
+    // A button back to the days (fix round 1).
+    expect(range?.tagName).toBe("BUTTON");
     await expect.element(yearButton()).not.toBeInTheDocument();
     await expect.element(monthButton()).not.toBeInTheDocument();
   });
@@ -529,6 +530,25 @@ describe("Calendar views: footprint, forced colors and axe", () => {
   });
 
   it.each(["month", "year"] as const)(
+    "the %s cells fill the grid evenly (no sparse rows)",
+    async (view) => {
+      const screen = await render(<Calendar locale="en-US" defaultMonth={d(2026, 9, 1)} />);
+      await (view === "month" ? monthButton() : yearButton()).click();
+      const grid = screen.getByRole("grid").element() as HTMLElement;
+      const items = [...grid.querySelectorAll("button")];
+      const box = (i: number) => items[i]?.getBoundingClientRect() as DOMRect;
+      const g = grid.getBoundingClientRect();
+      // Taller than a day (36px), and the three rows span the grid with small, even gaps.
+      expect(box(0).height).toBeGreaterThanOrEqual(56);
+      expect(box(0).top - g.top).toBeLessThanOrEqual(12);
+      expect(g.bottom - box(11).bottom).toBeLessThanOrEqual(12);
+      const rowGap = box(4).top - box(0).bottom;
+      const columnGap = box(1).left - box(0).right;
+      expect(Math.abs(rowGap - columnGap)).toBeLessThanOrEqual(8);
+    },
+  );
+
+  it.each(["month", "year"] as const)(
     "in forced colors: the selected %s is Highlight with HighlightText (no backplate), focus is visible",
     async (view) => {
       await emulateForcedColors(true);
@@ -550,14 +570,32 @@ describe("Calendar views: footprint, forced colors and axe", () => {
       expect(getComputedStyle(selected).outlineStyle).toBe("solid");
       expect(getComputedStyle(selected).outlineWidth).toBe("2px");
       expect(getComputedStyle(selected).outlineColor).toBe(systemColor("Highlight"));
-      // The caption buttons: no outline until focused.
-      const nav = page
-        .getByRole("button", { name: /^(Previous|Next)/ })
-        .first()
-        .element();
-      expect(getComputedStyle(nav).outlineStyle).toBe("none");
+      // The header's caption button (year button / range button): no outline until focused.
+      const caption = document.querySelector(
+        view === "month"
+          ? '[data-slot="calendar-year-button"]'
+          : '[data-slot="calendar-year-range"]',
+      ) as HTMLElement;
+      expect(caption.tagName).toBe("BUTTON");
+      expect(getComputedStyle(caption).outlineStyle).toBe("none");
     },
   );
+
+  it("in forced colors: the caption and nav buttons show a Highlight ring on keyboard focus", async () => {
+    await emulateForcedColors(true);
+    await render(<Calendar locale="en-US" />);
+    const prev = page.getByRole("button", { name: "Previous month" }).element() as HTMLElement;
+    const month = monthButton().element() as HTMLElement;
+    const year = yearButton().element() as HTMLElement;
+    const next = page.getByRole("button", { name: "Next month" }).element() as HTMLElement;
+    for (const button of [prev, month, year, next]) {
+      expect(getComputedStyle(button).outlineStyle).toBe("none");
+      await userEvent.tab();
+      expect(document.activeElement).toBe(button);
+      expect(getComputedStyle(button).outlineStyle).toBe("solid");
+      expect(getComputedStyle(button).outlineColor).toBe(systemColor("Highlight"));
+    }
+  });
 
   it("the caption buttons have no outline at rest and a 2px ring on Tab focus", async () => {
     await render(<Calendar locale="en-US" />);
@@ -595,5 +633,128 @@ describe("Calendar views: footprint, forced colors and axe", () => {
       ),
     ).toEqual([]);
     expect(results.incomplete.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+  });
+});
+
+describe("Calendar views: fix round 1", () => {
+  const day = (date: Date) =>
+    page.getByRole("button", { name: fullDate(date), exact: true }).element() as HTMLElement;
+
+  it("two months: a day-grid key move into the pane showing a view closes the view and focuses the day", async () => {
+    const screen = await render(
+      <RangeCalendar locale="en-US" numberOfMonths={2} defaultMonth={d(2026, 9, 1)} />,
+    );
+    await monthButton("October 2026").click();
+    await expect.element(screen.getByRole("grid", { name: "Months, 2026" })).toBeVisible();
+    day(d(2026, 9, 15)).focus();
+    await userEvent.keyboard("{PageDown}");
+    await expect.element(screen.getByRole("grid", { name: "October 2026" })).toBeVisible();
+    expect(screen.container.querySelector('[data-slot="calendar-month-grid"]')).toBeNull();
+    expect(focusedLabel()).toBe(fullDate(d(2026, 10, 15)));
+    expect(tabbable(screen.container, "calendar-day")).toEqual([document.activeElement]);
+  });
+
+  it("two months: clicking a day or the other pane's month paging closes the open view", async () => {
+    const screen = await render(
+      <RangeCalendar locale="en-US" numberOfMonths={2} defaultMonth={d(2026, 9, 1)} />,
+    );
+    await monthButton("October 2026").click();
+    await userEvent.click(day(d(2026, 9, 10)));
+    expect(screen.container.querySelector('[data-slot="calendar-month-grid"]')).toBeNull();
+    await expect.element(screen.getByRole("grid", { name: "October 2026" })).toBeVisible();
+    await yearButton().nth(1).click();
+    await screen.getByRole("button", { name: "Previous month" }).click();
+    expect(screen.container.querySelector('[data-slot="calendar-year-grid"]')).toBeNull();
+    await expect.element(screen.getByRole("grid", { name: "August 2026" })).toBeVisible();
+    await expect.element(screen.getByRole("grid", { name: "September 2026" })).toBeVisible();
+  });
+
+  it("announces view paging through the live caption", async () => {
+    const screen = await render(<Calendar locale="en-US" defaultMonth={d(2026, 9, 1)} />);
+    const caption = screen.container.querySelector('[data-slot="calendar-caption"]') as HTMLElement;
+    await monthButton().click();
+    expect(caption.textContent).toBe("2026");
+    await screen.getByRole("button", { name: "Next year" }).click();
+    expect(caption.textContent).toBe("2027");
+    (monthItem("September 2027").element() as HTMLElement).focus();
+    await userEvent.keyboard("{PageDown}");
+    expect(caption.textContent).toBe("2028");
+    await yearButton("2028").click();
+    expect(caption.textContent).toBe(yearRange(2028));
+    await screen.getByRole("button", { name: "Previous 12 years" }).click();
+    expect(caption.textContent).toBe(yearRange(2016));
+    // The same live element all along; back in the days it reads the month again.
+    (yearItem(2020).element() as HTMLElement).focus();
+    await userEvent.keyboard("{Escape}");
+    expect(screen.container.querySelector('[data-slot="calendar-caption"]')).toBe(caption);
+    expect(caption.textContent).toBe("September 2026");
+  });
+
+  it("the year view's range is a button back to the days", async () => {
+    const screen = await render(<Calendar locale="en-US" defaultValue={d(2026, 9, 3)} />);
+    await yearButton().click();
+    const back = page.getByRole("button", {
+      name: `${yearRange(2016)}, Show days, September 2026`,
+      exact: true,
+    });
+    await expect.element(back).toHaveTextContent(yearRange(2016));
+    await back.click();
+    await expect.element(screen.getByRole("grid", { name: "September 2026" })).toBeVisible();
+    expect(focusedLabel()).toBe(fullDate(d(2026, 9, 3)));
+  });
+
+  it("the range button's label is translatable", async () => {
+    await render(
+      <Calendar
+        locale="en-US"
+        defaultMonth={d(2026, 9, 1)}
+        labels={{ showDays: (caption) => `Tage zeigen (${caption})` }}
+      />,
+    );
+    await yearButton().click();
+    await expect
+      .element(
+        page.getByRole("button", { name: `${yearRange(2016)}, Tage zeigen (September 2026)` }),
+      )
+      .toBeVisible();
+  });
+
+  it("two months: choosing a month keeps both panes inside min/max", async () => {
+    const onMonthChange = vi.fn();
+    const screen = await render(
+      <RangeCalendar
+        locale="en-US"
+        numberOfMonths={2}
+        defaultMonth={d(2026, 9, 1)}
+        min={d(2024, 3, 15)}
+        max={d(2027, 8, 10)}
+        onMonthChange={onMonthChange}
+      />,
+    );
+    // The right pane choosing March 2024 would put February 2024 (all before min) on the left.
+    await yearButton().nth(1).click();
+    await yearItem(2024).click();
+    await monthItem("March 2024").click();
+    await expect.element(screen.getByRole("grid", { name: "March 2024" })).toBeVisible();
+    await expect.element(screen.getByRole("grid", { name: "April 2024" })).toBeVisible();
+    expect(onMonthChange).toHaveBeenLastCalledWith(d(2024, 3, 1));
+    // The left pane choosing August 2027 would put September 2027 (all after max) on the right.
+    await yearButton("2024").first().click();
+    await yearItem(2027).click();
+    await monthItem("August 2027").click();
+    await expect.element(screen.getByRole("grid", { name: "July 2027" })).toBeVisible();
+    await expect.element(screen.getByRole("grid", { name: "August 2027" })).toBeVisible();
+  });
+
+  it("a controlled month that ignores onMonthChange: choosing a month keeps focus on a day, not <body>", async () => {
+    const screen = await render(
+      <Calendar locale="en-US" month={d(2026, 9, 1)} onMonthChange={() => {}} />,
+    );
+    await monthButton().click();
+    await monthItem("March 2026").click();
+    await expect.element(screen.getByRole("grid", { name: "September 2026" })).toBeVisible();
+    expect(document.activeElement).not.toBe(document.body);
+    expect(document.activeElement?.getAttribute("data-slot")).toBe("calendar-day");
+    expect(tabbable(screen.container, "calendar-day")).toEqual([document.activeElement]);
   });
 });
