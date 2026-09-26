@@ -69,6 +69,11 @@ interface PickerSharedProps extends PickerTriggerProps {
   min?: Date | null;
   /** The latest selectable day. */
   max?: Date | null;
+  /**
+   * The month the calendar opens on while nothing is picked, e.g. decades back for a birthday.
+   * Once a day is picked, the calendar opens on its month. @default today's month
+   */
+  defaultMonth?: Date;
   /** Disables individual days in the calendar (they stay focusable). */
   isDateDisabled?: (date: Date) => boolean;
   /** First day of the week, 0 = Sunday … 6 = Saturday. @default the locale's */
@@ -221,6 +226,7 @@ export function DatePicker({
   locale,
   min,
   max,
+  defaultMonth,
   isDateDisabled,
   weekStartsOn,
   labels,
@@ -251,6 +257,7 @@ export function DatePicker({
           locale={locale}
           min={min}
           max={max}
+          defaultMonth={value ?? defaultMonth}
           isDateDisabled={isDateDisabled}
           weekStartsOn={weekStartsOn}
           labels={labels}
@@ -333,6 +340,7 @@ export function DateRangePicker({
   locale,
   min,
   max,
+  defaultMonth,
   isDateDisabled,
   weekStartsOn,
   labels,
@@ -372,6 +380,7 @@ export function DateRangePicker({
           locale={locale}
           min={min}
           max={max}
+          defaultMonth={start ?? defaultMonth}
           isDateDisabled={isDateDisabled}
           weekStartsOn={weekStartsOn}
           labels={labels}

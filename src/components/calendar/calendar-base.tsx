@@ -28,8 +28,6 @@ import {
   toISODate,
   type WeekDay,
 } from "../../lib/date";
-import { ChevronLeftIcon, ChevronRightIcon } from "../../lib/icons";
-import { buttonVariants } from "../button/button-variants";
 import {
   type CalendarDayState,
   calendarCaptionClasses,
@@ -41,9 +39,23 @@ import {
   calendarRootClasses,
   calendarWeekdayClasses,
 } from "./calendar-variants";
+import {
+  CalendarCaptionButtons,
+  CalendarNavButton,
+  type CalendarView,
+  type CalendarViewFormatters,
+  CalendarViewGrid,
+  CalendarViewHeader,
+  type CalendarViewLabels,
+  clampOrdinal,
+  monthFromOrdinal,
+  monthOrdinal,
+  ordinalBounds,
+  PAGE_SIZE,
+} from "./calendar-views";
 
 /** Translatable strings for the calendar's controls. */
-export interface CalendarLabels {
+export interface CalendarLabels extends CalendarViewLabels {
   /** @default "Previous month" */
   previousMonth?: string;
   /** @default "Next month" */
@@ -124,7 +136,13 @@ export function resolveLocale(locale: string | undefined): string | undefined {
   }
 }
 
-function useFormatters(locale: string | undefined, weekStartsOn: WeekDay) {
+interface CalendarFormatters extends CalendarViewFormatters {
+  full: Intl.DateTimeFormat;
+  dayNumber: Intl.DateTimeFormat;
+  weekdays: { key: number; long: string; short: string }[];
+}
+
+function useFormatters(locale: string | undefined, weekStartsOn: WeekDay): CalendarFormatters {
   return useMemo(() => {
     const caption = new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" });
     const full = new Intl.DateTimeFormat(locale, { dateStyle: "full" });
@@ -146,7 +164,25 @@ function useFormatters(locale: string | undefined, weekStartsOn: WeekDay) {
       long: longWeekday.format(date),
       short: useNarrow ? narrowWeekday.format(date) : (shorts[i] as string),
     }));
-    return { caption, full, dayNumber, weekdays };
+    // The caption buttons follow the locale's order: month first ("September 2026") or year
+    // first (ja-JP "2026年9月", hu-HU "2026. szeptember").
+    const parts = caption.formatToParts(new Date(2026, 8, 1)).map((part) => part.type);
+    const yearFirst = parts.indexOf("year") < parts.indexOf("month");
+    const monthName = new Intl.DateTimeFormat(locale, { month: "long" });
+    const shortMonth = new Intl.DateTimeFormat(locale, { month: "short" });
+    const year = new Intl.DateTimeFormat(locale, { year: "numeric" });
+    return {
+      caption,
+      full,
+      dayNumber,
+      weekdays,
+      yearFirst,
+      monthName,
+      shortMonth,
+      yearOf: (y: number) => year.format(new Date(y, 0, 1)),
+      yearRange: (from: number) =>
+        year.formatRange(new Date(from, 0, 1), new Date(from + PAGE_SIZE - 1, 0, 1)),
+    };
   }, [locale, weekStartsOn]);
 }
 
@@ -174,6 +210,7 @@ export function CalendarBase({
   autoFocus = false,
   labels,
   className,
+  onKeyDown,
   ...props
 }: CalendarBaseProps) {
   const id = useId();
@@ -215,14 +252,16 @@ export function CalendarBase({
     [focusedDay, selectedDay, today].find((day) => day && isVisible(day)) ?? firstEnabledDay();
 
   const dayId = (date: Date) => `${id}-day-${toISODate(date)}`;
-  const pendingFocus = useRef<Date | null>(null);
+  const viewItemId = (kind: string, ordinal: number) => `${id}-${kind}-${ordinal}`;
+  /** The id of the element to focus after the next render (a day, or a month/year cell). */
+  const pendingFocus = useRef<string | null>(null);
   const focusPending = () => {
-    const date = pendingFocus.current;
-    if (!date) return;
+    const target = pendingFocus.current;
+    if (!target) return;
     // One attempt only: the month change and the focus move render together, so a day that isn't
     // there now (a controlled `month` that ignored `onMonthChange`) must not steal focus later.
     pendingFocus.current = null;
-    document.getElementById(dayId(date))?.focus();
+    document.getElementById(target)?.focus();
   };
   // After every render, before paint: focus the day a keyboard move asked for (it may be in a new
   // month). A layout effect, not a passive one: when the month changes the focused button unmounts,
@@ -232,13 +271,13 @@ export function CalendarBase({
   // biome-ignore lint/correctness/useExhaustiveDependencies: focus once, on mount.
   useEffect(() => {
     if (!autoFocus) return;
-    pendingFocus.current = tabStop;
+    pendingFocus.current = dayId(tabStop);
     focusPending();
   }, []);
 
   const moveFocus = (date: Date) => {
     setFocusedDay(date);
-    pendingFocus.current = date;
+    pendingFocus.current = dayId(date);
     if (!isVisible(date)) {
       // Keep the day in view: it becomes the first visible month when going back, the last one
       // when going forward, so two-month navigation is continuous.
@@ -295,42 +334,65 @@ export function CalendarBase({
     else moveFocus(date);
   };
 
+  // Month and year views (spec §6.2): one pane at a time shows one; see calendar-views.tsx.
+  const [view, setView] = useState<CalendarView>({ kind: "day" });
+  const boundsOf = (kind: "month" | "year") => ordinalBounds(kind, min, max);
+  const openView = (kind: "month" | "year", pane: number, focus: number) => {
+    const clamped = clampOrdinal(focus, boundsOf(kind));
+    setView({ kind, pane, focus: clamped });
+    // The clicked caption button may unmount: focus the view's Tab stop before paint.
+    pendingFocus.current = viewItemId(kind, clamped);
+  };
+  const closeView = (focusDay: Date) => {
+    setView({ kind: "day" });
+    setFocusedDay(focusDay);
+    pendingFocus.current = dayId(focusDay);
+  };
+  const chooseMonth = (pane: number, ordinal: number) => {
+    const month = monthFromOrdinal(ordinal);
+    // The pane shows the chosen month; with two months the pair shifts around it.
+    setMonth(addMonths(month, -pane));
+    // Focus the Tab stop's day number in the chosen month, clamped to its length and min/max.
+    const length = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+    const day = new Date(
+      month.getFullYear(),
+      month.getMonth(),
+      Math.min(tabStop.getDate(), length),
+    );
+    closeView(clampDay(day, min, max));
+  };
+  const onRootKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    onKeyDown?.(event);
+    if (event.key !== "Escape" || view.kind === "day" || event.defaultPrevented) return;
+    // Escape steps back to the days; it must not reach a surrounding Popover (Base UI dismisses
+    // on a document keydown listener), so stop it here.
+    event.preventDefault();
+    event.stopPropagation();
+    closeView(tabStop);
+  };
+
   const prevDisabled = !!min && compareDay(firstMonth, startOfMonth(min)) <= 0;
   const nextDisabled = !!max && compareDay(lastMonth, startOfMonth(max)) >= 0;
-  const navClasses = buttonVariants({ variant: "ghost", color: "neutral", size: "icon-sm" });
   const spacer = <span aria-hidden="true" className="size-8 shrink-0" />;
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: delegated Escape for the month/year views; the focusable parts inside handle their own keys.
     <div
       {...props}
       data-slot="calendar"
       className={cn(calendarRootClasses(numberOfMonths), className)}
+      onKeyDown={onRootKeyDown}
     >
       {visibleMonths.map((month, index) => {
         const captionId = `${id}-caption-${index}`;
+        const paneView = view.kind !== "day" && view.pane === index ? view : null;
         return (
           // Keyed by position, not month: the caption's live region must persist across month
           // changes for its new text to be announced.
           // biome-ignore lint/suspicious/noArrayIndexKey: positional on purpose (see above).
           <div key={index} data-slot="calendar-month" className={calendarMonthClasses}>
             <div data-slot="calendar-header" className={calendarHeaderClasses}>
-              {index === 0 ? (
-                <button
-                  type="button"
-                  data-slot="calendar-prev"
-                  aria-label={labels?.previousMonth ?? "Previous month"}
-                  aria-disabled={prevDisabled || undefined}
-                  data-disabled={prevDisabled ? "" : undefined}
-                  className={navClasses}
-                  onClick={() => {
-                    if (!prevDisabled) setMonth(addMonths(firstMonth, -1));
-                  }}
-                >
-                  <ChevronLeftIcon className="rtl:-scale-x-100" />
-                </button>
-              ) : (
-                spacer
-              )}
+              {/* First, so it keeps its place (and its announcements) whatever the header shows. */}
               <div
                 id={captionId}
                 data-slot="calendar-caption"
@@ -339,119 +401,168 @@ export function CalendarBase({
               >
                 {formatters.caption.format(month)}
               </div>
-              {index === numberOfMonths - 1 ? (
-                <button
-                  type="button"
-                  data-slot="calendar-next"
-                  aria-label={labels?.nextMonth ?? "Next month"}
-                  aria-disabled={nextDisabled || undefined}
-                  data-disabled={nextDisabled ? "" : undefined}
-                  className={navClasses}
-                  onClick={() => {
-                    if (!nextDisabled) setMonth(addMonths(firstMonth, 1));
-                  }}
-                >
-                  <ChevronRightIcon className="rtl:-scale-x-100" />
-                </button>
+              {paneView ? (
+                <CalendarViewHeader
+                  view={paneView}
+                  bounds={boundsOf(paneView.kind)}
+                  labels={labels}
+                  formatters={formatters}
+                  onFocusChange={(focus) => setView({ ...paneView, focus })}
+                  onOpenYears={(year) => openView("year", index, year)}
+                />
               ) : (
-                spacer
+                <>
+                  {index === 0 ? (
+                    <CalendarNavButton
+                      direction="prev"
+                      label={labels?.previousMonth ?? "Previous month"}
+                      disabled={prevDisabled}
+                      onPage={() => setMonth(addMonths(firstMonth, -1))}
+                    />
+                  ) : (
+                    spacer
+                  )}
+                  <CalendarCaptionButtons
+                    month={month}
+                    labels={labels}
+                    formatters={formatters}
+                    onOpen={(kind) =>
+                      openView(
+                        kind,
+                        index,
+                        kind === "month" ? monthOrdinal(month) : month.getFullYear(),
+                      )
+                    }
+                  />
+                  {index === numberOfMonths - 1 ? (
+                    <CalendarNavButton
+                      direction="next"
+                      label={labels?.nextMonth ?? "Next month"}
+                      disabled={nextDisabled}
+                      onPage={() => setMonth(addMonths(firstMonth, 1))}
+                    />
+                  ) : (
+                    spacer
+                  )}
+                </>
               )}
             </div>
-            <table
-              // biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: the APG date grid is a table with grid roles.
-              role="grid"
-              aria-labelledby={captionId}
-              data-slot="calendar-grid"
-              className={calendarGridClasses}
-              onPointerLeave={() => onPreviewDay?.(null)}
-            >
-              <thead>
-                <tr>
-                  {formatters.weekdays.map((weekday) => (
-                    <th
-                      key={weekday.key}
-                      scope="col"
-                      abbr={weekday.long}
-                      data-slot="calendar-weekday"
-                      className={calendarWeekdayClasses}
-                    >
-                      {weekday.short}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {getMonthGrid(month, weekStartsOn).map((week) => (
-                  <tr key={toISODate(week[0] as Date)}>
-                    {week.map((date) => {
-                      const iso = toISODate(date);
-                      const outside = !isSameMonth(date, month);
-                      // With two months, the days between them aren't repeated as outside days.
-                      if (outside && (!showOutsideDays || isVisible(date))) {
+            {paneView ? (
+              <CalendarViewGrid
+                view={paneView}
+                month={month}
+                today={today}
+                bounds={boundsOf(paneView.kind)}
+                labels={labels}
+                formatters={formatters}
+                itemId={(ordinal) => viewItemId(paneView.kind, ordinal)}
+                onFocusMove={(focus) => {
+                  setView({ ...paneView, focus });
+                  pendingFocus.current = viewItemId(paneView.kind, focus);
+                }}
+                onChoose={(ordinal) =>
+                  paneView.kind === "month"
+                    ? chooseMonth(index, ordinal)
+                    : openView("month", index, ordinal * 12 + month.getMonth())
+                }
+              />
+            ) : (
+              <table
+                // biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: the APG date grid is a table with grid roles.
+                role="grid"
+                aria-labelledby={captionId}
+                data-slot="calendar-grid"
+                className={calendarGridClasses}
+                onPointerLeave={() => onPreviewDay?.(null)}
+              >
+                <thead>
+                  <tr>
+                    {formatters.weekdays.map((weekday) => (
+                      <th
+                        key={weekday.key}
+                        scope="col"
+                        abbr={weekday.long}
+                        data-slot="calendar-weekday"
+                        className={calendarWeekdayClasses}
+                      >
+                        {weekday.short}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {getMonthGrid(month, weekStartsOn).map((week) => (
+                    <tr key={toISODate(week[0] as Date)}>
+                      {week.map((date) => {
+                        const iso = toISODate(date);
+                        const outside = !isSameMonth(date, month);
+                        // With two months, the days between them aren't repeated as outside days.
+                        if (outside && (!showOutsideDays || isVisible(date))) {
+                          return (
+                            // biome-ignore lint/a11y/useFocusableInteractive: focus lives on the day button inside (APG date grid).
+                            <td
+                              key={iso}
+                              // biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: the APG date grid is a table with grid roles.
+                              role="gridcell"
+                              data-slot="calendar-cell"
+                              className={calendarCellClasses}
+                            />
+                          );
+                        }
+                        const selection = getSelectionState(date);
+                        const disabled = isDisabled(date);
+                        const isToday = isSameDay(date, today);
                         return (
                           // biome-ignore lint/a11y/useFocusableInteractive: focus lives on the day button inside (APG date grid).
                           <td
                             key={iso}
                             // biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: the APG date grid is a table with grid roles.
                             role="gridcell"
+                            aria-selected={selection.ariaSelected || undefined}
                             data-slot="calendar-cell"
                             className={calendarCellClasses}
-                          />
-                        );
-                      }
-                      const selection = getSelectionState(date);
-                      const disabled = isDisabled(date);
-                      const isToday = isSameDay(date, today);
-                      return (
-                        // biome-ignore lint/a11y/useFocusableInteractive: focus lives on the day button inside (APG date grid).
-                        <td
-                          key={iso}
-                          // biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: the APG date grid is a table with grid roles.
-                          role="gridcell"
-                          aria-selected={selection.ariaSelected || undefined}
-                          data-slot="calendar-cell"
-                          className={calendarCellClasses}
-                        >
-                          <button
-                            type="button"
-                            id={outside ? undefined : dayId(date)}
-                            tabIndex={!outside && isSameDay(date, tabStop) ? 0 : -1}
-                            aria-label={formatters.full.format(date)}
-                            aria-current={isToday ? "date" : undefined}
-                            aria-disabled={disabled || undefined}
-                            data-slot="calendar-day"
-                            data-date={iso}
-                            data-today={isToday ? "" : undefined}
-                            data-outside={outside ? "" : undefined}
-                            data-disabled={disabled ? "" : undefined}
-                            data-selected={selection.selected ? "" : undefined}
-                            data-range-start={selection.rangeStart ? "" : undefined}
-                            data-range-end={selection.rangeEnd ? "" : undefined}
-                            data-range-middle={selection.rangeMiddle ? "" : undefined}
-                            data-range-preview={selection.rangePreview ? "" : undefined}
-                            className={calendarDayClasses({
-                              ...selection,
-                              today: isToday,
-                              outside,
-                              disabled,
-                            })}
-                            onClick={() => onDayClick(date)}
-                            onKeyDown={(event) => onDayKeyDown(event, date)}
-                            onFocus={() => {
-                              setFocusedDay(date);
-                              onPreviewDay?.(date);
-                            }}
-                            onPointerEnter={() => onPreviewDay?.(date)}
                           >
-                            {formatters.dayNumber.format(date)}
-                          </button>
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                            <button
+                              type="button"
+                              id={outside ? undefined : dayId(date)}
+                              tabIndex={!outside && isSameDay(date, tabStop) ? 0 : -1}
+                              aria-label={formatters.full.format(date)}
+                              aria-current={isToday ? "date" : undefined}
+                              aria-disabled={disabled || undefined}
+                              data-slot="calendar-day"
+                              data-date={iso}
+                              data-today={isToday ? "" : undefined}
+                              data-outside={outside ? "" : undefined}
+                              data-disabled={disabled ? "" : undefined}
+                              data-selected={selection.selected ? "" : undefined}
+                              data-range-start={selection.rangeStart ? "" : undefined}
+                              data-range-end={selection.rangeEnd ? "" : undefined}
+                              data-range-middle={selection.rangeMiddle ? "" : undefined}
+                              data-range-preview={selection.rangePreview ? "" : undefined}
+                              className={calendarDayClasses({
+                                ...selection,
+                                today: isToday,
+                                outside,
+                                disabled,
+                              })}
+                              onClick={() => onDayClick(date)}
+                              onKeyDown={(event) => onDayKeyDown(event, date)}
+                              onFocus={() => {
+                                setFocusedDay(date);
+                                onPreviewDay?.(date);
+                              }}
+                              onPointerEnter={() => onPreviewDay?.(date)}
+                            >
+                              {formatters.dayNumber.format(date)}
+                            </button>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         );
       })}

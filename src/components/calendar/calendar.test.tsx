@@ -38,6 +38,11 @@ const cellOf = (date: Date, locale = "en-US") =>
 
 const focusedLabel = () => document.activeElement?.getAttribute("aria-label") ?? null;
 
+/** Tab from the page start to the grid: Previous, the month and year buttons, Next, the day. */
+async function tabToGrid() {
+  for (let i = 0; i < 5; i++) await userEvent.tab();
+}
+
 function tabbableDays(container: Element) {
   return [...container.querySelectorAll<HTMLButtonElement>('[data-slot="calendar-day"]')].filter(
     (button) => button.tabIndex === 0,
@@ -58,6 +63,8 @@ describe("Calendar: structure", () => {
       "calendar-month",
       "calendar-header",
       "calendar-caption",
+      "calendar-month-button",
+      "calendar-year-button",
       "calendar-prev",
       "calendar-next",
       "calendar-grid",
@@ -301,18 +308,15 @@ describe("Calendar: keyboard (APG date grid)", () => {
       <Calendar locale="en-US" defaultMonth={d(2026, 11, 1)} min={d(2026, 11, 4)} />,
     );
     expect(tabbableDays(firstEnabled.container)).toEqual([dayElement(d(2026, 11, 4))]);
-    // Tab order: Previous month (aria-disabled but focusable), Next month, then the grid.
-    await userEvent.tab();
-    await userEvent.tab();
-    await userEvent.tab();
+    // Tab order: Previous month (aria-disabled but focusable), the month and year buttons, Next
+    // month, then the grid.
+    await tabToGrid();
     expect(focusedLabel()).toBe(fullDate(d(2026, 11, 4)));
   });
 
   it("moves the Tab stop with focus", async () => {
     const screen = await render(<Calendar locale="en-US" defaultValue={d(2026, 9, 3)} />);
-    await userEvent.tab();
-    await userEvent.tab();
-    await userEvent.tab();
+    await tabToGrid();
     expect(focusedLabel()).toBe(fullDate(d(2026, 9, 3)));
     await userEvent.keyboard("{ArrowDown}{ArrowDown}");
     expect(tabbableDays(screen.container)).toEqual([dayElement(d(2026, 9, 17))]);
@@ -470,9 +474,7 @@ describe("Calendar: focus, cursor and forced colors", () => {
     const day = dayElement(d(2026, 9, 3));
     expect(getComputedStyle(day).cursor).toBe("pointer");
     expect(getComputedStyle(day).outlineStyle).toBe("none");
-    await userEvent.tab();
-    await userEvent.tab();
-    await userEvent.tab();
+    await tabToGrid();
     expect(document.activeElement).toBe(day);
     expect(getComputedStyle(day).outlineStyle).toBe("solid");
     expect(getComputedStyle(day).outlineWidth).toBe("2px");
@@ -519,9 +521,7 @@ describe("Calendar: focus, cursor and forced colors", () => {
     expect(bar.borderTopColor).not.toBe(getComputedStyle(today).backgroundColor);
     // No outline at rest; a solid Highlight ring on keyboard focus.
     expect(getComputedStyle(selected).outlineStyle).toBe("none");
-    await userEvent.tab();
-    await userEvent.tab();
-    await userEvent.tab();
+    await tabToGrid();
     expect(document.activeElement).toBe(selected);
     expect(getComputedStyle(selected).outlineStyle).toBe("solid");
     expect(getComputedStyle(selected).outlineColor).toBe(systemColor("Highlight"));

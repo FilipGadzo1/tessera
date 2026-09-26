@@ -73,6 +73,7 @@ export {
   Calendar,
   type CalendarLabels,
   type CalendarProps,
+  type CalendarValueLabel,
   type DateRange,
   RangeCalendar,
   type RangeCalendarProps,

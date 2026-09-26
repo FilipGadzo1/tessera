@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
-import { addDays, toDay } from "../../lib/date";
+import { addDays, addYears, toDay } from "../../lib/date";
 import { Calendar, type CalendarProps, type DateRange, RangeCalendar } from "./calendar";
 
 const meta = {
@@ -76,6 +76,34 @@ export const MinMax: Story = {
         <Calendar {...args} min={today} max={addDays(today, 45)} />
         <p className="text-sm text-muted-foreground">
           Delivery can be booked from today up to 45 days ahead.
+        </p>
+      </div>
+    );
+  },
+};
+
+/**
+ * Click the month or the year in the caption (or Tab to it and press Enter) to pick from a grid of
+ * months or of 12 years. Choosing a year opens its months; choosing a month returns to the days.
+ * Arrows, Home/End and PageUp/PageDown move in each view; Escape steps back to the days. Months
+ * and years entirely outside `min` / `max` are disabled, and paging stops there.
+ */
+export const MonthAndYearViews: Story = {
+  name: "Month and year views",
+  render: (args) => {
+    const today = toDay(new Date());
+    const [value, setValue] = useState<Date | null>(null);
+    return (
+      <div className="flex flex-col items-start gap-2">
+        <Calendar
+          {...args}
+          value={value}
+          onValueChange={setValue}
+          min={addYears(today, -3)}
+          max={addYears(today, 2)}
+        />
+        <p className="text-sm text-muted-foreground">
+          Selected: {formatDay(value)} (bookable from three years back to two years ahead)
         </p>
       </div>
     );

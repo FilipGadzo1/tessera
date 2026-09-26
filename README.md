@@ -392,12 +392,18 @@ source files automatically (build output + `"use client"` directive checks).
   caption, one roving Tab stop (the focused, selected, today's or first enabled day), ←/→ days
   (flipped under `dir="rtl"`), ↑/↓ weeks, Home/End the locale's week, PageUp/PageDown months,
   Shift+PageUp/PageDown years, Enter/Space select; moving onto another month's day turns the page.
+  The caption's month and year are buttons that open a month view (a 4×3 grid of months) and a
+  year view (12 years at a time); choosing a year opens its months, choosing a month returns to the
+  days with focus on the same day number, and Escape steps back to the days (without closing a
+  surrounding DatePicker). Both views have the same arrow/Home/End/PageUp/PageDown keys and keep
+  the day grid's size, so a popover never jumps.
   Dates are plain `Date`s standing for local days, no date library. `value` / `defaultValue` /
   `onValueChange`, `month` / `defaultMonth` / `onMonthChange`, `min` / `max` (days beyond are
   disabled and keys stop there; prev/next disable at the bounds), `isDateDisabled` (days stay
   focusable, `aria-disabled`), `locale` (default: the document's `lang`, then the browser's —
   caption, weekday names, full-date labels and week start all come from `Intl`), `weekStartsOn`,
-  `showOutsideDays` (default true), `autoFocus`, and `labels` for the prev/next buttons.
+  `showOutsideDays` (default true), `autoFocus`, and `labels` for the prev/next buttons, the
+  caption buttons and the month/year views.
   `RangeCalendar` takes a `{ start, end }` value: the first pick sets the start, the second the end
   (swapped if earlier), a third starts over; while only the start is set the hovered or focused day
   previews the band. `numberOfMonths={2}` shows two months side by side with keyboard navigation
@@ -409,8 +415,9 @@ source files automatically (build output + `"use client"` directive checks).
   Focus lands on the picked day (or today); picking closes and returns focus to the trigger, Escape
   or an outside click closes unchanged. `value` / `defaultValue` / `onValueChange`, `placeholder`,
   `format` (Intl options, default `{ dateStyle: "medium" }`), `locale`, `min` / `max`,
+  `defaultMonth` (the month shown while nothing is picked, e.g. decades back for a birthday),
   `isDateDisabled`, `weekStartsOn`, `disabled`, `open` / `defaultOpen` / `onOpenChange`,
-  `container`, `labels` (`dialog`, `previousMonth`, `nextMonth`), and `name` for a hidden
+  `container`, `labels` (`dialog` plus the Calendar's labels), and `name` for a hidden
   `YYYY-MM-DD` input. Inside a `Field` the label names the trigger followed by the value ("Due date
   Sep 25, 2026"), the description describes it, and invalid / disabled apply. `DateRangePicker`
   shows two months (`numberOfMonths`), stays open after the start and closes after the end, reverts

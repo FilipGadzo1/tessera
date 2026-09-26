@@ -384,6 +384,86 @@ describe("DatePicker: popup", () => {
     await expect.element(outer).not.toBeInTheDocument();
   });
 
+  it("Escape in the month or year view steps back to the days and keeps the popover open; the next Escape closes it", async () => {
+    const onOpenChange = vi.fn();
+    await render(<Picker defaultValue={d(2026, 9, 10)} onOpenChange={onOpenChange} />);
+    await open();
+    await expect.poll(focusedDayLabel).toBe(fullDate(d(2026, 9, 10)));
+    onOpenChange.mockClear();
+    for (const name of ["Choose month, September 2026", "Choose year, 2026"]) {
+      await userEvent.click(page.getByRole("button", { name }));
+      await expect.element(page.getByRole("grid", { name: /^(Months|Years)/ })).toBeVisible();
+      await userEvent.keyboard("{Escape}");
+      await expect.element(page.getByRole("grid", { name: "September 2026" })).toBeVisible();
+      await expect.poll(focusedDayLabel).toBe(fullDate(d(2026, 9, 10)));
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      await expect.element(dialog()).toBeVisible();
+      expect(onOpenChange).not.toHaveBeenCalled();
+    }
+    await userEvent.keyboard("{Escape}");
+    await expect.element(dialog()).not.toBeInTheDocument();
+    expect(onOpenChange).toHaveBeenCalledTimes(1);
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    await expect.poll(() => document.activeElement).toBe(triggerEl());
+  });
+
+  it("picks a far-away date through the year and month views, the popup staying put", async () => {
+    const onValueChange = vi.fn();
+    await render(<Picker onValueChange={onValueChange} />);
+    const element = await open();
+    const before = element.getBoundingClientRect();
+    await userEvent.click(page.getByRole("button", { name: "Choose year, 2026" }));
+    const years = element.getBoundingClientRect();
+    await userEvent.click(page.getByRole("button", { name: "Previous 12 years" }));
+    await userEvent.click(page.getByRole("button", { name: "Previous 12 years" }));
+    await userEvent.click(page.getByRole("button", { name: "1994", exact: true }));
+    const months = element.getBoundingClientRect();
+    for (const box of [years, months]) {
+      expect(Math.abs(box.left - before.left)).toBeLessThanOrEqual(1);
+      expect(Math.abs(box.top - before.top)).toBeLessThanOrEqual(1);
+      expect(Math.abs(box.width - before.width)).toBeLessThanOrEqual(1);
+      expect(Math.abs(box.height - before.height)).toBeLessThanOrEqual(1);
+    }
+    await userEvent.click(page.getByRole("button", { name: "June 1994", exact: true }));
+    await expect.element(page.getByRole("grid", { name: "June 1994" })).toBeVisible();
+    await expect.element(dialog()).toBeVisible();
+    await expect.poll(focusedDayLabel).toBe(fullDate(d(1994, 6, 25)));
+    await userEvent.keyboard("{Enter}");
+    await expect.element(dialog()).not.toBeInTheDocument();
+    expect(onValueChange).toHaveBeenCalledWith(d(1994, 6, 25));
+    expect(triggerEl().textContent).toBe("Jun 25, 1994");
+  });
+
+  it("opens on defaultMonth while empty (a birthday picker), and on the value's month once picked", async () => {
+    await render(<Picker defaultMonth={d(1990, 5, 1)} />);
+    await open();
+    await expect.element(page.getByRole("grid", { name: "May 1990" })).toBeVisible();
+    await expect.poll(focusedDayLabel).toBe(fullDate(d(1990, 5, 1)));
+    await userEvent.click(dayButton(d(1990, 5, 12)));
+    await expect.element(dialog()).not.toBeInTheDocument();
+    await open();
+    await expect.element(page.getByRole("grid", { name: "May 1990" })).toBeVisible();
+    await expect.poll(focusedDayLabel).toBe(fullDate(d(1990, 5, 12)));
+  });
+
+  it.each(["light", "dark"] as const)(
+    "has no axe violations open in the month view (%s)",
+    async (theme) => {
+      if (theme === "dark") document.documentElement.classList.add("dark");
+      await render(
+        <div className="bg-background p-16">
+          <DatePicker aria-label="Due date" locale="en-US" defaultValue={d(2026, 9, 25)} />
+        </div>,
+      );
+      await open();
+      await userEvent.click(page.getByRole("button", { name: "Choose month, September 2026" }));
+      await expect.element(page.getByRole("grid", { name: "Months, 2026" })).toBeVisible();
+      const opened = await auditOpenOverlay();
+      expect(opened.violations).toEqual([]);
+      expect(opened.incomplete).toEqual([]);
+    },
+  );
+
   it("translates the dialog and month-button labels via `labels`", async () => {
     await render(
       <Picker

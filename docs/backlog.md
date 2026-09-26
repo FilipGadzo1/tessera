@@ -165,10 +165,6 @@ phase; items fixed by a later commit are left out).
   README and the `locale` prop's JSDoc now say to pass `locale` explicitly when server-rendering.
   Real fix later: a `today` prop (so the caller controls it, e.g. from a server-computed value), or
   compute "today" in an effect instead of during render.
-- Calendar caption (final review I2, spec scope ruling): month/year dropdowns in the calendar
-  caption were ruled out of scope for Phase F; the caption is a plain live region with only
-  prev/next navigation. Reconsider for a future phase if a long date range (e.g. a birthdate
-  picker) makes paging by month impractical.
 - Calendar (final review I2): the visible month doesn't follow a controlled `value` changed after
   mount on the standalone `Calendar` (`DatePicker` is covered — it always shows the picked day's
   month once open). A caller that controls `value` and jumps it far from the visible month must

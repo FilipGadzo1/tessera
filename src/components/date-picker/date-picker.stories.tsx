@@ -108,6 +108,35 @@ export const MinMax: Story = {
 };
 
 /**
+ * A date far in the past: `defaultMonth` opens the calendar decades back while nothing is picked,
+ * and the caption's year and month buttons jump anywhere in a few clicks (year → month → day).
+ */
+export const Birthday: Story = {
+  render: (args) => {
+    const [value, setValue] = useState<Date | null>(null);
+    const today = toDay(new Date());
+    return (
+      <Field>
+        <FieldLabel>Date of birth</FieldLabel>
+        <DatePicker
+          {...args}
+          value={value}
+          onValueChange={setValue}
+          defaultMonth={new Date(today.getFullYear() - 30, 0, 1)}
+          min={new Date(today.getFullYear() - 120, 0, 1)}
+          max={today}
+          format={{ dateStyle: "long" }}
+          name="birthday"
+        />
+        <FieldDescription>
+          Click the year in the calendar's caption to jump by decades.
+        </FieldDescription>
+      </Field>
+    );
+  },
+};
+
+/**
  * DateRangePicker: two months side by side. The first pick sets the start and keeps it open;
  * the second sets the end and closes. Escape with only the start chosen reverts.
  */
