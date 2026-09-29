@@ -288,6 +288,15 @@ phase; items fixed by a later commit are left out).
   (focus lands on `<body>`). All three look like lost window/document focus after some earlier
   test, not hover; not chased further.
 
+### Phase H notes
+- Forced colors, invalid + focused groups (found in DateField, Task 1 fix round 1): Tailwind emits
+  `data-invalid:focus-within:` after `forced-colors:focus-within:`, so on a `focus-within` ring the
+  danger outline (forced to CanvasText) beats the Highlight ring. An Input in an invalid Field
+  (a `:focus` ring) stays Highlight. DateField restates
+  `forced-colors:data-invalid:focus-within:outline-[Highlight]`. `textFieldGroupBase` (NumberField
+  group, Combobox input group) has the same class order, so it very likely shows CanvasText. This
+  is unverified; check it and add the same rule there.
+
 ## Next components
 Follow the phases in the design-system spec §6
 (`docs/superpowers/specs/2026-09-23-tessera-design-system-v2.md`): Phase B forms (Label, Field, Input,

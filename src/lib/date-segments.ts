@@ -142,10 +142,13 @@ export function getLocaleDigits(locale?: string): string[] {
   return Array.from({ length: 10 }, (_, digit) => format.format(digit));
 }
 
-/** The digit `key` stands for: an ASCII digit, or one of the locale's digits; `null` otherwise. */
-export function parseDigit(key: string, locale?: string): number | null {
+/**
+ * The digit `key` stands for: an ASCII digit, or one of `digits` (the locale's, from
+ * `getLocaleDigits`, passed in so a keystroke doesn't build a formatter); `null` otherwise.
+ */
+export function parseDigit(key: string, digits: readonly string[]): number | null {
   if (/^[0-9]$/.test(key)) return Number(key);
-  const index = getLocaleDigits(locale).indexOf(key);
+  const index = digits.indexOf(key);
   return index === -1 ? null : index;
 }
 

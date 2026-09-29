@@ -98,7 +98,10 @@ const rootBase = [
   "inline-flex w-full min-w-0 items-center gap-0.5 rounded-md border border-field-border bg-field text-foreground shadow-xs tabular-nums cursor-text",
   "not-data-disabled:not-data-invalid:not-focus-within:hover:border-field-border-hover",
   "outline-none focus-within:outline-1 focus-within:outline-solid focus-within:outline-ring focus-within:border-ring forced-colors:focus-within:outline-[Highlight]",
-  "data-invalid:border-danger data-invalid:focus-within:outline-danger",
+  // The forced-colors Highlight ring restated for the invalid state: Tailwind emits
+  // `data-invalid:focus-within:` after `forced-colors:focus-within:`, so without it the danger
+  // outline (forced to CanvasText) would win, unlike Input's `:focus` ring, which stays Highlight.
+  "data-invalid:border-danger data-invalid:focus-within:outline-danger forced-colors:data-invalid:focus-within:outline-[Highlight]",
   "data-disabled:cursor-not-allowed data-disabled:opacity-50 data-readonly:bg-muted",
   "transition-[color,background-color,border-color,box-shadow,translate] duration-150 ease-out motion-reduce:transition-none",
 ];
@@ -117,6 +120,19 @@ const literalBase = "text-muted-foreground";
 const pageStep: Record<DateSegmentType, number> = { month: 1, day: 7, year: 10 };
 
 const segmentSelector = "[data-slot=date-field-segment]";
+
+/** Keys a focused segment always swallows: edits, and the stepping keys that would scroll. */
+const preventedKeys = new Set([
+  "Enter",
+  "Backspace",
+  "Delete",
+  "ArrowUp",
+  "ArrowDown",
+  "PageUp",
+  "PageDown",
+  "Home",
+  "End",
+]);
 
 /** `day` clamped to the month's length once the month and year are both known (Jan 31 → Feb 28). */
 function clampSegmentDay(segments: DateSegments): DateSegments {
@@ -209,8 +225,14 @@ export function DateField({
   }
   // Digits typed into the focused segment so far (the next digit appends to them).
   const [entry, setEntry] = useState<{ type: DateSegmentType; buffer: string } | null>(null);
-  // Whether the shown segments hold a year still being typed, not yet reported.
+  // Whether the shown segments hold a year still being typed, not yet reported (nor used to clamp
+  // the day: "2" on the way to "2024" would clamp Feb 29 to 28). State for rendering, plus a ref
+  // for the blur that can fire synchronously inside the same handler.
+  const [held, setHeld] = useState(false);
   const heldRef = useRef(false);
+  /** A segment's range; a held year counts as unknown, so the day isn't bounded by year "2". */
+  const boundsOf = (type: DateSegmentType) =>
+    segmentBounds(type, held ? { ...segments, year: null } : segments);
 
   const disabled = !!disabledProp || field.state.disabled;
   const editable = !disabled && !readOnly;
@@ -224,6 +246,9 @@ export function DateField({
 
   const ariaLabelledBy =
     props["aria-labelledby"] ?? (props["aria-label"] ? undefined : fieldLabelId);
+  // What names the field, for each segment's `aria-labelledby`: the labelling ids, or the group
+  // itself when it is named by `aria-label`.
+  const segmentLabelSource = ariaLabelledBy ?? (props["aria-label"] ? id : undefined);
   const { "aria-describedby": ariaDescribedBy } = getDescriptionProps({
     "aria-describedby": props["aria-describedby"],
   });
@@ -236,11 +261,14 @@ export function DateField({
 
   /** Shows `next`; reports its date (or `null`) unless `hold` (a year still being typed). */
   const commit = (next: DateSegments, hold = false) => {
+    heldRef.current = hold;
+    setHeld(hold);
+    if (hold) {
+      setSegments(next);
+      return;
+    }
     const clamped = clampSegmentDay(next);
     setSegments(clamped);
-    // A ref, not state: the blur that reads it can fire synchronously inside the same handler.
-    heldRef.current = hold;
-    if (hold) return;
     const date = segmentsToDate(clamped);
     if (date) {
       if (!sameValue(date, value)) emit(date);
@@ -257,7 +285,7 @@ export function DateField({
     elements[Math.max(0, Math.min(index, elements.length - 1))]?.focus();
   };
   const typeInto = (type: DateSegmentType, index: number, digit: number) => {
-    const { max: bound } = segmentBounds(type, segments);
+    const { max: bound } = boundsOf(type);
     const typed = typeDigit(entry?.type === type ? entry.buffer : "", digit, type, bound);
     // A year is reported once its four digits are in (or on blur): "2", "20", "202" on the way to
     // "2026" are valid years, but reporting each would jump a linked calendar through the ages.
@@ -290,16 +318,14 @@ export function DateField({
       return;
     }
     if (key === "Tab") return;
-    // Everything else is handled here or ignored: never let the browser edit the segment's text.
-    if (key.length === 1 || key === "Enter" || key === "Backspace" || key === "Delete") {
-      event.preventDefault();
-    }
+    // Everything else is handled here or ignored: never let the browser edit the segment's text,
+    // and never let the stepping keys scroll the page (read-only included).
+    if (key.length === 1 || preventedKeys.has(key)) event.preventDefault();
     if (!editable) return;
 
     const current = segments[type];
-    const bounds = segmentBounds(type, segments);
+    const bounds = boundsOf(type);
     const set = (next: number) => {
-      event.preventDefault();
       setEntry(null);
       commit({ ...segments, [type]: next });
     };
@@ -323,7 +349,7 @@ export function DateField({
       case "Delete":
         return clear(type);
     }
-    const digit = parseDigit(key, locale);
+    const digit = parseDigit(key, intl.digits);
     if (digit !== null) typeInto(type, index, digit);
     else if (literalKeys.has(key)) focusSegment(index + 1);
   };
@@ -345,7 +371,7 @@ export function DateField({
     // One character per event in practice; the first one wins (focus may move after it).
     const char = [...data][0];
     if (char === undefined) return;
-    const digit = parseDigit(char, locale);
+    const digit = parseDigit(char, intl.digits);
     if (digit !== null) typeInto(type, index, digit);
     else if (literalKeys.has(char)) focusSegment(index + 1);
   };
@@ -369,20 +395,22 @@ export function DateField({
     return () => label.removeEventListener("click", onClick);
   }, [fieldLabelId]);
 
+  /** Zeros typed into an empty segment so far ("0", "00"), in the locale's digits; "" otherwise. */
+  const typedZeros = (type: DateSegmentType): string => {
+    const buffer = entry?.type === type && segments[type] === null ? entry.buffer : "";
+    return buffer.replace(/\d/g, (char) => intl.digits[Number(char)] as string);
+  };
+
   const display = (type: DateSegmentType): string => {
     const segmentValue = segments[type];
-    if (segmentValue === null) {
-      const buffer = entry?.type === type ? entry.buffer : "";
-      return buffer
-        ? buffer.replace(/\d/g, (char) => intl.digits[Number(char)] as string)
-        : intl.placeholder(type);
-    }
+    if (segmentValue === null) return typedZeros(type) || intl.placeholder(type);
     return type === "year" ? intl.number.format(segmentValue) : intl.twoDigits.format(segmentValue);
   };
 
   const valueText = (type: DateSegmentType): string => {
     const segmentValue = segments[type];
-    if (segmentValue === null) return labels?.empty ?? "Empty";
+    // A leading "0" keeps the value empty (as React Aria) but is on screen, so it's announced.
+    if (segmentValue === null) return typedZeros(type) || (labels?.empty ?? "Empty");
     if (type === "month") return intl.monthName.format(new Date(2000, segmentValue - 1, 1));
     return intl.number.format(segmentValue);
   };
@@ -439,7 +467,8 @@ export function DateField({
         const { type } = part;
         const index = segmentIndex++;
         const segmentValue = segments[type];
-        const bounds = segmentBounds(type, segments);
+        const bounds = boundsOf(type);
+        const segmentId = `${id}-${type}`;
         const empty = segmentValue === null && !(entry?.type === type && entry.buffer);
         return (
           <span
@@ -448,7 +477,9 @@ export function DateField({
             data-slot="date-field-segment"
             data-type={type}
             data-placeholder={empty ? "" : undefined}
-            tabIndex={disabled ? -1 : 0}
+            id={segmentId}
+            // No tabindex at all when disabled: -1 would still take focus from a click.
+            tabIndex={disabled ? undefined : 0}
             contentEditable={editable}
             suppressContentEditableWarning
             inputMode="numeric"
@@ -456,6 +487,8 @@ export function DateField({
             autoCapitalize="off"
             autoCorrect="off"
             aria-label={labels?.[type] ?? intl.label(type)}
+            // "month, Due date" (as React Aria): the segment's own name, then the field's.
+            aria-labelledby={segmentLabelSource ? `${segmentId} ${segmentLabelSource}` : undefined}
             aria-valuenow={segmentValue ?? undefined}
             aria-valuemin={bounds.min}
             aria-valuemax={bounds.max}
@@ -465,7 +498,14 @@ export function DateField({
             aria-invalid={invalid || undefined}
             aria-required={required || undefined}
             className={cn(segmentBase)}
-            onFocus={() => setEntry(null)}
+            onFocus={(event) => {
+              setEntry(null);
+              // Collapse the selection into the segment (as React Aria's useDateSegment): Chrome
+              // on Android then fires input events, and no native ::selection highlight shows.
+              event.currentTarget.ownerDocument.defaultView
+                ?.getSelection()
+                ?.collapse(event.currentTarget, 0);
+            }}
             onBlur={() => {
               // Reports a year held while it was being typed.
               if (heldRef.current) commit(segments);

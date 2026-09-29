@@ -105,6 +105,29 @@ describe("DateField: structure", () => {
     expect(month.hasAttribute("data-placeholder")).toBe(false);
   });
 
+  it("names each segment by its own name plus the field's ('month Due date'), keeping the group name", async () => {
+    await render(<Basic />);
+    await expect.element(page.getByRole("group", { name: "Due date" })).toBeInTheDocument();
+    for (const name of ["month Due date", "day Due date", "year Due date"]) {
+      await expect.element(page.getByRole("spinbutton", { name, exact: true })).toBeInTheDocument();
+    }
+    const month = seg("month");
+    expect(month.getAttribute("aria-labelledby")).toBe(`${month.id} ${root().id}`);
+  });
+
+  it("names segments from an external aria-labelledby", async () => {
+    await render(
+      <div>
+        <span id="ext">Start</span>
+        <DateField aria-labelledby="ext" locale="en-US" />
+      </div>,
+    );
+    await expect.element(page.getByRole("group", { name: "Start" })).toBeInTheDocument();
+    await expect
+      .element(page.getByRole("spinbutton", { name: "day Start", exact: true }))
+      .toBeInTheDocument();
+  });
+
   it("says 'Empty' (localisable) for an unset segment and omits aria-valuenow", async () => {
     const { rerender } = await render(<Basic />);
     expect(seg("day").getAttribute("aria-valuetext")).toBe("Empty");
@@ -149,6 +172,65 @@ describe("DateField: typing", () => {
     const date = onValueChange.mock.lastCall?.[0] as Date;
     expect(date.getFullYear()).toBe(202);
     expect(root().hasAttribute("data-invalid")).toBe(true);
+  });
+
+  it.each([
+    ["en-US", "0229"],
+    ["de-DE", "2902"],
+  ])(
+    "%s: types Feb 29 of a leap year (the day isn't clamped while the year is typed)",
+    async (locale, dayMonth) => {
+      const onValueChange = vi.fn();
+      await render(<DateField aria-label="Date" locale={locale} onValueChange={onValueChange} />);
+      await userEvent.click(segments()[0] as HTMLElement);
+      await type(dayMonth);
+      await type("2");
+      // Year "2" is held: the day keeps 29 and its bound reads as if the year were unknown.
+      expect(seg("day").getAttribute("aria-valuenow")).toBe("29");
+      expect(seg("day").getAttribute("aria-valuemax")).toBe("31");
+      await type("024");
+      expect(onValueChange).toHaveBeenCalledTimes(1);
+      expect(onValueChange).toHaveBeenLastCalledWith(d(2024, 2, 29));
+      expect(seg("day").getAttribute("aria-valuemax")).toBe("29");
+    },
+  );
+
+  it("clamps Feb 29 once a common year's fourth digit is in (or on blur)", async () => {
+    const onValueChange = vi.fn();
+    await render(
+      <div>
+        <Basic onValueChange={onValueChange} />
+        <button type="button">after</button>
+      </div>,
+    );
+    await userEvent.click(seg("month"));
+    await type("02292023");
+    expect(onValueChange).toHaveBeenLastCalledWith(d(2023, 2, 28));
+    expect(seg("day").getAttribute("aria-valuenow")).toBe("28");
+    // Clear the year so the day is bounded by 31 again, type 29, then a held year 202.
+    await userEvent.click(seg("year"));
+    await userEvent.keyboard("{Backspace}");
+    await userEvent.click(seg("day"));
+    await type("29");
+    expect(focusedType()).toBe("year");
+    await type("202");
+    expect(seg("day").getAttribute("aria-valuenow")).toBe("29");
+    await userEvent.tab();
+    // Blur reports the held year 202 (a common year): the day clamps.
+    expect(seg("day").getAttribute("aria-valuenow")).toBe("28");
+    const last = onValueChange.mock.lastCall as [Date];
+    expect(last[0].getFullYear()).toBe(202);
+  });
+
+  it("a leading '0' shows (and announces) the typed digit while the value is still empty", async () => {
+    await render(<Basic />);
+    await userEvent.click(seg("month"));
+    await type("0");
+    expect(seg("month").textContent).toBe("0");
+    expect(seg("month").getAttribute("aria-valuetext")).toBe("0");
+    expect(seg("month").hasAttribute("aria-valuenow")).toBe(false);
+    await type("9");
+    expect(seg("month").getAttribute("aria-valuetext")).toBe("September");
   });
 
   it("month: '1' waits for a second digit, '2'–'9' advance at once", async () => {
@@ -333,8 +415,14 @@ describe("DateField: keys", () => {
     paste(seg("day"), "2027-01-02");
     await expect.poll(() => texts()).toEqual(["01", "02", "2027"]);
     expect(onValueChange).toHaveBeenLastCalledWith(d(2027, 1, 2));
+    expect(onValueChange).toHaveBeenCalledTimes(2);
     paste(seg("day"), "not a date");
-    expect(texts()).toEqual(["01", "02", "2027"]);
+    paste(seg("day"), "02/30/2026");
+    // A valid paste after the junk settles first, so the junk had its chance to report.
+    paste(seg("day"), "2027-01-03");
+    await expect.poll(() => texts()).toEqual(["01", "03", "2027"]);
+    expect(onValueChange).toHaveBeenCalledTimes(3);
+    expect(onValueChange).toHaveBeenLastCalledWith(d(2027, 1, 3));
   });
 });
 
@@ -522,6 +610,41 @@ describe("DateField: states", () => {
     expect(document.activeElement?.textContent).toBe("after");
   });
 
+  it("disabled: clicking a segment doesn't focus it (no tabindex at all)", async () => {
+    await render(<Basic disabled defaultValue={d(2026, 9, 25)} />);
+    const before = document.activeElement;
+    for (const s of segments()) expect(s.hasAttribute("tabindex")).toBe(false);
+    await userEvent.click(seg("day"), { force: true });
+    expect(document.activeElement).toBe(before);
+    expect(getComputedStyle(seg("day")).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+  });
+
+  it("readOnly: the stepping keys don't scroll the page (they are prevented)", async () => {
+    await render(<Basic readOnly defaultValue={d(2026, 9, 25)} />);
+    const prevented: Record<string, boolean> = {};
+    const listener = (event: KeyboardEvent) => {
+      prevented[event.key] = event.defaultPrevented;
+    };
+    window.addEventListener("keydown", listener);
+    try {
+      await userEvent.click(seg("month"));
+      for (const key of ["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End"]) {
+        await userEvent.keyboard(`{${key}}`);
+      }
+    } finally {
+      window.removeEventListener("keydown", listener);
+    }
+    expect(prevented).toEqual({
+      ArrowUp: true,
+      ArrowDown: true,
+      PageUp: true,
+      PageDown: true,
+      Home: true,
+      End: true,
+    });
+    expect(texts()).toEqual(["09", "25", "2026"]);
+  });
+
   it("readOnly: focusable and navigable, but keys never change the value", async () => {
     const onValueChange = vi.fn();
     const screen = await render(
@@ -629,6 +752,30 @@ describe("DateField: focus", () => {
     expect(day.forcedColorAdjust).toBe("none");
     expect(getComputedStyle(seg("month")).forcedColorAdjust).toBe("auto");
   });
+
+  it("in forced colors: an invalid, focused field rings Highlight, like an Input in an invalid Field", async () => {
+    const screen = await render(
+      <div className="flex flex-col gap-2">
+        <Field invalid>
+          <FieldLabel>input</FieldLabel>
+          <Input />
+        </Field>
+        <Basic max={d(2026, 1, 1)} defaultValue={d(2026, 9, 25)} />
+      </div>,
+    );
+    await emulateForcedColors(true);
+    const input = screen.getByRole("textbox", { name: "input" }).element() as HTMLInputElement;
+    input.focus();
+    const inputRing = getComputedStyle(input).outlineColor;
+    await userEvent.click(seg("day"));
+    const style = getComputedStyle(root());
+    expect(style.outlineStyle).toBe("solid");
+    // Input's `:focus` ring stays Highlight when invalid; the group's `:focus-within` ring needs
+    // `forced-colors:data-invalid:focus-within:outline-[Highlight]` for the same result (without
+    // it the danger outline, forced to CanvasText, wins by source order).
+    expect(inputRing).toBe(systemColor("Highlight"));
+    expect(style.outlineColor).toBe(inputRing);
+  });
 });
 
 describe("DateField: in Field", () => {
@@ -649,6 +796,10 @@ describe("DateField: in Field", () => {
     const element = root();
     const label = document.querySelector("[data-slot=field-label]") as HTMLLabelElement;
     expect(element.getAttribute("aria-labelledby")).toBe(label.id);
+    await expect
+      .element(page.getByRole("spinbutton", { name: "month Due date", exact: true }))
+      .toBeInTheDocument();
+    expect(seg("month").getAttribute("aria-labelledby")).toBe(`${seg("month").id} ${label.id}`);
     // The group is not labelable: the label points at no control (no `for`).
     expect(label.htmlFor).toBe("");
     expect(element.hasAttribute("data-invalid")).toBe(true);

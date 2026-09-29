@@ -3,6 +3,7 @@ import {
   type DateSegmentType,
   dateToSegments,
   getDateSegmentOrder,
+  getLocaleDigits,
   getSegmentLabel,
   getSegmentPlaceholder,
   incrementSegment,
@@ -175,13 +176,16 @@ describe("segmentsToDate / dateToSegments", () => {
 
 describe("parseDigit", () => {
   it("accepts ASCII digits in every locale and the locale's own digits", () => {
-    expect(parseDigit("7", "en-US")).toBe(7);
-    expect(parseDigit("7", "ar-EG")).toBe(7);
-    expect(parseDigit("٧", "ar-EG")).toBe(7);
-    expect(parseDigit("٠", "ar-EG")).toBe(0);
-    expect(parseDigit("٧", "en-US")).toBeNull();
-    expect(parseDigit("a", "en-US")).toBeNull();
-    expect(parseDigit("12", "en-US")).toBeNull();
+    const en = getLocaleDigits("en-US");
+    const ar = getLocaleDigits("ar-EG");
+    expect(ar).toEqual(["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"]);
+    expect(parseDigit("7", en)).toBe(7);
+    expect(parseDigit("7", ar)).toBe(7);
+    expect(parseDigit("٧", ar)).toBe(7);
+    expect(parseDigit("٠", ar)).toBe(0);
+    expect(parseDigit("٧", en)).toBeNull();
+    expect(parseDigit("a", en)).toBeNull();
+    expect(parseDigit("12", en)).toBeNull();
   });
 });
 
