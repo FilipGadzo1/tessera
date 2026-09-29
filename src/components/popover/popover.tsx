@@ -31,11 +31,11 @@ export function PopoverTrigger(props: PopoverTriggerProps) {
 type PositionerProps = BasePopover.Positioner.Props;
 
 export interface PopoverContentProps extends BasePopover.Popup.Props {
-  /** Side of the trigger to place the popover on (flips on collision). @default "bottom" */
+  /** Side of the trigger (or `anchor`) to place the popover on (flips on collision). @default "bottom" */
   side?: PositionerProps["side"];
-  /** Alignment against the trigger. @default "center" */
+  /** Alignment against the trigger (or `anchor`). @default "center" */
   align?: PositionerProps["align"];
-  /** Distance from the trigger in px. @default 6 */
+  /** Distance from the trigger (or `anchor`) in px. @default 6 */
   sideOffset?: PositionerProps["sideOffset"];
   /** Offset along the alignment axis in px. @default 0 */
   alignOffset?: PositionerProps["alignOffset"];
@@ -53,7 +53,7 @@ export interface PopoverContentProps extends BasePopover.Popup.Props {
 }
 
 /**
- * The popover panel (`role="dialog"`): portalled, positioned against the trigger, on the popover
+ * The popover panel (`role="dialog"`): portalled, positioned against the trigger (or `anchor`), on the popover
  * surface. On open, focus moves to its first tabbable element (or the panel itself); on close it
  * returns to the trigger. Name it with `PopoverTitle` and describe it with `PopoverDescription`.
  */

@@ -63,12 +63,8 @@ export interface DatePickerLabels
   incomplete?: string;
 }
 
-/** Trigger and popup props shared by `DatePicker` and `DateRangePicker`. */
-interface PickerTriggerProps
-  extends Omit<
-    ComponentProps<"button">,
-    "value" | "defaultValue" | "onChange" | "children" | "type" | "name" | "disabled"
-  > {
+/** Trigger and popup props of every picker that are not native element props. */
+interface PickerOwnProps {
   /** Disables the trigger (a disabled `Field` does too). */
   disabled?: boolean;
   /** Requires a value to submit (DateRangePicker: both dates). */
@@ -85,8 +81,16 @@ interface PickerTriggerProps
   container?: PopoverContentProps["container"];
 }
 
+/** Trigger and popup props shared by `DatePicker` and `DateRangePicker`. */
+interface PickerTriggerProps
+  extends Omit<
+      ComponentProps<"button">,
+      "value" | "defaultValue" | "onChange" | "children" | "type" | "name" | "disabled"
+    >,
+    PickerOwnProps {}
+
 /** Calendar and formatting props shared by `DatePicker` and `DateRangePicker`. */
-interface PickerSharedProps extends PickerTriggerProps {
+interface PickerFields {
   /** Trigger text while nothing is picked. */
   placeholder?: string;
   /** How the trigger shows the value. @default { dateStyle: "medium" } */
@@ -116,6 +120,8 @@ interface PickerSharedProps extends PickerTriggerProps {
   /** Translated labels. */
   labels?: DatePickerLabels;
 }
+
+interface PickerSharedProps extends PickerTriggerProps, PickerFields {}
 
 function assignRef<T>(ref: Ref<T> | undefined, value: T) {
   if (typeof ref === "function") ref(value);
@@ -273,7 +279,16 @@ function PickerShell({
   );
 }
 
-interface EditableShellProps extends PickerTriggerProps {
+/** The native props of an `editable` picker: those of the DateField's group element. */
+type EditableElementProps = Omit<
+  ComponentProps<"div">,
+  "value" | "defaultValue" | "onChange" | "children"
+> & {
+  /** Keeps the segments focusable but ignores edits, and disables the calendar button. */
+  readOnly?: boolean;
+};
+
+interface EditableShellProps extends EditableElementProps, PickerOwnProps {
   value: Date | null;
   /** The day typed or picked (`null` when the user clears a complete date). */
   onPick: (value: Date | null) => void;
@@ -305,6 +320,7 @@ function EditableShell({
   weekStartsOn,
   labels,
   disabled,
+  readOnly,
   required,
   size,
   open: openProp,
@@ -312,7 +328,6 @@ function EditableShell({
   onOpenChange,
   container,
   className,
-  ref,
   ...props
 }: EditableShellProps) {
   const field = useFieldRootContext();
@@ -324,16 +339,16 @@ function EditableShell({
     setControllableOpen(next);
   };
   const isDisabled = !!disabled || field.state.disabled;
-  // The rest props are the field's: on the group (ids, aria-*, handlers), as on the button
-  // otherwise. The types stay the button's; `ref` is the group element in this mode.
-  const fieldProps = props as unknown as DateFieldProps;
+  // The field, its icon button and the popup are one control for the Field's focus / blur.
+  const focusScope = () => [anchorRef.current, popupRef.current];
 
   return (
     <Popover open={open} onOpenChange={(next) => setOpen(next)}>
       <div ref={anchorRef} data-slot="date-picker-editable" className="relative w-full">
         <DateField
-          {...fieldProps}
-          ref={ref as Ref<HTMLDivElement>}
+          {...props}
+          focusScope={focusScope}
+          readOnly={readOnly}
           value={value}
           onValueChange={onPick}
           name={name}
@@ -349,7 +364,7 @@ function EditableShell({
         />
         <PopoverTrigger
           type="button"
-          disabled={isDisabled}
+          disabled={isDisabled || readOnly}
           aria-label={labels?.openCalendar ?? "Choose date"}
           data-slot="date-picker-trigger"
           className={buttonVariants({
@@ -397,17 +412,7 @@ function EditableShell({
   );
 }
 
-export interface DatePickerProps extends PickerSharedProps {
-  /**
-   * Replaces the button trigger with a typed, segmented `DateField` and a calendar icon button
-   * that opens the same popup. Typing a complete valid date updates the value (and the month the
-   * calendar opens on); picking in the calendar fills the segments, closes it and returns focus to
-   * the icon button. It joins a Field and Form as the DateField does. In this mode `placeholder`
-   * and `format` are unused, and `ref`, `className`, `id` and the other rest props go to the
-   * DateField's group element.
-   * @default false
-   */
-  editable?: boolean;
+interface DatePickerOwnProps extends PickerOwnProps, PickerFields {
   /** The picked day, controlled (`null` for none). */
   value?: Date | null;
   /** The initially picked day. @default null */
@@ -424,10 +429,38 @@ export interface DatePickerProps extends PickerSharedProps {
   placeholder?: string;
 }
 
+/** Native props of the default, button-trigger `DatePicker` (those of the `<button>`). */
+export type DatePickerButtonProps = DatePickerOwnProps &
+  Omit<PickerTriggerProps, keyof DatePickerOwnProps> & {
+    /** @default false */
+    editable?: false;
+  };
+
+/** Native props of the `editable` `DatePicker` (those of the DateField's group `<div>`). */
+export type DatePickerEditableProps = DatePickerOwnProps &
+  Omit<EditableElementProps, keyof DatePickerOwnProps> & {
+    /**
+     * Replaces the button trigger with a typed, segmented `DateField` and a calendar icon button
+     * that opens the same popup. Typing a complete valid date updates the value (and the month the
+     * calendar opens on); picking in the calendar fills the segments, closes it and returns focus to
+     * the icon button. It joins a Field and Form as the DateField does. `placeholder` and `format`
+     * are unused, and `ref`, `className`, `id` and the other native props go to the DateField's
+     * group element. `readOnly` keeps the segments focusable and disables the icon button.
+     */
+    editable: true;
+  };
+
+/**
+ * `DatePicker`'s props: the button trigger's (default), or, with `editable`, the DateField
+ * group's, so `ref` and the handlers are typed for the element they land on.
+ */
+export type DatePickerProps = DatePickerButtonProps | DatePickerEditableProps;
+
 /**
  * A Select-styled button that opens a `Calendar` in a popover. Picking a day closes it and
  * returns focus to the trigger; Escape or an outside click closes it unchanged. Name it with a
- * `Field` label, `aria-labelledby` or `aria-label`; the value text follows the name.
+ * `Field` label, `aria-labelledby` or `aria-label`; the value text follows the name. With
+ * `editable`, a typed `DateField` plus a calendar icon button replaces the trigger.
  */
 export function DatePicker({
   value: valueProp,
@@ -455,7 +488,7 @@ export function DatePicker({
   if (editable) {
     return (
       <EditableShell
-        {...props}
+        {...(props as EditableElementProps & PickerOwnProps)}
         value={value}
         onPick={(date) => {
           setValue(date);
@@ -475,7 +508,7 @@ export function DatePicker({
 
   return (
     <PickerShell
-      {...props}
+      {...(props as PickerTriggerProps)}
       text={value ? formatter.format(value) : null}
       placeholder={placeholder}
       dialogLabel={labels?.dialog ?? "Choose date"}

@@ -733,6 +733,34 @@ describe("DateField: states", () => {
     const fallback = screen.getByRole("group", { name: "date-default" }).element();
     expect(fallback.getAttribute("data-size")).toBe("md");
   });
+
+  it("starts its text where Input's text starts (border + padding) per size", async () => {
+    await render(
+      <div className="flex flex-col gap-2">
+        {(["sm", "md", "lg"] as const).map((size) => (
+          <div key={size} className="flex gap-2">
+            <Input aria-label={`input-${size}`} size={size} />
+            <DateField aria-label={`date-${size}`} size={size} locale="en-US" />
+          </div>
+        ))}
+      </div>,
+    );
+    for (const size of ["sm", "md", "lg"] as const) {
+      const input = page.getByRole("textbox", { name: `input-${size}` }).element();
+      const date = page.getByRole("group", { name: `date-${size}` }).element();
+      const i = getComputedStyle(input);
+      const expected =
+        input.getBoundingClientRect().left +
+        Number.parseFloat(i.borderLeftWidth) +
+        Number.parseFloat(i.paddingLeft);
+      const range = document.createRange();
+      range.selectNodeContents(seg("month", date).firstChild as Node);
+      const start = range.getBoundingClientRect().left;
+      const dateRoot = date.getBoundingClientRect().left;
+      const inputRoot = input.getBoundingClientRect().left;
+      expect(start - dateRoot).toBeCloseTo(expected - inputRoot, 1);
+    }
+  });
 });
 
 describe("DateField: focus", () => {

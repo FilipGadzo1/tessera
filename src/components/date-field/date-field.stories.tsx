@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { Field, FieldDescription, FieldError, FieldLabel } from "../field";
+import { Input } from "../input";
 import { DateField } from "./date-field";
 
 const meta = {
@@ -102,18 +103,20 @@ export const InField: Story = {
   ),
 };
 
-/** The Input / Select heights: sm 32px, md 40px, lg 48px. */
+/** The Input heights (sm 32px, md 40px, lg 48px), with the text starting where Input's does. */
 export const Sizes: Story = {
   render: (args) => (
     <div className="flex flex-col gap-3">
       {(["sm", "md", "lg"] as const).map((size) => (
-        <DateField
-          key={size}
-          {...args}
-          size={size}
-          aria-label={`Date (${size})`}
-          defaultValue={new Date(2026, 8, 25)}
-        />
+        <div key={size} className="flex flex-col gap-3">
+          <Input size={size} defaultValue="09 / 25 / 2026" aria-label={`Input (${size})`} />
+          <DateField
+            {...args}
+            size={size}
+            aria-label={`Date (${size})`}
+            defaultValue={new Date(2026, 8, 25)}
+          />
+        </div>
       ))}
     </div>
   ),

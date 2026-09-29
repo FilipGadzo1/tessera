@@ -16,7 +16,15 @@ import {
 import { Field, FieldDescription, FieldError, FieldLabel } from "../field";
 import { Input } from "../input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../select";
-import { DatePicker, DateRangePicker } from "./date-picker";
+import { DatePicker, type DatePickerButtonProps, DateRangePicker } from "./date-picker";
+
+/** The controls' args for an `editable` picker (its native props are the field group's). */
+const editableArgs = ({ locale, size, disabled, weekStartsOn }: DatePickerButtonProps) => ({
+  locale,
+  size,
+  disabled,
+  weekStartsOn,
+});
 
 const meta = {
   title: "Components/DatePicker",
@@ -35,7 +43,7 @@ const meta = {
       </div>
     ),
   ],
-} satisfies Meta<typeof DatePicker>;
+} satisfies Meta<DatePickerButtonProps>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -100,7 +108,13 @@ export const Editable: Story = {
     return (
       <Field>
         <FieldLabel>Due date</FieldLabel>
-        <DatePicker {...args} editable value={value} onValueChange={setValue} name="due" />
+        <DatePicker
+          {...editableArgs(args)}
+          editable
+          value={value}
+          onValueChange={setValue}
+          name="due"
+        />
         <FieldDescription>Type it or pick it.</FieldDescription>
       </Field>
     );
@@ -113,12 +127,12 @@ export const EditableInField: Story = {
     <div className="flex flex-col gap-6">
       <Field invalid>
         <FieldLabel>Renewal date</FieldLabel>
-        <DatePicker {...args} editable />
+        <DatePicker {...editableArgs(args)} editable />
         <FieldError>Pick when the contract renews.</FieldError>
       </Field>
       <Field disabled>
         <FieldLabel>Signed on</FieldLabel>
-        <DatePicker {...args} editable defaultValue={new Date(2026, 8, 14)} />
+        <DatePicker {...editableArgs(args)} editable defaultValue={new Date(2026, 8, 14)} />
       </Field>
     </div>
   ),
@@ -139,7 +153,7 @@ export const EditableSizes: Story = {
               <SelectItem value="a">Select</SelectItem>
             </SelectContent>
           </Select>
-          <DatePicker {...args} editable size={size} aria-label={`Date (${size})`} />
+          <DatePicker {...editableArgs(args)} editable size={size} aria-label={`Date (${size})`} />
         </div>
       ))}
     </div>

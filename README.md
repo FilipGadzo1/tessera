@@ -486,7 +486,10 @@ source files automatically (build output + `"use client"` directive checks).
   complete valid date updates the value and the month the calendar opens on; picking a day fills
   the segments, closes the popup and returns focus to the icon button. The DateField is the one
   Field / Form control (label names the group, first segment takes focus on an invalid submit), and
-  `placeholder` / `format` are unused; `ref`, `className` and `id` go to the DateField group. No clear button:
+  `placeholder` / `format` are unused; `ref`, `className`, `id` and the other native props go to the
+  DateField group (`DatePickerProps` is a union of `DatePickerButtonProps` and
+  `DatePickerEditableProps`, so they are typed per mode), `readOnly` disables the icon button, and
+  the field, icon button and popup are one blur boundary for `validationMode="onBlur"`. No clear button:
   render a Button beside it. Pass `locale` explicitly when server-rendering; an inline Calendar's
   today marker is computed on the client. Client component)
 - [x] DateField (a typed, segmented date input on React Aria's date-field pattern: a `group` of

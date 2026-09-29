@@ -8,7 +8,7 @@ import { Field, FieldError, FieldLabel } from "../field";
 import { Form } from "../form";
 import { Input } from "../input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../select";
-import { DatePicker, type DatePickerProps } from "./date-picker";
+import { DatePicker, type DatePickerEditableProps } from "./date-picker";
 
 /* "Today" is frozen (Date only; see calendar.test.tsx for why that works in browser mode). */
 const TODAY = new Date(2026, 8, 25, 12); // Friday, September 25, 2026
@@ -57,7 +57,7 @@ async function openCalendar() {
   return element;
 }
 
-function Editable(props: DatePickerProps) {
+function Editable(props: Omit<DatePickerEditableProps, "editable">) {
   // Padding leaves room on every side, so the popup never flips.
   return (
     <div className="p-16">
@@ -89,7 +89,7 @@ describe("DatePicker: editable", () => {
   });
 
   it("is not editable by default: no segments", async () => {
-    await render(<Editable editable={false} />);
+    await render(<DatePicker aria-label="Due date" locale="en-US" />);
     expect(document.querySelector("[data-slot=date-field]")).toBeNull();
     expect(document.querySelector("[data-slot=date-picker-value]")).not.toBeNull();
   });
@@ -204,6 +204,36 @@ describe("DatePicker: editable", () => {
     ).toBe("true");
   });
 
+  it("types its props per mode: the group's when editable, the button's otherwise", async () => {
+    const groupRef = { current: null as HTMLDivElement | null };
+    const buttonRef = { current: null as HTMLButtonElement | null };
+    const wrongRef = { current: null as HTMLButtonElement | null };
+    await render(
+      <div className="p-16">
+        <DatePicker editable ref={groupRef} aria-label="Typed" locale="en-US" />
+        <DatePicker ref={buttonRef} aria-label="Button" locale="en-US" />
+        {/* @ts-expect-error -- an editable picker's ref is the group element, not a button. */}
+        <DatePicker editable ref={wrongRef} aria-label="Wrong" locale="en-US" />
+      </div>,
+    );
+    expect(groupRef.current?.getAttribute("data-slot")).toBe("date-field");
+    expect(buttonRef.current?.tagName).toBe("BUTTON");
+  });
+
+  it("readOnly keeps the segments focusable, ignores typing and disables the calendar button", async () => {
+    const onValueChange = vi.fn();
+    await render(<Editable readOnly defaultValue={d(2026, 9, 5)} onValueChange={onValueChange} />);
+    expect(iconButton().disabled).toBe(true);
+    await userEvent.click(seg("month"));
+    expect(document.activeElement).toBe(seg("month"));
+    await userEvent.keyboard("{ArrowUp}");
+    await userEvent.keyboard("1");
+    expect(texts()).toEqual(["09", "05", "2026"]);
+    expect(onValueChange).not.toHaveBeenCalled();
+    await userEvent.click(iconButton(), { force: true });
+    await expect.element(dialog()).not.toBeInTheDocument();
+  });
+
   it("is disabled as a whole", async () => {
     await render(<Editable disabled />);
     expect(iconButton().disabled).toBe(true);
@@ -253,6 +283,32 @@ describe("DatePicker: editable", () => {
       // Vertically centred inside the border.
       expect(Math.abs(b.top - r.top - (r.bottom - b.bottom))).toBeLessThanOrEqual(1);
       expect(b.height).toBeLessThan(r.height);
+    }
+  });
+
+  it("starts its text where Input's text starts (border + padding) per size", async () => {
+    await render(
+      <div className="flex flex-col gap-2">
+        {(["sm", "md", "lg"] as const).map((size) => (
+          <div key={size} className="flex gap-2">
+            <Input aria-label={`input-${size}`} size={size} />
+            <div className="w-56">
+              <DatePicker editable aria-label={`date-${size}`} size={size} locale="en-US" />
+            </div>
+          </div>
+        ))}
+      </div>,
+    );
+    for (const size of ["sm", "md", "lg"] as const) {
+      const input = page.getByRole("textbox", { name: `input-${size}` }).element();
+      const group = page.getByRole("group", { name: `date-${size}` }).element();
+      const i = getComputedStyle(input);
+      const range = document.createRange();
+      range.selectNodeContents(group.querySelector("[data-type=month]")?.firstChild as Node);
+      expect(range.getBoundingClientRect().left - group.getBoundingClientRect().left).toBeCloseTo(
+        Number.parseFloat(i.borderLeftWidth) + Number.parseFloat(i.paddingLeft),
+        1,
+      );
     }
   });
 
@@ -407,6 +463,41 @@ describe("DatePicker: editable in Field and Form", () => {
     await send();
     await expect.poll(() => onFormSubmit.mock.calls.length).toBe(1);
     expect(onFormSubmit.mock.calls[0]?.[0]).toEqual({ note: "", due: "2026-09-18" });
+  });
+
+  it("validationMode onBlur: the field, its icon button and the popup are one boundary", async () => {
+    await render(
+      <div className="p-16">
+        <Form aria-label="Invoice" validationMode="onBlur">
+          <Field name="due">
+            <FieldLabel>Due date</FieldLabel>
+            <DatePicker editable locale="en-US" />
+            <FieldError />
+          </Field>
+          <Input aria-label="After" />
+        </Form>
+      </div>,
+    );
+    const incomplete = page.getByText("Enter a complete date.");
+    await userEvent.click(seg("month"));
+    await type("03");
+    // Typing "03" moved focus to the day; Tab through it and the year to the icon button: still
+    // inside the control.
+    await userEvent.tab();
+    await userEvent.tab();
+    expect(document.activeElement).toBe(iconButton());
+    await expect.element(incomplete).not.toBeInTheDocument();
+    // Opening the calendar moves focus into the popup: still inside.
+    await userEvent.keyboard("{Enter}");
+    await expect.element(dialog()).toBeVisible();
+    await waitForPopupSettled(popup() as HTMLElement);
+    await expect.element(incomplete).not.toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.activeElement).toBe(iconButton());
+    await expect.element(incomplete).not.toBeInTheDocument();
+    // Leaving the whole wrapper validates.
+    await userEvent.tab();
+    await expect.element(incomplete).toBeVisible();
   });
 
   it("a partial date is invalid at submit", async () => {
