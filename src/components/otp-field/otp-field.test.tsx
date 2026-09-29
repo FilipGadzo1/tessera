@@ -40,6 +40,10 @@ describe("OTPField", () => {
     await expect
       .element(screen.getByRole("textbox", { name: "Code" }))
       .toHaveAttribute("data-slot", "otp-field-input");
+    // SMS autofill needs the first slot to carry `one-time-code`; the others opt out.
+    const [first, ...rest] = slots(screen.container);
+    expect(first?.getAttribute("autocomplete")).toBe("one-time-code");
+    for (const slot of rest) expect(slot.getAttribute("autocomplete")).toBe("off");
     await expect
       .element(screen.getByRole("textbox", { name: "Character 2 of 4" }))
       .toBeInTheDocument();
@@ -71,6 +75,42 @@ describe("OTPField", () => {
     // Typing runs straight through the groups.
     await userEvent.type(screen.getByRole("textbox", { name: "Code" }), "123456");
     expect(values(screen.container)).toEqual(["1", "2", "3", "4", "5", "6"]);
+  });
+
+  it.each([
+    ["too few", [2, 2], [2, 4]],
+    ["too many", [4, 4], [4, 2]],
+  ] as const)(
+    "renders by `length` and warns once when groups are %s",
+    async (_name, groups, expected) => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        const screen = await render(<OTPField length={6} groups={[...groups]} aria-label="Code" />);
+        const counts: number[] = [0];
+        for (const el of screen.container.querySelectorAll(
+          '[data-slot="otp-field-input"], [data-slot="otp-field-separator"]',
+        )) {
+          if (el.getAttribute("data-slot") === "otp-field-separator") counts.push(0);
+          else counts[counts.length - 1] = (counts[counts.length - 1] ?? 0) + 1;
+        }
+        expect(slots(screen.container)).toHaveLength(6);
+        expect(counts.filter((n) => n > 0)).toEqual(expected);
+        expect(warn).toHaveBeenCalledTimes(1);
+        expect(warn.mock.calls[0]?.[0]).toMatch(/groups.*length/i);
+      } finally {
+        warn.mockRestore();
+      }
+    },
+  );
+
+  it("does not warn when groups add up to length", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      await render(<OTPField length={6} groups={[3, 3]} aria-label="Code" />);
+      expect(warn).not.toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it("renders only the Root when given children", async () => {

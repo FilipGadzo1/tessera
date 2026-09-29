@@ -4,9 +4,12 @@ import { cn } from "../../lib/cn";
 /** Defaults — shared by cva and the Input's data attributes. */
 export const inputDefaults = { size: "md" } as const;
 
-/** Shared text-field classes (Input, Textarea): base, hover, focus, invalid, disabled, read-only, motion. */
-export const textFieldBase: string[] = [
-  "w-full min-w-0 rounded-md border border-field-border bg-field text-foreground shadow-xs placeholder:text-muted-foreground",
+/**
+ * The state and motion tokens every native text control shares (hover, 1px focus ring, forced
+ * colors, invalid, disabled, read-only, transition). Spread into `textFieldBase` and
+ * `textFieldSlotBase`; the group variant differs (`focus-within`, `data-*`) and stays separate.
+ */
+const textFieldStates: string[] = [
   "not-data-disabled:not-data-invalid:not-aria-invalid:not-focus:hover:border-field-border-hover",
   "outline-none focus:outline-1 focus:outline-solid focus:outline-ring focus:border-ring forced-colors:focus:outline-[Highlight]",
   "data-invalid:border-danger data-invalid:focus:outline-danger aria-invalid:border-danger aria-invalid:focus:outline-danger",
@@ -14,18 +17,19 @@ export const textFieldBase: string[] = [
   "transition-[color,background-color,border-color,outline-color,box-shadow,translate] duration-150 ease-out motion-reduce:transition-none",
 ];
 
+/** Shared text-field classes (Input, Textarea): base, hover, focus, invalid, disabled, read-only, motion. */
+export const textFieldBase: string[] = [
+  "w-full min-w-0 rounded-md border border-field-border bg-field text-foreground shadow-xs placeholder:text-muted-foreground",
+  ...textFieldStates,
+];
+
 /**
- * The `textFieldBase` look for a fixed-size, single-character slot (OTPField). Written out rather
- * than derived from `textFieldBase`: the slot drops `w-full min-w-0` (its width comes from the
- * `size-*` class) and is otherwise the same tokens, so keep the two in step.
+ * The `textFieldBase` look for a fixed-size, single-character slot (OTPField): it drops
+ * `w-full min-w-0` (its width comes from the `size-*` class) and shares `textFieldStates`.
  */
 export const textFieldSlotBase: string[] = [
   "shrink-0 rounded-md border border-field-border bg-field p-0 text-foreground shadow-xs",
-  "not-data-disabled:not-data-invalid:not-aria-invalid:not-focus:hover:border-field-border-hover",
-  "outline-none focus:outline-1 focus:outline-solid focus:outline-ring focus:border-ring forced-colors:focus:outline-[Highlight]",
-  "data-invalid:border-danger data-invalid:focus:outline-danger aria-invalid:border-danger aria-invalid:focus:outline-danger",
-  "disabled:cursor-not-allowed disabled:opacity-50 read-only:bg-muted",
-  "transition-[color,background-color,border-color,outline-color,box-shadow,translate] duration-150 ease-out motion-reduce:transition-none",
+  ...textFieldStates,
 ];
 
 /**

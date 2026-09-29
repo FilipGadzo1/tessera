@@ -1,7 +1,7 @@
 "use client";
 
 import { OTPField as BaseOTPField } from "@base-ui/react/otp-field";
-import { createContext, Fragment, useContext } from "react";
+import { createContext, Fragment, useContext, useEffect, useRef } from "react";
 import { mergeClassName } from "../../lib/merge-class-name";
 import {
   type OTPFieldVariantProps,
@@ -19,7 +19,8 @@ const OTPFieldSizeContext = createContext<OTPFieldVariantProps["size"]>(undefine
 export interface OTPFieldProps extends BaseOTPField.Root.Props, OTPFieldVariantProps {
   /**
    * Without children, split the `length` inputs into groups with a separator between them, for
-   * example `[3, 3]`. The sizes should add up to `length`.
+   * example `[3, 3]`. The sizes should add up to `length`; otherwise the inputs still follow
+   * `length` (extra groups are dropped, leftover slots go in the last group) and dev builds warn.
    */
   groups?: number[];
 }
@@ -47,10 +48,37 @@ export function OTPField({ size, groups, className, children, length, ...props }
   );
 }
 
+/** Group sizes that add up to `length`: extra groups are dropped, leftover slots join the last. */
+function fitGroups(length: number, groups: number[] | undefined): number[] {
+  if (!groups?.length) return [length];
+  const fitted: number[] = [];
+  let remaining = length;
+  for (const count of groups) {
+    if (remaining <= 0) break;
+    const take = Math.min(Math.max(count, 0), remaining);
+    if (take > 0) fitted.push(take);
+    remaining -= take;
+  }
+  if (remaining > 0) fitted[fitted.length - 1] = (fitted[fitted.length - 1] ?? 0) + remaining;
+  return fitted;
+}
+
 function DefaultSlots({ length, groups }: { length: number; groups?: number[] }) {
-  const sizes = groups?.length ? groups : [length];
+  const mismatch =
+    groups != null && groups.length > 0 && groups.reduce((a, b) => a + b, 0) !== length;
+  const warned = useRef(false);
+  useEffect(() => {
+    // Once per instance, not on every render.
+    if (process.env.NODE_ENV !== "production" && mismatch && !warned.current) {
+      warned.current = true;
+      console.warn(
+        "OTPField: the `groups` sizes don't add up to `length`. The inputs follow `length`: " +
+          "extra groups are dropped and leftover slots go in the last group.",
+      );
+    }
+  }, [mismatch]);
   let index = 0;
-  return sizes.map((count, groupIndex) => {
+  return fitGroups(length, groups).map((count, groupIndex) => {
     const start = index;
     index += count;
     return (
