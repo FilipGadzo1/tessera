@@ -16,6 +16,8 @@ export default defineConfig({
       "@base-ui/react/field",
       "@base-ui/react/fieldset",
       "@base-ui/react/checkbox",
+      "@base-ui/react/checkbox-group",
+      "@base-ui/react/collapsible",
       "@base-ui/react/switch",
       "@base-ui/react/radio",
       "@base-ui/react/radio-group",

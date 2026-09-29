@@ -122,6 +122,14 @@ source files automatically (build output + `"use client"` directive checks).
 - [x] Field (FieldLabel, FieldDescription, FieldError, FieldItem for one option of a radio or checkbox group)
 - [x] Textarea (auto-grows with its content; `rows` sets the minimum height)
 - [x] Checkbox (checked and indeterminate states; wrap in Label or use inside a Field)
+- [x] CheckboxGroup (Base UI CheckboxGroup: shares an array of checked `value`s between Checkboxes, stacked with `gap-3`;
+  `className="flex-row"` lays them in a row. `allValues` on a controlled group plus `parent` on one Checkbox makes a
+  select-all that is indeterminate when partly checked. Name it with `<Fieldset render={<CheckboxGroup />}>` and a
+  FieldsetLegend, or `aria-labelledby`; the checked values submit under each Checkbox's `name`)
+- [x] Collapsible, CollapsibleTrigger, CollapsiblePanel (one show/hide section. The trigger is a plain `<button>` with only a
+  pointer cursor; compose it with `render={<Button variant="ghost" />}`, and Base UI sets `data-panel-open` on it for a
+  rotating chevron (`group-data-panel-open:`). The panel animates its height like the Accordion panel (instant under reduced
+  motion); `hiddenUntilFound` keeps it in the page for find-in-page)
 - [x] Switch (on/off toggle; wrap in Label or use inside a Field)
 - [x] RadioGroup, Radio (arrow keys move selection; render through a Fieldset so the legend names the group:
   `<Fieldset render={<RadioGroup />}><FieldsetLegend>…</FieldsetLegend>…</Fieldset>`; inside a Field,
@@ -489,7 +497,7 @@ body sits in a `ScrollArea` under a `ContextMenu` (right-click it) whose Format 
 
 ## Roadmap
 
-Phase G candidates: DateField, Menubar, NavigationMenu, Autocomplete, OTP field, Collapsible,
-CheckboxGroup, Form, Sidebar/app shell.
+Phase G candidates: DateField, Menubar, NavigationMenu, Autocomplete, OTP field, Form, Sidebar/app shell
+(Collapsible and CheckboxGroup are done).
 
 Later: visual regression · React Compiler on output · publish to npm (`@tessera/ui` is free).

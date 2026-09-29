@@ -92,6 +92,15 @@ export {
   cardVariants,
 } from "./components/card";
 export { Checkbox, type CheckboxProps } from "./components/checkbox";
+export { CheckboxGroup, type CheckboxGroupProps } from "./components/checkbox-group";
+export {
+  Collapsible,
+  CollapsiblePanel,
+  type CollapsiblePanelProps,
+  type CollapsibleProps,
+  CollapsibleTrigger,
+  type CollapsibleTriggerProps,
+} from "./components/collapsible";
 export {
   Combobox,
   ComboboxChip,

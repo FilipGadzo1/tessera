@@ -3,6 +3,7 @@
 import { Accordion as BaseAccordion } from "@base-ui/react/accordion";
 import { ChevronDownIcon } from "../../lib/icons";
 import { mergeClassName } from "../../lib/merge-class-name";
+import { panelHeightMotionClasses } from "../../lib/panel-height-classes";
 
 const itemClasses = "border-b border-border";
 
@@ -20,20 +21,8 @@ const triggerClasses = [
 const chevronClasses =
   "size-4 shrink-0 text-muted-foreground transition-transform duration-200 in-data-panel-open:rotate-180 motion-reduce:transition-none";
 
-/*
- * Base UI sets `--accordion-panel-height` to the measured content height (px while animating,
- * `auto` once open) and adds `data-starting-style` / `data-ending-style` around the transition.
- * The panel clips for the height animation, but a plain `overflow-hidden` would also clip the
- * focus ring of content flush with its side edges. Instead:
- * - `overflow-clip` + `overflow-clip-margin: 4px` paints up to 4px (2px outline + 2px offset)
- *   past the box on every side without making the panel wider (no negative margins, so no
- *   horizontal scrollbar in a zero-padding scroll parent) and without a scroll container;
- * - `clip-path: inset(0 -4px)` trims the top and bottom back to the box, so the collapsing
- *   panel shows no 4px sliver below the trigger. Horizontally it keeps the same 4px.
- * Browsers without `overflow-clip-margin` clip flush rings (Safari at the time of writing).
- */
-const panelClasses =
-  "h-(--accordion-panel-height) overflow-clip text-sm transition-[height] duration-200 ease-out [overflow-clip-margin:4px] [clip-path:inset(0_-4px)] data-starting-style:h-0 data-ending-style:h-0 motion-reduce:transition-none";
+/* Base UI sets `--accordion-panel-height`; the motion and clipping classes are shared (see the lib file). */
+const panelClasses = `h-(--accordion-panel-height) ${panelHeightMotionClasses}`;
 
 /**
  * Base UI Accordion.Root props: `defaultValue` / `value` + `onValueChange` (arrays of item values),
