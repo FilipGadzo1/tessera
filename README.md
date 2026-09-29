@@ -342,6 +342,13 @@ source files automatically (build output + `"use client"` directive checks).
   by default; both are pointer-only, out of the Tab order). For a command palette put `<Autocomplete open inline>` in a
   `Dialog`, render `AutocompleteList` without `AutocompleteContent`, and run the action from each item's `onClick`. Works
   inside a `Field`. Client component)
+- [x] Menubar, MenubarTrigger (Base UI `Menubar`: a `role="menubar"` bar of menus. Compose
+  `<Menubar><Menu><MenubarTrigger>File</MenubarTrigger><MenuContent>…</MenuContent></Menu>…</Menubar>`: `Menu` needs no
+  extra prop, Base UI detects the bar, and the content and items are the ordinary Menu parts (`MenuItem`,
+  `MenuCheckboxItem`, `MenuSub*`, …). ←/→ move between triggers (one Tab stop), with a menu open they switch to the
+  neighbouring menu, and hovering another trigger switches while one is open. `orientation`, `disabled` and `loopFocus`
+  pass through. The open trigger is painted `bg-muted` (Highlight in forced colors). Give it an `aria-label`. Client
+  component)
 - [x] Drawer, DrawerTrigger, DrawerContent, DrawerHeader, DrawerFooter, DrawerTitle,
   DrawerDescription, DrawerClose (Tessera's Sheet, on Base UI `Drawer.*`. A modal `role="dialog"`
   panel against an edge over a dimmed backdrop: `side` on the `Drawer` root — `right` (default),
@@ -512,7 +519,8 @@ Phase F components in a "New post" editor card: a Toolbar holds a formatting `To
 (Bold/Italic/Underline, multiple), an alignment `ToggleGroup` (single) and an "Insert" `Menu`; the
 body sits in a `ScrollArea` under a `ContextMenu` (right-click it) whose Format submenu reuses
 `MenuCheckboxItem`s bound to the same toolbar state; the byline's `@name` is a
-`PreviewCardTrigger` showing an Avatar card; a "Publish on" `DatePicker` and an "Embargo"
+`PreviewCardTrigger` showing an Avatar card; a `Menubar` (File / Edit / View) tops the card and its View
+checkbox items really hide the Toolbar and switch the body between wrapping and scrolling sideways; a "Publish on" `DatePicker` and an "Embargo"
 `DateRangePicker` sit in a Field row; and a `Meter` reports the character count.
 
 ## Roadmap
