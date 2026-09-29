@@ -19,11 +19,13 @@ import {
   MenuSubTrigger,
   MenuTrigger,
 } from "../../components/menu";
+import { Menubar, MenubarTrigger } from "../../components/menubar";
 import { Meter, MeterLabel, MeterValue } from "../../components/meter";
 import { PreviewCard, PreviewCardContent, PreviewCardTrigger } from "../../components/preview-card";
 import { ScrollArea } from "../../components/scroll-area";
 import { ToggleGroup, ToggleGroupItem } from "../../components/toggle";
 import { Toolbar, ToolbarButton, ToolbarSeparator } from "../../components/toolbar";
+import { cn } from "../../lib/cn";
 import { toDay } from "../../lib/date";
 
 // Rendered as separate <p> elements (not whitespace-pre-line over one string), so there are no
@@ -103,15 +105,22 @@ function EditorToolbar({
 interface EditorBodyProps {
   formatting: string[];
   onToggleFormat: (value: string) => void;
+  wordWrap: boolean;
 }
 
 /** The post body in a fixed-height ScrollArea with a right-click ContextMenu over the text. */
-function EditorBody({ formatting, onToggleFormat }: EditorBodyProps) {
+function EditorBody({ formatting, onToggleFormat, wordWrap }: EditorBodyProps) {
   return (
     <ContextMenu>
       <ContextMenuTrigger className="block rounded-md border border-border">
-        <ScrollArea className="h-40">
-          <div className="flex flex-col gap-3 p-4 text-sm text-foreground">
+        {/* Word wrap off: the text keeps its line and scrolls sideways (`both` adds the bar). */}
+        <ScrollArea className="h-40" orientation={wordWrap ? "vertical" : "both"}>
+          <div
+            className={cn(
+              "flex flex-col gap-3 p-4 text-sm text-foreground",
+              !wordWrap && "w-max whitespace-pre",
+            )}
+          >
             {bodyParagraphs.map((paragraph) => (
               <p key={paragraph.slice(0, 24)}>{paragraph}</p>
             ))}
@@ -148,6 +157,65 @@ function EditorBody({ formatting, onToggleFormat }: EditorBodyProps) {
         </MenuSub>
       </ContextMenuContent>
     </ContextMenu>
+  );
+}
+
+interface EditorMenubarProps {
+  showToolbar: boolean;
+  onShowToolbarChange: (checked: boolean) => void;
+  wordWrap: boolean;
+  onWordWrapChange: (checked: boolean) => void;
+}
+
+/** File / Edit / View menus over the editor; the View checkboxes drive the toolbar and wrapping. */
+function EditorMenubar({
+  showToolbar,
+  onShowToolbarChange,
+  wordWrap,
+  onWordWrapChange,
+}: EditorMenubarProps) {
+  return (
+    <Menubar aria-label="Editor menu" className="w-fit">
+      <Menu>
+        <MenubarTrigger>File</MenubarTrigger>
+        <MenuContent>
+          <MenuItem>New</MenuItem>
+          <MenuItem>Open…</MenuItem>
+          <MenuItem>Save</MenuItem>
+          <MenuSeparator />
+          <MenuSub>
+            <MenuSubTrigger>Export</MenuSubTrigger>
+            <MenuSubContent>
+              <MenuItem>PDF</MenuItem>
+              <MenuItem>Markdown</MenuItem>
+              <MenuItem>HTML</MenuItem>
+            </MenuSubContent>
+          </MenuSub>
+        </MenuContent>
+      </Menu>
+      <Menu>
+        <MenubarTrigger>Edit</MenubarTrigger>
+        <MenuContent>
+          <MenuItem>Undo</MenuItem>
+          <MenuItem>Redo</MenuItem>
+          <MenuSeparator />
+          <MenuItem>Cut</MenuItem>
+          <MenuItem>Copy</MenuItem>
+          <MenuItem>Paste</MenuItem>
+        </MenuContent>
+      </Menu>
+      <Menu>
+        <MenubarTrigger>View</MenubarTrigger>
+        <MenuContent>
+          <MenuCheckboxItem checked={showToolbar} onCheckedChange={onShowToolbarChange}>
+            Show toolbar
+          </MenuCheckboxItem>
+          <MenuCheckboxItem checked={wordWrap} onCheckedChange={onWordWrapChange}>
+            Word wrap
+          </MenuCheckboxItem>
+        </MenuContent>
+      </Menu>
+    </Menubar>
   );
 }
 
@@ -223,7 +291,9 @@ function ScheduleFields({
 
 /**
  * Example only (not exported from the library): a "New post" editor card composing every Phase F
- * component. A Toolbar holds a formatting `ToggleGroup` (Bold/Italic/Underline, multiple), an
+ * component. A `Menubar` (File, Edit, View) sits on top; View's "Show toolbar" and "Word wrap"
+ * checkbox items really hide the toolbar and switch the body between wrapping and scrolling
+ * sideways. A Toolbar holds a formatting `ToggleGroup` (Bold/Italic/Underline, multiple), an
  * alignment `ToggleGroup` (single) and an "Insert" `Menu`. The body sits in a fixed-height
  * `ScrollArea` under a `ContextMenu` (Cut/Copy/Paste and a Format submenu that reuses the same
  * `MenuItem`s and toggles the toolbar's own state). The byline's `@name` is a `PreviewCardTrigger`
@@ -234,6 +304,8 @@ export function EditorPage() {
   const titleId = useId();
   const [formatting, setFormatting] = useState<string[]>(["bold"]);
   const [alignment, setAlignment] = useState<string[]>(["left"]);
+  const [showToolbar, setShowToolbar] = useState(true);
+  const [wordWrap, setWordWrap] = useState(true);
   const [publishOn, setPublishOn] = useState<Date | null>(null);
   const [embargo, setEmbargo] = useState<DateRange>({ start: null, end: null });
   // A fixed illustrative count, independent of the sample body text above.
@@ -252,13 +324,21 @@ export function EditorPage() {
         <AuthorLine />
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <EditorToolbar
-          formatting={formatting}
-          onFormattingChange={setFormatting}
-          alignment={alignment}
-          onAlignmentChange={setAlignment}
+        <EditorMenubar
+          showToolbar={showToolbar}
+          onShowToolbarChange={setShowToolbar}
+          wordWrap={wordWrap}
+          onWordWrapChange={setWordWrap}
         />
-        <EditorBody formatting={formatting} onToggleFormat={toggleFormat} />
+        {showToolbar && (
+          <EditorToolbar
+            formatting={formatting}
+            onFormattingChange={setFormatting}
+            alignment={alignment}
+            onAlignmentChange={setAlignment}
+          />
+        )}
+        <EditorBody formatting={formatting} onToggleFormat={toggleFormat} wordWrap={wordWrap} />
         <ScheduleFields
           publishOn={publishOn}
           onPublishOnChange={setPublishOn}

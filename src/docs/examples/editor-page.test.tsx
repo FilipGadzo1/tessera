@@ -105,6 +105,78 @@ describe("EditorPage example", () => {
     await expect.element(bold).toHaveAttribute("aria-pressed", "false");
   });
 
+  it("renders the menubar above the toolbar with File, Edit and View", async () => {
+    await render(<EditorPage />);
+    const bar = page.getByRole("menubar", { name: "Editor menu" });
+    await expect.element(bar).toBeVisible();
+    for (const name of ["File", "Edit", "View"]) {
+      await expect.element(page.getByRole("menuitem", { name, exact: true })).toBeVisible();
+    }
+    const toolbar = page.getByRole("toolbar", { name: "Text formatting" }).element();
+    expect(
+      bar.element().compareDocumentPosition(toolbar) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("opens File with the keyboard, walks across menus and opens the Export submenu", async () => {
+    await render(<EditorPage />);
+    const file = page.getByRole("menuitem", { name: "File", exact: true });
+    await tabTo(file.element());
+    await userEvent.keyboard("{Enter}");
+    await expect.element(page.getByRole("menuitem", { name: "Open…" })).toBeVisible();
+    await userEvent.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}{ArrowRight}");
+    await expect.element(page.getByRole("menuitem", { name: "Markdown" })).toBeVisible();
+    await userEvent.keyboard("{ArrowLeft}{ArrowUp}{ArrowRight}");
+    await expect.element(page.getByRole("menuitem", { name: "Undo" })).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+    await expect.element(page.getByRole("menu")).not.toBeInTheDocument();
+  });
+
+  it("View → Show toolbar hides and shows the Toolbar", async () => {
+    await render(<EditorPage />);
+    const toolbar = page.getByRole("toolbar", { name: "Text formatting" });
+    await expect.element(toolbar).toBeVisible();
+    const show = page.getByRole("menuitemcheckbox", { name: "Show toolbar" });
+
+    await userEvent.click(page.getByRole("menuitem", { name: "View", exact: true }));
+    await expect.element(show).toHaveAttribute("aria-checked", "true");
+    await userEvent.click(show);
+    await expect.element(show).toHaveAttribute("aria-checked", "false");
+    await expect.element(toolbar).not.toBeInTheDocument();
+
+    await userEvent.click(show);
+    await expect.element(show).toHaveAttribute("aria-checked", "true");
+    await expect.element(toolbar).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+  });
+
+  it("View → Word wrap wraps the body text, or keeps lines and scrolls sideways", async () => {
+    await render(<EditorPage />);
+    const paragraph = () =>
+      document.querySelector('[data-slot="context-menu-trigger"] p') as HTMLElement;
+    const wrappedHeight = paragraph().getBoundingClientRect().height;
+    expect(getComputedStyle(paragraph()).whiteSpace).not.toBe("pre");
+
+    await userEvent.click(page.getByRole("menuitem", { name: "View", exact: true }));
+    const wrap = page.getByRole("menuitemcheckbox", { name: "Word wrap" });
+    await expect.element(wrap).toHaveAttribute("aria-checked", "true");
+    await userEvent.click(wrap);
+    await expect.element(wrap).toHaveAttribute("aria-checked", "false");
+    await userEvent.keyboard("{Escape}");
+    await expect.element(page.getByRole("menu")).not.toBeInTheDocument();
+
+    expect(getComputedStyle(paragraph()).whiteSpace).toBe("pre");
+    expect(paragraph().getBoundingClientRect().height).toBeLessThan(wrappedHeight);
+    expect(
+      document.querySelector('[data-slot="context-menu-trigger"] [data-orientation="horizontal"]'),
+    ).not.toBeNull();
+
+    await userEvent.click(page.getByRole("menuitem", { name: "View", exact: true }));
+    await userEvent.click(page.getByRole("menuitemcheckbox", { name: "Word wrap" }));
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => getComputedStyle(paragraph()).whiteSpace).not.toBe("pre");
+  });
+
   it("opens the author PreviewCard on hover and on focus", async () => {
     await render(<EditorPage />);
     const trigger = page.getByRole("link", { name: "@filip" });
@@ -187,6 +259,21 @@ describe("EditorPage example", () => {
         </div>,
       );
       await expect.poll(() => document.getAnimations().length).toBe(0);
+      const { violations, incomplete } = await auditOpenOverlay();
+      expect(violations).toEqual([]);
+      expect(incomplete).toEqual([]);
+    });
+
+    it("has no violations with a menubar menu open", async () => {
+      if (theme === "dark") document.documentElement.classList.add("dark");
+      await render(
+        <div className="bg-background p-4">
+          <EditorPage />
+        </div>,
+      );
+      await userEvent.click(page.getByRole("menuitem", { name: "View", exact: true }));
+      await expect.element(page.getByRole("menuitemcheckbox", { name: "Word wrap" })).toBeVisible();
+      await waitForPopupSettled(page.getByRole("menu").element() as HTMLElement);
       const { violations, incomplete } = await auditOpenOverlay();
       expect(violations).toEqual([]);
       expect(incomplete).toEqual([]);
