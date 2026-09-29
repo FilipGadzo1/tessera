@@ -243,6 +243,19 @@ phase; items fixed by a later commit are left out).
   includes its price note, so its accessible name is "Gift wrap +€3.00".
 - NavigationMenu (Task 7): an open panel covers page text, so axe leaves that text's contrast undecided
   (`incomplete`). The Checkout test hides `main` for the open-panel audit; the closed page is audited whole.
+- Deferred minors from the Phase G review (test gaps and polish, none blocking):
+  - T0: the submenu-settle helper is duplicated in the menu and context-menu tests.
+  - T1: no function-form `className` test for CheckboxGroup / CollapsibleTrigger; focus tests only cover the
+    Button-composed trigger; the CheckboxGroup Tab test lacks the 2px assertion; a disabled group's click is
+    not asserted.
+  - T3: the cursor test only reads the computed cursor (not the class).
+  - T4: the palette header ring is clipped at the top corners; the forced-colors item ring colour is not
+    asserted; no axe run on the open command palette; a fragile `querySelector('button')`; `AsyncMovies`
+    has `.catch(() => {})`.
+  - T5: the tooltip-layering test does not assert the tooltip was shown; vertical Menubar arrow keys are untested.
+  - T6: links written directly in a nested vertical `NavigationMenuList` get the panel style; the bar-link
+    active underline is not asserted in forced colors.
+  - T7: the OTPField paste test is synthetic (a dispatched paste event, not a real clipboard paste).
 
 ## Theming
 - No `.light` scope: a region cannot switch back to light inside `.dark` (documented limit).

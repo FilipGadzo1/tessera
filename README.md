@@ -484,16 +484,18 @@ render element's className first; tailwind-merge keeps the last). Lay out childr
 instead — e.g. a horizontal radio group puts the radios in `<div className="flex flex-row gap-6">`
 after the FieldsetLegend.
 
-Overlays (Tooltip, Popover, Dialog, AlertDialog, Drawer, Menu, Select, Combobox) and the Toaster portal into
-`document.body`:
+Overlays (Tooltip, Popover, Dialog, AlertDialog, Drawer, Menu, Select, Combobox, Autocomplete,
+NavigationMenu) and the Toaster portal into `document.body`:
 
 - Put theme scopes (`.dark`, `data-primary`, `data-surface`) on `<html>` so overlays pick them up.
 - A scope on an inner element does not reach a portalled overlay — pass `container` (an element
   inside that scope) to the `*Content` part: `<TooltipContent container={scopeRef}>`.
+  NavigationMenu takes `container` on the root: `<NavigationMenu container={scopeRef}>`.
 - Add `isolation: isolate` to your app root so app z-indexes can't rise above overlays. Overlays
   use `--z-overlay` (50) and `--z-tooltip` (60), toasts `--z-toast` (70), overridable in an
   unlayered `:root`.
-- Triggers carry no styles: compose them with `render={<Button … />}`. Anchored `*Content` parts
+- Most triggers carry no styles: compose them with `render={<Button … />}`. `MenubarTrigger` and
+  `NavigationMenuTrigger` are the exception: they are styled for their bar. Anchored `*Content` parts
   (Tooltip, Popover, Menu, Select) take the positioning props `side`, `align`, `sideOffset` (default 6),
   `alignOffset`, `collisionPadding` (MenuSubContent defaults to `sideOffset` 0, `alignOffset` -5 so
   its first item lines up with its trigger); dialogs are centred and take none.
