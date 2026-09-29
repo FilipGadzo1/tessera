@@ -11,9 +11,14 @@ import { yieldEscapeToTooltip } from "../../lib/tooltip-escape";
 
 /**
  * Set by each NavigationMenu for its parts: whether its list is vertical (a vertical list stacks and
- * points its chevrons sideways). Its presence also marks a nested menu, whose viewport is inline.
+ * points its chevrons sideways) and whether the menu is nested inside another menu's content (its
+ * viewport and content then render inline, without the panel's width and padding). A menu that
+ * finds a parent context is itself nested.
  */
-const MenuContext = createContext<{ vertical: boolean } | null>(null);
+const MenuContext = createContext<{ vertical: boolean; nested: boolean } | null>(null);
+
+/** True inside a `NavigationMenuContent`: links there use the panel style, not the bar style. */
+const InPanelContext = createContext(false);
 
 /** Base UI's `PATIENT_CLICK_THRESHOLD`: a click this soon after a hover-open keeps the panel. */
 const PATIENT_CLICK_MS = 500;
@@ -59,7 +64,9 @@ export interface NavigationMenuProps extends BaseNavigationMenu.Root.Props {
  * `NavigationMenuItem` > `NavigationMenuTrigger` + `NavigationMenuContent` (or a
  * `NavigationMenuLink`); the menu renders the popup itself, and each item's content shows in it.
  * A `NavigationMenu` inside a `NavigationMenuContent` is an inline submenu: its content renders
- * in the panel next to its list (give it a `defaultValue` so a sub-panel shows at once).
+ * in the panel, beside its list when `orientation="vertical"` (a two-column grid) or below it
+ * when horizontal, with no extra width or padding (give it a `defaultValue` so a sub-panel shows
+ * at once).
  * Escape closes the open panel (a Tessera Tooltip inside closes first) and focus returns to its
  * trigger.
  */
@@ -72,7 +79,7 @@ export function NavigationMenu({
 }: NavigationMenuProps) {
   const nested = useContext(MenuContext) != null;
   const vertical = props.orientation === "vertical";
-  const menuContext = useMemo(() => ({ vertical }), [vertical]);
+  const menuContext = useMemo(() => ({ vertical, nested }), [vertical, nested]);
   const hoverOpenedAt = useRef(0);
   const handleValueChange = useCallback<NonNullable<NavigationMenuProps["onValueChange"]>>(
     (value, eventDetails) => {
@@ -99,7 +106,14 @@ export function NavigationMenu({
       {...props}
       onValueChange={handleValueChange}
       data-slot="navigation-menu"
-      className={mergeClassName("relative", className)}
+      className={mergeClassName(
+        cn(
+          "relative",
+          nested &&
+            (vertical ? "grid grid-cols-[auto_minmax(0,1fr)] gap-2" : "flex flex-col gap-2"),
+        ),
+        className,
+      )}
     >
       <MenuContext.Provider value={menuContext}>{children}</MenuContext.Provider>
       {nested ? (
@@ -158,7 +172,7 @@ export interface NavigationMenuTriggerProps extends BaseNavigationMenu.Trigger.P
 /**
  * Opens its item's content on click, Enter, Space, ArrowDown or hover (after the root's
  * `delay`). Styled like `MenubarTrigger`, with a chevron that turns while open (in a vertical
- * list it points towards the content instead).
+ * list it points towards the content instead, and the trigger fills the column).
  */
 export function NavigationMenuTrigger({
   className,
@@ -171,7 +185,10 @@ export function NavigationMenuTrigger({
       {...props}
       data-slot="navigation-menu-trigger"
       className={mergeClassName(
-        `inline-flex h-8 cursor-pointer select-none items-center gap-1 rounded-md px-3 text-sm font-medium not-data-disabled:not-data-popup-open:hover:bg-muted data-popup-open:bg-muted data-disabled:cursor-default data-disabled:opacity-50 ${toggleFocusClasses} forced-colors:focus-visible:outline-[Highlight] forced-colors:data-popup-open:bg-[Highlight] forced-colors:data-popup-open:text-[HighlightText] forced-colors:data-popup-open:forced-color-adjust-none`,
+        cn(
+          `inline-flex h-8 cursor-pointer select-none items-center gap-1 rounded-md px-3 text-sm font-medium not-data-disabled:not-data-popup-open:hover:bg-muted data-popup-open:bg-muted data-disabled:cursor-default data-disabled:opacity-50 ${toggleFocusClasses} forced-colors:focus-visible:outline-[Highlight] forced-colors:data-popup-open:bg-[Highlight] forced-colors:data-popup-open:text-[HighlightText] forced-colors:data-popup-open:forced-color-adjust-none`,
+          vertical && "w-full justify-between",
+        ),
         className,
       )}
     >
@@ -193,34 +210,51 @@ export interface NavigationMenuContentProps extends BaseNavigationMenu.Content.P
 
 /**
  * The panel for its item; rendered into the menu's shared popup while the item is open. Slides
- * in from the side of the trigger it was reached from.
+ * in from the side of the trigger it was reached from. In a nested menu it has no width or
+ * padding of its own (the outer panel provides them).
  */
 export function NavigationMenuContent({ className, ...props }: NavigationMenuContentProps) {
+  const nested = useContext(MenuContext)?.nested;
   return (
-    <BaseNavigationMenu.Content
-      {...props}
-      data-slot="navigation-menu-content"
-      className={mergeClassName(cn("w-full p-4 sm:w-[36rem]", contentMotion), className)}
-    />
+    <InPanelContext.Provider value={true}>
+      <BaseNavigationMenu.Content
+        {...props}
+        data-slot="navigation-menu-content"
+        className={mergeClassName(
+          cn(nested ? "w-full" : "w-full p-4 sm:w-[36rem]", contentMotion),
+          className,
+        )}
+      />
+    </InPanelContext.Provider>
   );
 }
+
+/** A link inside a panel: a padded card row. */
+const panelLinkClasses = `block rounded-md p-3 text-sm not-data-disabled:hover:bg-muted data-active:font-medium data-active:text-foreground forced-colors:data-active:underline forced-colors:data-active:underline-offset-4 ${toggleFocusClasses} forced-colors:focus-visible:outline-[Highlight]`;
+
+/**
+ * A link directly in the bar: sized and weighted like `NavigationMenuTrigger`. The active page is
+ * underlined (a non-colour marker, so it does not read as an open trigger's `bg-muted`, and it
+ * holds in forced colors too).
+ */
+const barLinkClasses = `inline-flex h-8 select-none items-center rounded-md px-3 text-sm font-medium not-data-disabled:hover:bg-muted data-active:underline data-active:decoration-2 data-active:underline-offset-[6px] forced-colors:data-active:underline ${toggleFocusClasses} forced-colors:focus-visible:outline-[Highlight]`;
 
 export interface NavigationMenuLinkProps extends BaseNavigationMenu.Link.Props {}
 
 /**
- * A real `<a>`. `active` marks the current page (`aria-current="page"`, medium weight; underlined
- * in forced colors). For client-side routing pass the router's link as `render`, e.g.
- * `render={<NextLink href="/orders" />}`. `closeOnClick` closes the menu on click.
+ * A real `<a>`. Directly in the list it looks like a trigger; inside a `NavigationMenuContent` it
+ * is a padded row. `active` marks the current page (`aria-current="page"`): underlined in the bar;
+ * medium weight in a panel (underlined in forced colors). For client-side routing pass the
+ * router's link as `render`, e.g. `render={<NextLink href="/orders" />}`. `closeOnClick` closes
+ * the menu on click.
  */
 export function NavigationMenuLink({ className, ...props }: NavigationMenuLinkProps) {
+  const inPanel = useContext(InPanelContext);
   return (
     <BaseNavigationMenu.Link
       {...props}
       data-slot="navigation-menu-link"
-      className={mergeClassName(
-        `block rounded-md p-3 text-sm not-data-disabled:hover:bg-muted data-active:font-medium data-active:text-foreground forced-colors:data-active:underline forced-colors:data-active:underline-offset-4 ${toggleFocusClasses} forced-colors:focus-visible:outline-[Highlight]`,
-        className,
-      )}
+      className={mergeClassName(inPanel ? panelLinkClasses : barLinkClasses, className)}
     />
   );
 }

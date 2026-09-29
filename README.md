@@ -354,10 +354,11 @@ source files automatically (build output + `"use client"` directive checks).
   (or a Link); `NavigationMenu` renders the popup itself, so each Content shows in one shared panel that animates to
   the new panel's size, and the content slides in from the side of the trigger it came from (fade only under reduced
   motion). Opens on click, Enter, Space, ArrowDown or hover after `delay`; Tab reaches each trigger and link, and
-  moves into an open panel; Escape closes it and returns focus. `NavigationMenuLink` is a real `<a>`: `active` sets
-  `aria-current="page"`, `render={<RouterLink … />}` swaps in a router link, `closeOnClick` closes the menu. A
-  `NavigationMenu` inside a Content is an inline submenu (give it a `defaultValue`). Give it an `aria-label`. Client
-  component)
+  moves into an open panel; Escape closes it and returns focus. `NavigationMenuLink` is a real `<a>`, sized like a
+  trigger directly in the list and a padded row inside a panel: `active` sets `aria-current="page"` (underlined in the
+  bar, medium weight in a panel), `render={<RouterLink … />}` swaps in a router link, `closeOnClick` closes the menu. A
+  `NavigationMenu` inside a Content is an inline submenu (give it a `defaultValue`): vertical puts its list beside its
+  content, horizontal above it. Give it an `aria-label`. Client component)
 - [x] Drawer, DrawerTrigger, DrawerContent, DrawerHeader, DrawerFooter, DrawerTitle,
   DrawerDescription, DrawerClose (Tessera's Sheet, on Base UI `Drawer.*`. A modal `role="dialog"`
   panel against an edge over a dimmed backdrop: `side` on the `Drawer` root — `right` (default),

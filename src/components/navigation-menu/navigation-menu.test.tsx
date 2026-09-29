@@ -56,6 +56,39 @@ function SiteHeader(props: Partial<NavigationMenuProps>) {
   );
 }
 
+/** A panel holding a nested vertical menu, with Tessera's defaults only (no layout classes). */
+function SolutionsMenu() {
+  return (
+    <div className="p-16">
+      <NavigationMenu aria-label="Main" delay={0} closeDelay={0}>
+        <NavigationMenuList>
+          <NavigationMenuItem>
+            <NavigationMenuTrigger>Solutions</NavigationMenuTrigger>
+            <NavigationMenuContent>
+              <NavigationMenu defaultValue="teams" orientation="vertical">
+                <NavigationMenuList>
+                  <NavigationMenuItem value="teams">
+                    <NavigationMenuTrigger>Teams</NavigationMenuTrigger>
+                    <NavigationMenuContent>
+                      <NavigationMenuLink href="#planning">Planning</NavigationMenuLink>
+                    </NavigationMenuContent>
+                  </NavigationMenuItem>
+                  <NavigationMenuItem value="enterprise">
+                    <NavigationMenuTrigger>Enterprise</NavigationMenuTrigger>
+                    <NavigationMenuContent>
+                      <NavigationMenuLink href="#security">Security</NavigationMenuLink>
+                    </NavigationMenuContent>
+                  </NavigationMenuItem>
+                </NavigationMenuList>
+              </NavigationMenu>
+            </NavigationMenuContent>
+          </NavigationMenuItem>
+        </NavigationMenuList>
+      </NavigationMenu>
+    </div>
+  );
+}
+
 const trigger = (name: string) => page.getByRole("button", { name, exact: true });
 const link = (name: string) => page.getByRole("link", { name, exact: true });
 const popup = () => document.querySelector<HTMLElement>("[data-slot=navigation-menu-popup]");
@@ -245,7 +278,7 @@ describe("NavigationMenu", () => {
   });
 
   it("opens on hover after the delay", async () => {
-    await render(<SiteHeader delay={150} />);
+    await render(<SiteHeader delay={400} />);
     await userEvent.hover(trigger("Company"));
     // Not before the delay has elapsed…
     expect(popup()).toBeNull();
@@ -279,6 +312,42 @@ describe("NavigationMenu", () => {
     expect(getComputedStyle(analytics).fontWeight).toBe("400");
   });
 
+  it("a link directly in the list matches the triggers; the active one is underlined", async () => {
+    await render(
+      <NavigationMenu aria-label="Main">
+        <NavigationMenuList>
+          <NavigationMenuItem>
+            <NavigationMenuTrigger>Products</NavigationMenuTrigger>
+            <NavigationMenuContent>
+              <NavigationMenuLink href="#a">Analytics</NavigationMenuLink>
+            </NavigationMenuContent>
+          </NavigationMenuItem>
+          <NavigationMenuItem>
+            <NavigationMenuLink href="#orders" active>
+              Orders
+            </NavigationMenuLink>
+          </NavigationMenuItem>
+          <NavigationMenuItem>
+            <NavigationMenuLink href="#help">Help</NavigationMenuLink>
+          </NavigationMenuItem>
+        </NavigationMenuList>
+      </NavigationMenu>,
+    );
+    const products = getComputedStyle(trigger("Products").element());
+    for (const name of ["Orders", "Help"]) {
+      const style = getComputedStyle(link(name).element());
+      expect(style.height).toBe(products.height);
+      expect(style.height).toBe("32px");
+      expect(style.fontWeight).toBe(products.fontWeight);
+      expect(style.paddingLeft).toBe(products.paddingLeft);
+    }
+    expect(getComputedStyle(link("Orders").element()).textDecorationLine).toBe("underline");
+    expect(getComputedStyle(link("Help").element()).textDecorationLine).toBe("none");
+    // A link in the panel keeps the padded row style.
+    await openByClick("Products");
+    expect(getComputedStyle(link("Analytics").element()).paddingTop).toBe("12px");
+  });
+
   it("renders a router link through render, keeping the link styles", async () => {
     const RouterLink = forwardRef<HTMLAnchorElement, ComponentProps<"a"> & { to: string }>(
       function RouterLink({ to, ...props }, ref) {
@@ -305,35 +374,7 @@ describe("NavigationMenu", () => {
   });
 
   it("a nested NavigationMenu renders an inline submenu inside the panel", async () => {
-    await render(
-      <div className="p-16">
-        <NavigationMenu aria-label="Main" delay={0} closeDelay={0}>
-          <NavigationMenuList>
-            <NavigationMenuItem>
-              <NavigationMenuTrigger>Solutions</NavigationMenuTrigger>
-              <NavigationMenuContent>
-                <NavigationMenu defaultValue="teams" orientation="vertical">
-                  <NavigationMenuList>
-                    <NavigationMenuItem value="teams">
-                      <NavigationMenuTrigger>Teams</NavigationMenuTrigger>
-                      <NavigationMenuContent>
-                        <NavigationMenuLink href="#planning">Planning</NavigationMenuLink>
-                      </NavigationMenuContent>
-                    </NavigationMenuItem>
-                    <NavigationMenuItem value="enterprise">
-                      <NavigationMenuTrigger>Enterprise</NavigationMenuTrigger>
-                      <NavigationMenuContent>
-                        <NavigationMenuLink href="#security">Security</NavigationMenuLink>
-                      </NavigationMenuContent>
-                    </NavigationMenuItem>
-                  </NavigationMenuList>
-                </NavigationMenu>
-              </NavigationMenuContent>
-            </NavigationMenuItem>
-          </NavigationMenuList>
-        </NavigationMenu>
-      </div>,
-    );
+    await render(<SolutionsMenu />);
     const element = await openByClick("Solutions");
     // One popup only: the nested menu renders its viewport inline, inside the panel.
     expect(document.querySelectorAll("[data-slot=navigation-menu-popup]")).toHaveLength(1);
@@ -345,6 +386,27 @@ describe("NavigationMenu", () => {
     expect(getComputedStyle(subList).flexDirection).toBe("column");
     const subIcon = trigger("Teams").element().querySelector("[data-slot=navigation-menu-icon]");
     expect(getComputedStyle(subIcon as Element).rotate).toBe("-90deg");
+    // Default nested layout: the list beside the inline viewport; the nested content has no panel
+    // width or padding of its own, so it fits inside the outer panel.
+    const subRoot = subList.closest("[data-slot=navigation-menu]") as HTMLElement;
+    expect(getComputedStyle(subRoot).display).toBe("grid");
+    // Sub-triggers fill the column, so the rows line up.
+    expect(trigger("Teams").element().getBoundingClientRect().width).toBe(
+      trigger("Enterprise").element().getBoundingClientRect().width,
+    );
+    const subViewport = viewports[1] as HTMLElement;
+    expect(subViewport.getBoundingClientRect().left).toBeGreaterThanOrEqual(
+      subList.getBoundingClientRect().right,
+    );
+    const subContent = link("Planning")
+      .element()
+      .closest("[data-slot=navigation-menu-content]") as HTMLElement;
+    expect(getComputedStyle(subContent).paddingLeft).toBe("0px");
+    expect(subContent.getBoundingClientRect().right).toBeLessThanOrEqual(
+      element.getBoundingClientRect().right,
+    );
+    // A link inside a panel keeps the padded row style.
+    expect(getComputedStyle(link("Planning").element()).paddingTop).toBe("12px");
     await userEvent.click(trigger("Enterprise"));
     await expect.element(link("Security")).toBeVisible();
     await expect.element(trigger("Enterprise")).toHaveAttribute("aria-expanded", "true");
@@ -511,6 +573,23 @@ describe("NavigationMenu", () => {
       );
       await openByClick("Products");
       await waitForPopupSettled(content() as HTMLElement);
+      const { violations, incomplete } = await auditOpenOverlay();
+      expect(violations).toEqual([]);
+      expect(incomplete).toEqual([]);
+    });
+
+    it("has no violations with a nested inline submenu open", async () => {
+      if (theme === "dark") document.documentElement.classList.add("dark");
+      await render(
+        <div className="bg-background">
+          <SolutionsMenu />
+        </div>,
+      );
+      await openByClick("Solutions");
+      await expect.element(link("Planning")).toBeVisible();
+      for (const panel of document.querySelectorAll("[data-slot=navigation-menu-content]")) {
+        await waitForPopupSettled(panel);
+      }
       const { violations, incomplete } = await auditOpenOverlay();
       expect(violations).toEqual([]);
       expect(incomplete).toEqual([]);

@@ -20,13 +20,6 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/**
- * A top-level link sized like a trigger, for items without a panel. Muted until active, so the
- * active link's `text-foreground font-medium` stands out.
- */
-const topLevelLink =
-  "inline-flex h-8 items-center px-3 py-0 text-muted-foreground hover:text-foreground";
-
 const products = [
   { href: "#analytics", title: "Analytics", description: "Dashboards, funnels and retention." },
   { href: "#billing", title: "Billing", description: "Invoices, plans and usage-based pricing." },
@@ -84,9 +77,7 @@ export const SiteHeader: Story = {
           </NavigationMenuContent>
         </NavigationMenuItem>
         <NavigationMenuItem>
-          <NavigationMenuLink href="#pricing" className={topLevelLink}>
-            Pricing
-          </NavigationMenuLink>
+          <NavigationMenuLink href="#pricing">Pricing</NavigationMenuLink>
         </NavigationMenuItem>
       </NavigationMenuList>
     </NavigationMenu>
@@ -94,8 +85,8 @@ export const SiteHeader: Story = {
 };
 
 /**
- * Links only, no panels: a flat navigation bar. `active` marks the current page
- * (`aria-current="page"`); it is underlined in forced colors.
+ * Links only, no panels: a flat navigation bar. Links directly in the list are sized like triggers;
+ * `active` marks the current page (`aria-current="page"`) with an underline.
  */
 export const LinkList: Story = {
   render: (args) => {
@@ -114,7 +105,6 @@ export const LinkList: Story = {
                 href={href}
                 active={current === href}
                 onClick={() => setCurrent(href)}
-                className={topLevelLink}
               >
                 {label}
               </NavigationMenuLink>
@@ -162,18 +152,12 @@ export const NestedInlineSubmenu: Story = {
         <NavigationMenuItem>
           <NavigationMenuTrigger>Solutions</NavigationMenuTrigger>
           <NavigationMenuContent className="p-2">
-            <NavigationMenu
-              orientation="vertical"
-              defaultValue="teams"
-              className="grid grid-cols-[9rem_minmax(0,1fr)] gap-2"
-            >
+            <NavigationMenu orientation="vertical" defaultValue="teams">
               <NavigationMenuList className="border-r border-border pr-2">
                 {audiences.map((audience) => (
                   <NavigationMenuItem key={audience.value} value={audience.value}>
-                    <NavigationMenuTrigger className="w-full justify-between">
-                      {audience.label}
-                    </NavigationMenuTrigger>
-                    <NavigationMenuContent className="p-0 sm:w-auto">
+                    <NavigationMenuTrigger>{audience.label}</NavigationMenuTrigger>
+                    <NavigationMenuContent>
                       <ul className="flex flex-col gap-1">
                         {audience.links.map((item) => (
                           <li key={item.href}>
@@ -189,9 +173,7 @@ export const NestedInlineSubmenu: Story = {
           </NavigationMenuContent>
         </NavigationMenuItem>
         <NavigationMenuItem>
-          <NavigationMenuLink href="#customers" className={topLevelLink}>
-            Customers
-          </NavigationMenuLink>
+          <NavigationMenuLink href="#customers">Customers</NavigationMenuLink>
         </NavigationMenuItem>
       </NavigationMenuList>
     </NavigationMenu>
@@ -244,9 +226,7 @@ export const WithRouterStyleLinks: Story = {
               </NavigationMenuContent>
             </NavigationMenuItem>
             <NavigationMenuItem>
-              <NavigationMenuLink {...to("/orders")} className={topLevelLink}>
-                Orders
-              </NavigationMenuLink>
+              <NavigationMenuLink {...to("/orders")}>Orders</NavigationMenuLink>
             </NavigationMenuItem>
           </NavigationMenuList>
         </NavigationMenu>
