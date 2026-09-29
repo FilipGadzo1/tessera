@@ -289,8 +289,13 @@ function PromoSection({
               value={promo}
               onChange={(event) => onPromoChange(event.target.value)}
               onKeyDown={(event) => {
-                // Enter applies the code; it does not place the whole order.
-                if (event.key === "Enter") {
+                // Enter applies the code; it does not place the whole order. An Enter that
+                // commits an IME composition is not an Apply.
+                if (
+                  event.key === "Enter" &&
+                  !event.nativeEvent.isComposing &&
+                  event.keyCode !== 229
+                ) {
                   event.preventDefault();
                   onApply();
                 }
@@ -419,6 +424,9 @@ export function CheckoutPage() {
             <PromoSection
               open={promoOpen}
               onOpenChange={(open) => {
+                // While the order is pending, a close would clear `errors` and use up Base UI's
+                // one-shot focus-first-invalid before the server answers, so it is ignored.
+                if (!open && pending) return;
                 setPromoOpen(open);
                 // A closed panel hides its error, so drop it; the next submit brings it back.
                 if (!open) setErrors({});
@@ -427,6 +435,7 @@ export function CheckoutPage() {
               onPromoChange={setPromo}
               applied={applied}
               onApply={async () => {
+                if (pending) return;
                 const ok = await validatePromo();
                 if (ok && promo) setApplied(true);
               }}

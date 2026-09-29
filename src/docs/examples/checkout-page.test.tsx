@@ -156,6 +156,55 @@ describe("CheckoutPage example", () => {
     await expect.poll(() => document.activeElement).toBe(el(textbox("Promo code")));
   });
 
+  it("keeps the one-shot focus when the promo panel is closed while the order is pending", async () => {
+    await render(<CheckoutPage />);
+    await fillContact();
+    await openPromo();
+    await typeInto(textbox("Promo code"), "EXPIRED");
+    const trigger = page.getByRole("button", { name: "Promo code", exact: true });
+    await tabTo(el(page.getByRole("button", { name: "Place order" })));
+    await userEvent.keyboard("{Enter}");
+    // Still pending: the close request must not clear the errors set later.
+    await trigger.click();
+    await expect.element(page.getByText("This code has expired.")).toBeVisible();
+    await expect.element(trigger).toHaveAttribute("aria-expanded", "true");
+    await expect.poll(() => document.activeElement).toBe(el(textbox("Promo code")));
+    expect(document.activeElement?.getAttribute("aria-invalid")).toBe("true");
+  });
+
+  it("ignores Enter in the promo code while the order is pending", async () => {
+    await render(<CheckoutPage />);
+    await fillContact();
+    await openPromo();
+    await typeInto(textbox("Promo code"), "SAVE10");
+    await tabTo(el(page.getByRole("button", { name: "Place order" })));
+    await userEvent.keyboard("{Enter}");
+    (el(textbox("Promo code")) as HTMLInputElement).focus();
+    await userEvent.keyboard("{Enter}");
+    await expect.element(page.getByText("Order placed")).toBeVisible();
+    // A started Apply would have marked the code as applied.
+    expect(page.getByText("Code applied.").elements()).toHaveLength(0);
+  });
+
+  it("ignores Enter while an IME is composing", async () => {
+    await render(<CheckoutPage />);
+    await openPromo();
+    await typeInto(textbox("Promo code"), "EXPIRED");
+    const input = el(textbox("Promo code"));
+    const composing = new KeyboardEvent("keydown", {
+      key: "Enter",
+      bubbles: true,
+      cancelable: true,
+      isComposing: true,
+    });
+    input.dispatchEvent(composing);
+    // Committing a composition must not submit the code (the fake server answers after 250ms).
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    expect(page.getByText("This code has expired.").elements()).toHaveLength(0);
+    await userEvent.keyboard("{Enter}");
+    await expect.element(page.getByText("This code has expired.")).toBeVisible();
+  });
+
   it("hides a rejected code's error with the panel and shows it again on the next submit", async () => {
     await render(<CheckoutPage />);
     await fillContact();

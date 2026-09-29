@@ -255,7 +255,10 @@ phase; items fixed by a later commit are left out).
   - T5: the tooltip-layering test does not assert the tooltip was shown; vertical Menubar arrow keys are untested.
   - T6: links written directly in a nested vertical `NavigationMenuList` get the panel style; the bar-link
     active underline is not asserted in forced colors.
+  - T5: `menubar.test.tsx` (~line 172, the arrow-key roving test) has one synchronous `document.activeElement`
+    check right after a key press, where its neighbours use `expect.poll`.
   - T7: the OTPField paste test is synthetic (a dispatched paste event, not a real clipboard paste).
+  - T7: the Checkout Apply error stays sticky until the code is edited (or the panel closes); no test covers it.
 
 ## Theming
 - No `.light` scope: a region cannot switch back to light inside `.dark` (documented limit).
