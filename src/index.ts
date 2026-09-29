@@ -287,6 +287,17 @@ export {
   numberFieldGroupVariants,
 } from "./components/number-field";
 export {
+  OTPField,
+  OTPFieldInput,
+  type OTPFieldInputProps,
+  type OTPFieldProps,
+  OTPFieldSeparator,
+  type OTPFieldSeparatorProps,
+  type OTPFieldVariantProps,
+  otpFieldDefaults,
+  otpFieldInputVariants,
+} from "./components/otp-field";
+export {
   getPaginationRange,
   Pagination,
   PaginationContent,

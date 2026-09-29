@@ -130,6 +130,12 @@ source files automatically (build output + `"use client"` directive checks).
   Field/FieldError show them and clear them on change. `validationMode` is `onSubmit` (default), `onBlur` or `onChange`;
   `onFormSubmit(values)` gets the values as an object. DatePicker/DateRangePicker show `errors` but don't take part in
   Field validation or the `onFormSubmit` values object)
+- [x] OTPField, OTPFieldInput, OTPFieldSeparator (Base UI `OTPField`: one input per character with typing, paste,
+  Backspace and arrow keys handled for you. `length` is required; `<OTPField length={6} groups={[3, 3]} />` with no
+  children renders the inputs (and a separator between groups), the first labelled by a surrounding `Field` and the
+  rest "Character N of 6"; pass `OTPFieldInput` / `OTPFieldSeparator` children for your own layout. `onValueComplete`,
+  `validationType` (`numeric` default, `alphanumeric`, …), `mask`, `autoSubmit`, `size` `sm` / `md` / `lg` (square slots
+  at the Input heights). With a Field `name` the whole code submits as one value)
 - [x] Collapsible, CollapsibleTrigger, CollapsiblePanel (one show/hide section. The trigger is a plain `<button>` with only a
   pointer cursor; compose it with `render={<Button variant="ghost" />}`, and Base UI sets `data-panel-open` on it for a
   rotating chevron (`group-data-panel-open:`). The panel animates its height like the Accordion panel (instant under reduced

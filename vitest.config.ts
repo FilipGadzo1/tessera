@@ -44,6 +44,7 @@ export default defineConfig({
       "@base-ui/react/toast",
       "@base-ui/react/preview-card",
       "@base-ui/react/context-menu",
+      "@base-ui/react/otp-field",
       // DatePicker joins a Field through these (the same context modules Field uses).
       "@base-ui/react/internals/field-root-context",
       "@base-ui/react/internals/labelable-provider",

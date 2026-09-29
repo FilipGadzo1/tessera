@@ -15,6 +15,20 @@ export const textFieldBase: string[] = [
 ];
 
 /**
+ * The `textFieldBase` look for a fixed-size, single-character slot (OTPField). Written out rather
+ * than derived from `textFieldBase`: the slot drops `w-full min-w-0` (its width comes from the
+ * `size-*` class) and is otherwise the same tokens, so keep the two in step.
+ */
+export const textFieldSlotBase: string[] = [
+  "shrink-0 rounded-md border border-field-border bg-field p-0 text-foreground shadow-xs",
+  "not-data-disabled:not-data-invalid:not-aria-invalid:not-focus:hover:border-field-border-hover",
+  "outline-none focus:outline-1 focus:outline-solid focus:outline-ring focus:border-ring forced-colors:focus:outline-[Highlight]",
+  "data-invalid:border-danger data-invalid:focus:outline-danger aria-invalid:border-danger aria-invalid:focus:outline-danger",
+  "disabled:cursor-not-allowed disabled:opacity-50 read-only:bg-muted",
+  "transition-[color,background-color,border-color,outline-color,box-shadow,translate] duration-150 ease-out motion-reduce:transition-none",
+];
+
+/**
  * The `textFieldBase` look for a container whose `<input>` sits inside it (NumberField group,
  * Combobox input group). Written out rather than derived from `textFieldBase` by string surgery:
  * - Focus lives on the child input, so the ring uses `focus-within` instead of `focus`.
