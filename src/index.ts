@@ -217,6 +217,12 @@ export {
   type FieldsetProps,
 } from "./components/fieldset";
 export {
+  Form,
+  type FormActions,
+  type FormProps,
+  type FormValidationMode,
+} from "./components/form";
+export {
   Input,
   type InputProps,
   type InputVariantProps,

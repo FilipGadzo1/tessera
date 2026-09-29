@@ -126,6 +126,10 @@ source files automatically (build output + `"use client"` directive checks).
   `className="flex-row"` lays them in a row. `allValues` on a controlled group plus `parent` on one Checkbox makes a
   select-all that is indeterminate when partly checked. Name it with `<Fieldset render={<CheckboxGroup />}>` and a
   FieldsetLegend, or `aria-labelledby`; the checked values submit under each Checkbox's `name`)
+- [x] Form (Base UI Form: a `<form>` with no styling of its own. `errors` takes server-returned errors keyed by Field `name`;
+  Field/FieldError show them and clear them on change. `validationMode` is `onSubmit` (default), `onBlur` or `onChange`;
+  `onFormSubmit(values)` gets the values as an object. DatePicker/DateRangePicker show `errors` but don't take part in
+  Field validation)
 - [x] Collapsible, CollapsibleTrigger, CollapsiblePanel (one show/hide section. The trigger is a plain `<button>` with only a
   pointer cursor; compose it with `render={<Button variant="ghost" />}`, and Base UI sets `data-panel-open` on it for a
   rotating chevron (`group-data-panel-open:`). The panel animates its height like the Accordion panel (instant under reduced
@@ -497,7 +501,7 @@ body sits in a `ScrollArea` under a `ContextMenu` (right-click it) whose Format 
 
 ## Roadmap
 
-Phase G candidates: DateField, Menubar, NavigationMenu, Autocomplete, OTP field, Form, Sidebar/app shell
-(Collapsible and CheckboxGroup are done).
+Phase G candidates: DateField, Menubar, NavigationMenu, Autocomplete, OTP field, Sidebar/app shell
+(Collapsible, CheckboxGroup and Form are done).
 
 Later: visual regression · React Compiler on output · publish to npm (`@tessera/ui` is free).

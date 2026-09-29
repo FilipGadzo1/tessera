@@ -191,10 +191,13 @@ phase; items fixed by a later commit are left out).
 - DatePicker (final review I2): a caller's own `aria-invalid` on the trigger doesn't set
   `data-invalid` (only the Field's `invalid` state does), so the invalid border only applies
   through a Field, not a bare `aria-invalid` prop.
-- Field validation registration (final review I2): if Base UI 1.8 has landed
-  `internals/field-register-control` (a documented way for a custom control to register with a
-  Field, unlike the two internals `DatePicker` currently uses), pick it up — it may let the pickers
-  register as a Field control and wire `validate` / `required` (see the Task 5 note below).
+- Field validation registration (final review I2; decided in Phase G Task 2): `internals/field-register-control`
+  exists in 1.8 (`useRegisterFieldControl`), but registering is not enough. Field validation reads the native
+  validity of a registered `<input>` (`required` and `setCustomValidity` need a real, non-hidden input; the pickers'
+  submitted value sits in `type="hidden"` inputs, which are barred from validation). Wiring it means a visually hidden
+  validating input, a `required` prop and a focus target for the trigger, for both pickers. That is a change of its own,
+  not a small one, so it is left. Form `errors` already work (the Field derives `invalid` from them); a test in
+  `src/components/form/form.test.tsx` documents that `validate` / `required` are not consulted.
 - ToggleGroup (final review I2): vertical attached geometry (`variant="outline"` +
   `orientation="vertical"`) has no test — only the horizontal attached case
   (`attachedClasses.vertical` in `toggle.tsx`) is exercised.
@@ -217,7 +220,7 @@ phase; items fixed by a later commit are left out).
   (`@base-ui/react/internals/field-root-context`, `…/internals/labelable-provider`); they are in the
   package's `exports` but undocumented, so a Base UI upgrade can move them. The Field tests
   (label name, description, invalid, disabled) are the guard. Field `validate` / `required` are not
-  wired (the picker doesn't register as a Field control). Before bumping Base UI, run the DatePicker Field tests against the new version; the
+  wired (the picker doesn't register as a Field control; see "Field validation registration" above). Before bumping Base UI, run the DatePicker Field tests against the new version; the
   range is pinned to `~1.8.0` because of this (a minor that moved either subpath would break every
   import from Tessera, since `src/index.ts` re-exports the pickers).
 - Editor example (Task 6): `ContextMenu` marks the rest of the page inert while open (Base UI's
