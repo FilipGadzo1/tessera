@@ -1,6 +1,6 @@
 import axe from "axe-core";
 import { useState } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { Button } from "../button";
@@ -26,10 +26,6 @@ function EmailForm(props: FormProps) {
     </Form>
   );
 }
-
-afterEach(() => {
-  document.documentElement.classList.remove("dark");
-});
 
 describe("Form", () => {
   it("renders a form with data-slot and merges className (string and function form)", async () => {
@@ -142,7 +138,7 @@ describe("Form", () => {
   // description, invalid and disabled state through Base UI internals, but never register as a
   // Field control, so Field `validate` / `required` don't reach them. Form `errors` do show,
   // because the Field derives its invalid state from them on its own.
-  it("DatePicker in a Form: shows server errors, skips Field validation, submits YYYY-MM-DD natively", async () => {
+  it("DatePicker in a Form: shows server errors, skips Field validation, is absent from the submit object but has a YYYY-MM-DD hidden input", async () => {
     const onFormSubmit = vi.fn();
     const screen = await render(
       <>
@@ -169,7 +165,12 @@ describe("Form", () => {
       .toHaveAttribute("aria-invalid", "true");
 
     await userEvent.click(screen.getByRole("button", { name: "Send" }));
-    // The Field's custom validate is not consulted for the picker: the submit goes through.
+    // The Field's custom validate is not consulted for the picker: the submit goes through
+    // (validation is async, so wait for it), then no error was ever shown.
+    await vi.waitFor(() => expect(onFormSubmit).toHaveBeenCalledTimes(1));
+    // Not registered, so its value is absent from the onFormSubmit object; only the hidden input
+    // (native FormData) carries it.
+    expect(onFormSubmit.mock.calls[0]?.[0]).toEqual({});
     expect(screen.getByText("custom rejects").elements()).toHaveLength(0);
     expect(document.querySelector<HTMLInputElement>("input[name='when']")?.value).toBe(
       "2026-09-25",

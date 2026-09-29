@@ -129,7 +129,7 @@ source files automatically (build output + `"use client"` directive checks).
 - [x] Form (Base UI Form: a `<form>` with no styling of its own. `errors` takes server-returned errors keyed by Field `name`;
   Field/FieldError show them and clear them on change. `validationMode` is `onSubmit` (default), `onBlur` or `onChange`;
   `onFormSubmit(values)` gets the values as an object. DatePicker/DateRangePicker show `errors` but don't take part in
-  Field validation)
+  Field validation or the `onFormSubmit` values object)
 - [x] Collapsible, CollapsibleTrigger, CollapsiblePanel (one show/hide section. The trigger is a plain `<button>` with only a
   pointer cursor; compose it with `render={<Button variant="ghost" />}`, and Base UI sets `data-panel-open` on it for a
   rotating chevron (`group-data-panel-open:`). The panel animates its height like the Accordion panel (instant under reduced
