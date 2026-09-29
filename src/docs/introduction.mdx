@@ -42,7 +42,7 @@ the resting color. Token names are shadcn-compatible (`--primary`, `--ring`, …
 ## Forms
 
 Label, Field (FieldLabel, FieldDescription, FieldError, FieldItem), Fieldset, Input, Textarea,
-Checkbox, Switch and RadioGroup. Wrap named Fields in Base UI's `Form` (`@base-ui/react/form`) for
+Checkbox, Switch and RadioGroup. Wrap named Fields in `Form` for
 submit-time validation — see **Examples / Sign-up form**.
 
 ## Overlays
@@ -75,8 +75,17 @@ filterable, sortable, paged orders table with loading Skeletons and an order Dra
 Meter, ScrollArea, Toggle/ToggleGroup, Toolbar, PreviewCard, ContextMenu (reuses Menu's items),
 Calendar/RangeCalendar and DatePicker/DateRangePicker (Select-styled triggers, no typed date
 field). See **Examples / Editor** for all of them on one page: a "New post" card with a formatting
-Toolbar, a ScrollArea body under a ContextMenu, an author PreviewCard, Publish/Embargo date
-pickers and a character-count Meter.
+Toolbar, a Menubar, a ScrollArea body under a ContextMenu, an author PreviewCard, Publish/Embargo
+date pickers and a character-count Meter.
+
+## Forms and navigation
+
+Collapsible, CheckboxGroup (with a parent "Select all" checkbox), Form (submit-time validation and
+server `errors` keyed by Field name), OTPField, Autocomplete (suggestions that keep free text),
+Menubar and NavigationMenu (a site header with shared, animated panels). See **Examples / Checkout**
+for most of them on one page: a NavigationMenu header, a Form with a phone check (OTPField), a city
+Autocomplete, delivery options (CheckboxGroup), a Collapsible promo code that the fake server can
+reject through `errors`, and an order summary.
 
 ## Stack
 

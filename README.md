@@ -473,9 +473,10 @@ source files automatically (build output + `"use client"` directive checks).
   today marker is computed on the client. Client component)
 
 Phase A (foundation), Phase B (forms), Phase C (overlays), Phase D (navigation and feedback),
-Phase E (data entry and display) and Phase F (dates, toolbars and surfaces — Meter, ScrollArea,
+Phase E (data entry and display), Phase F (dates, toolbars and surfaces — Meter, ScrollArea,
 Toggle/ToggleGroup, Toolbar, PreviewCard, ContextMenu, Calendar, RangeCalendar, DatePicker and
-DateRangePicker) are complete.
+DateRangePicker) and Phase G (forms and navigation — Collapsible, CheckboxGroup, Form, OTPField,
+Autocomplete, Menubar and NavigationMenu) are complete.
 
 Composition: when a part is rendered through another (`<Fieldset render={<RadioGroup className=…/>}>`),
 the outer part's own classes win over conflicting classes on the render element (Base UI merges the
@@ -506,8 +507,7 @@ The Storybook story **Tessera/Examples/Project card** (`src/docs/examples/projec
 every overlay: Tooltips on icon Buttons, a members Popover, and a Menu that opens a rename Dialog and
 a delete AlertDialog.
 
-Forms: there is no Tessera `Form` yet — use Base UI's `Form` (`@base-ui/react/form`) around named
-Fields for submit-time validation. The Storybook story **Tessera/Examples/Sign-up form**
+Forms: wrap named Fields in Tessera's `Form` for submit-time validation and server `errors`. The Storybook story **Tessera/Examples/Sign-up form**
 (`src/docs/examples/sign-up-form.tsx`) composes every form control this way.
 
 The Storybook story **Tessera/Examples/Settings** (`src/docs/examples/settings-page.tsx`) composes
@@ -533,9 +533,17 @@ body sits in a `ScrollArea` under a `ContextMenu` (right-click it) whose Format 
 checkbox items really hide the Toolbar and switch the body between wrapping and scrolling sideways; a "Publish on" `DatePicker` and an "Embargo"
 `DateRangePicker` sit in a Field row; and a `Meter` reports the character count.
 
+The Storybook story **Tessera/Examples/Checkout** (`src/docs/examples/checkout-page.tsx`) composes the
+Phase G components: a `NavigationMenu` header (Shop and Help panels, a plain Orders link marked `active`);
+a `Form` with contact Fields; a phone check whose "Send code" button reveals an `OTPField` (6 digits, groups
+`[3, 3]`, `onValueComplete` shows "Phone verified"); a city `Autocomplete`; a delivery-options
+`CheckboxGroup` with a "Select all" parent checkbox; and a `Collapsible` promo code. A fake server rejects the
+code `EXPIRED` after a short delay and the message comes back through the Form's `errors`, under the promo
+Field, until the field is edited. An order-summary Card holds a `Collapsible` list of items.
+
 ## Roadmap
 
-Phase G candidates: DateField, Menubar, NavigationMenu, Autocomplete, OTP field, Sidebar/app shell
-(Collapsible, CheckboxGroup, Form and Autocomplete are done).
+Next, Phase H: DateField (typed date segments) and a Sidebar / app shell, plus candidates: a first-class
+Command palette (the Autocomplete story is a 40-line recipe today), Carousel, Tree.
 
 Later: visual regression · React Compiler on output · publish to npm (`@tessera/ui` is free).

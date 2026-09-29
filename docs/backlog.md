@@ -1,7 +1,7 @@
 # Tessera backlog
 
-Open follow-ups from the foundation, Phase A (2026-09-23), Phase B, Phase C, Phase D (2026-09-24)
-and Phase E (2026-09-25) reviews.
+Open follow-ups from the foundation, Phase A (2026-09-23), Phase B, Phase C, Phase D (2026-09-24),
+Phase E (2026-09-25), Phase F and Phase G (2026-09-26) reviews.
 None block current use.
 
 ## Components
@@ -231,6 +231,20 @@ phase; items fixed by a later commit are left out).
   count ("1,240") for the character Meter needs an explicit `format={{}}` (or other non-percent
   `Intl.NumberFormatOptions`) on `Meter` itself, not just a custom `MeterValue` render function.
 
+### Phase G notes
+- Checkout example (Task 7): a `DatePicker` in a `Form` is absent from `onFormSubmit`'s values object (its
+  value sits in hidden inputs), so the example has none; read a picker's value from native `FormData` if a form
+  needs one. `ContextMenu` cannot be opened from the keyboard (Base UI opens it on `contextmenu` only).
+- Autocomplete (Task 7, upstream): with the input outside the popup, Base UI's focus manager treats the open
+  list as modal and marks the rest of the page `aria-hidden` while its buttons and inputs stay focusable, which
+  axe reports as `aria-hidden-focus` on any page with other controls. The Checkout test audits the open list with
+  the header and main content hidden for that reason; a Base UI upgrade may change it.
+- Checkout example (Task 7): the summary is static (the gift-wrap option's "+€3.00" does not change the
+  total), and the fake server only knows the code `EXPIRED`. The delivery option label includes its price note, so
+  its accessible name is "Gift wrap +€3.00".
+- NavigationMenu (Task 7): an open panel covers page text, so axe leaves that text's contrast undecided
+  (`incomplete`). The Checkout test hides `main` for the open-panel audit; the closed page is audited whole.
+
 ## Theming
 - No `.light` scope: a region cannot switch back to light inside `.dark` (documented limit).
 
@@ -262,6 +276,7 @@ Follow the phases in the design-system spec §6
 Textarea, Checkbox, Switch, RadioGroup — use the `field*` / `switch-track` tokens), Phase C overlays,
 Phase D navigation and feedback, Phase E data entry and display, Phase F dates/toolbars/surfaces
 (Calendar, DatePicker, DateRangePicker, ToggleGroup, Toolbar, ScrollArea, Meter,
-HoverCard/PreviewCard, ContextMenu). Phases B–F are done. Phase G candidates (spec §5): DateField,
-Menubar, NavigationMenu, Autocomplete, OTP field, Collapsible, CheckboxGroup, Form, Sidebar/app
-shell.
+HoverCard/PreviewCard, ContextMenu). Phases B–G are done (G: Collapsible, CheckboxGroup, Form, OTPField,
+Autocomplete, Menubar, NavigationMenu). Next, Phase H (Phase G spec §4): DateField (typed date segments) and
+a Sidebar / app shell, plus candidates: a first-class Command palette (if the Autocomplete story's recipe
+proves worth extracting), Carousel, Tree.
