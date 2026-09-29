@@ -126,6 +126,20 @@ describe("Collapsible", () => {
     expect(getComputedStyle(trigger).cursor).toBe("not-allowed");
   });
 
+  it("does not force a font size on the panel: it inherits the caller's", async () => {
+    const screen = await render(
+      <div className="text-lg">
+        <Collapsible defaultOpen>
+          <CollapsibleTrigger>T</CollapsibleTrigger>
+          <CollapsiblePanel>Body</CollapsiblePanel>
+        </Collapsible>
+      </div>,
+    );
+    const panel = panelOf(screen.container);
+    expect(panel.classList.contains("text-sm")).toBe(false);
+    expect(getComputedStyle(panel).fontSize).toBe("18px");
+  });
+
   it("merges className (string and function form) on trigger and panel", async () => {
     const screen = await render(
       <Collapsible defaultOpen>

@@ -22,7 +22,7 @@ const chevronClasses =
   "size-4 shrink-0 text-muted-foreground transition-transform duration-200 in-data-panel-open:rotate-180 motion-reduce:transition-none";
 
 /* Base UI sets `--accordion-panel-height`; the motion and clipping classes are shared (see the lib file). */
-const panelClasses = `h-(--accordion-panel-height) ${panelHeightMotionClasses}`;
+const panelClasses = `h-(--accordion-panel-height) text-sm ${panelHeightMotionClasses}`;
 
 /**
  * Base UI Accordion.Root props: `defaultValue` / `value` + `onValueChange` (arrays of item values),

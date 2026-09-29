@@ -14,4 +14,4 @@
  * Browsers without `overflow-clip-margin` clip flush rings (Safari at the time of writing).
  */
 export const panelHeightMotionClasses =
-  "overflow-clip text-sm transition-[height] duration-200 ease-out [overflow-clip-margin:4px] [clip-path:inset(0_-4px)] data-starting-style:h-0 data-ending-style:h-0 motion-reduce:transition-none";
+  "overflow-clip transition-[height] duration-200 ease-out [overflow-clip-margin:4px] [clip-path:inset(0_-4px)] data-starting-style:h-0 data-ending-style:h-0 motion-reduce:transition-none";
