@@ -25,6 +25,7 @@ import {
   useId,
   useLayoutEffect,
   useRef,
+  useState,
 } from "react";
 import { compareDay } from "../../lib/date";
 
@@ -50,10 +51,17 @@ const visuallyHidden: CSSProperties = { ...visuallyHiddenBase, position: "fixed"
 
 /** Validation messages for a date outside the allowed days. */
 export interface DateValidationLabels {
-  /** The message for a date before `min`. @default (min) => `Enter a date on or after ${min}.` */
-  rangeUnderflow?: (min: string) => string;
-  /** The message for a date after `max`. @default (max) => `Enter a date on or before ${max}.` */
-  rangeOverflow?: (max: string) => string;
+  /**
+   * The message for a date before `min`, given `min` formatted and as a `Date` (to format it
+   * another way).
+   * @default (min) => `Enter a date on or after ${min}.`
+   */
+  rangeUnderflow?: (min: string, date: Date) => string;
+  /**
+   * The message for a date after `max`, given `max` formatted and as a `Date`.
+   * @default (max) => `Enter a date on or before ${max}.`
+   */
+  rangeOverflow?: (max: string, date: Date) => string;
   /** The message for a day `isDateDisabled` rejects. @default "This date is unavailable." */
   unavailable?: string;
 }
@@ -79,11 +87,11 @@ export function dateValidationMessage(
     new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(bound);
   if (min && compareDay(date, min) < 0) {
     const text = format(min);
-    return labels?.rangeUnderflow?.(text) ?? `Enter a date on or after ${text}.`;
+    return labels?.rangeUnderflow?.(text, min) ?? `Enter a date on or after ${text}.`;
   }
   if (max && compareDay(date, max) > 0) {
     const text = format(max);
-    return labels?.rangeOverflow?.(text) ?? `Enter a date on or before ${text}.`;
+    return labels?.rangeOverflow?.(text, max) ?? `Enter a date on or before ${text}.`;
   }
   if (isDateDisabled?.(date)) return labels?.unavailable ?? "This date is unavailable.";
   return "";
@@ -133,12 +141,19 @@ export function useDateFormControl({
   const { clearErrors } = useFormContext();
   const field = useFieldRootContext();
   const { validation, setDirty, setFilled, setTouched, setFocused, validationMode } = field;
+  // Unlike SelectRoot (which registers its labelable id), the registration id is our own: DateField
+  // registers a `null` labelable id (its group isn't labelable), and the registry needs a non-null
+  // key.
   const id = useId();
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const formValueRef = useRef(formValue);
   formValueRef.current = formValue;
   const getFormValue = useCallback(() => formValueRef.current, []);
+  // As SelectRoot, the registration carries the control's own `name` prop; Base UI reports the
+  // value under the Field's name first. (The callers keep the input's native name as
+  // `name ?? Field name`, the prop winning, as the pickers did before; SelectRoot lets the
+  // Field's name win there.)
   useRegisterFieldControl(controlRef, id, value, getFormValue, !disabled, registrationName);
 
   // Before the change handling below: validation reads the input's validity synchronously.
@@ -151,7 +166,9 @@ export function useDateFormControl({
   }, [inputValue, setFilled]);
 
   // Select's `useValueChanged` handling, keyed by the string form (a new Date for the same day is
-  // no change): clear the Form's server error, update dirty, and let the Field validate.
+  // no change): clear the Form's server error, update dirty, and let the Field validate. Dirty
+  // compares with the first rendered string (SelectRoot compares `validityData.initialValue` with
+  // its item equality); a `Date` baseline would need a day comparison for the same answer.
   const initialValueRef = useRef(inputValue);
   const previousValueRef = useRef(inputValue);
   useLayoutEffect(() => {
@@ -160,6 +177,17 @@ export function useDateFormControl({
     clearErrors(field.name);
     setDirty(inputValue !== initialValueRef.current);
     validation.change(value);
+  });
+
+  // onBlur validation runs after the render that follows the blur, not inside the blur handler:
+  // a DateField commits a year still being typed in that same blur, and validating then would
+  // read the old value and the old custom validity.
+  const [blurCount, setBlurCount] = useState(0);
+  const validatedBlurRef = useRef(0);
+  useLayoutEffect(() => {
+    if (blurCount === validatedBlurRef.current) return;
+    validatedBlurRef.current = blurCount;
+    validation.commit(value);
   });
 
   const setRef = useCallback(
@@ -199,7 +227,7 @@ export function useDateFormControl({
     onBlur: () => {
       setTouched(true);
       setFocused(false);
-      if (validationMode === "onBlur") validation.commit(value);
+      if (validationMode === "onBlur") setBlurCount((count) => count + 1);
     },
   };
 }

@@ -438,6 +438,155 @@ describe("date controls in a Form: specifics", () => {
     await expect.element(page.getByText("Au plus tard le Sep 1, 2026")).toBeVisible();
   });
 
+  it("labels override every message; the bound callbacks also get the bound Date", async () => {
+    const underflow = vi.fn((min: string, date: Date) => `Pas avant le ${min} (${date.getDate()})`);
+    await render(
+      <>
+        <DateForm>
+          <DatePicker
+            locale="en-US"
+            defaultValue={FILLED}
+            min={d(2026, 9, 10)}
+            labels={{ rangeUnderflow: underflow }}
+          />
+        </DateForm>
+        <Form aria-label="Unavailable" onFormSubmit={() => {}}>
+          <Field name="u">
+            <FieldLabel>U</FieldLabel>
+            <DateField
+              locale="en-US"
+              defaultValue={FILLED}
+              isDateDisabled={() => true}
+              labels={{ unavailable: "Complet" }}
+            />
+            <FieldError />
+          </Field>
+          <Button type="submit">Send u</Button>
+        </Form>
+        <Form aria-label="Partial" onFormSubmit={() => {}}>
+          <Field name="p">
+            <FieldLabel>P</FieldLabel>
+            <DateField locale="en-US" labels={{ incomplete: "Date incomplète" }} />
+            <FieldError />
+          </Field>
+          <Button type="submit">Send p</Button>
+        </Form>
+        <Form aria-label="Range" onFormSubmit={() => {}}>
+          <Field name="r">
+            <FieldLabel>R</FieldLabel>
+            <DateRangePicker
+              locale="en-US"
+              defaultValue={{ start: FILLED, end: null }}
+              labels={{ incomplete: "Plage incomplète" }}
+            />
+            <FieldError />
+          </Field>
+          <Button type="submit">Send r</Button>
+        </Form>
+      </>,
+    );
+    await send();
+    await expect.element(page.getByText("Pas avant le Sep 10, 2026 (10)")).toBeVisible();
+    expect(underflow.mock.lastCall?.[1]).toEqual(d(2026, 9, 10));
+    await userEvent.click(page.getByRole("button", { name: "Send u" }));
+    await expect.element(page.getByText("Complet", { exact: true })).toBeVisible();
+    await userEvent.click(page.getByRole("spinbutton", { name: /^month P/ }));
+    await userEvent.keyboard("9");
+    await userEvent.click(page.getByRole("button", { name: "Send p" }));
+    await expect.element(page.getByText("Date incomplète")).toBeVisible();
+    await userEvent.click(page.getByRole("button", { name: "Send r" }));
+    await expect.element(page.getByText("Plage incomplète")).toBeVisible();
+  });
+
+  it("DateRangePicker: only the end set blocks submit with the incomplete-range message", async () => {
+    await render(
+      <DateForm>
+        <DateRangePicker locale="en-US" defaultValue={{ start: null, end: FILLED }} />
+      </DateForm>,
+    );
+    await send();
+    await expect.element(page.getByText("Choose both a start and an end date.")).toBeVisible();
+  });
+
+  it("DateField: an unavailable day changed to an allowed one clears the message and submits", async () => {
+    const onFormSubmit = vi.fn();
+    await render(
+      <DateForm onFormSubmit={onFormSubmit}>
+        <DateField
+          locale="en-US"
+          defaultValue={FILLED}
+          isDateDisabled={(date) => date.getDate() === 5}
+        />
+      </DateForm>,
+    );
+    await send();
+    const message = page.getByText("This date is unavailable.");
+    await expect.element(message).toBeVisible();
+    await userEvent.click(page.getByRole("spinbutton", { name: /^day/ }));
+    await userEvent.keyboard("{ArrowUp}");
+    await expect.element(message).not.toBeInTheDocument();
+    await send();
+    await vi.waitFor(() => expect(onFormSubmit).toHaveBeenCalledTimes(1));
+    expect(onFormSubmit.mock.calls[0]?.[0]).toEqual({ when: "2026-09-06" });
+  });
+
+  it("DatePicker: a value before min re-picked inside the range clears the message and submits", async () => {
+    const onFormSubmit = vi.fn();
+    await render(
+      <DateForm onFormSubmit={onFormSubmit}>
+        <DatePicker locale="en-US" defaultValue={FILLED} min={d(2026, 9, 10)} />
+      </DateForm>,
+    );
+    await send();
+    const message = page.getByText("Enter a date on or after Sep 10, 2026.");
+    await expect.element(message).toBeVisible();
+    await openPicker();
+    await userEvent.click(dayButton(d(2026, 9, 12)));
+    await expect.element(message).not.toBeInTheDocument();
+    await send();
+    await vi.waitFor(() => expect(onFormSubmit).toHaveBeenCalledTimes(1));
+    expect(onFormSubmit.mock.calls[0]?.[0]).toEqual({ when: "2026-09-12" });
+  });
+
+  it("DateRangePicker: a range past max re-picked inside it clears the message and submits", async () => {
+    const onFormSubmit = vi.fn();
+    await render(
+      <DateForm onFormSubmit={onFormSubmit}>
+        <DateRangePicker locale="en-US" defaultValue={FILLED_RANGE} max={d(2026, 9, 10)} />
+      </DateForm>,
+    );
+    await send();
+    const message = page.getByText("Enter a date on or before Sep 10, 2026.");
+    await expect.element(message).toBeVisible();
+    await openPicker();
+    await userEvent.click(dayButton(d(2026, 9, 2)));
+    await userEvent.click(dayButton(d(2026, 9, 8)));
+    await expect.element(message).not.toBeInTheDocument();
+    await send();
+    await vi.waitFor(() => expect(onFormSubmit).toHaveBeenCalledTimes(1));
+    expect(onFormSubmit.mock.calls[0]?.[0]).toEqual({
+      when: { start: "2026-09-02", end: "2026-09-08" },
+    });
+  });
+
+  it("validationMode onBlur: a year still being typed is validated on the blur that commits it", async () => {
+    await render(
+      <Form aria-label="Trip" validationMode="onBlur">
+        <Field name="depart">
+          <FieldLabel>Depart</FieldLabel>
+          <DateField locale="en-US" defaultValue={FILLED} min={d(2026, 9, 1)} />
+          <FieldError />
+        </Field>
+        <Input aria-label="After" />
+      </Form>,
+    );
+    await userEvent.click(page.getByRole("spinbutton", { name: /^year/ }));
+    await userEvent.keyboard("2");
+    await userEvent.keyboard("0");
+    await userEvent.tab();
+    await expect.element(page.getByText("Enter a date on or after Sep 1, 2026.")).toBeVisible();
+  });
+
   it("DateRangePicker: only the start set blocks submit with an incomplete-range message", async () => {
     function Partial() {
       const [value, setValue] = useState<DateRange>({ start: FILLED, end: null });

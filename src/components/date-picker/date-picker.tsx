@@ -14,6 +14,7 @@ import {
   type FocusEvent,
   type ReactNode,
   type Ref,
+  useCallback,
   useId,
   useRef,
   useState,
@@ -164,10 +165,13 @@ function PickerShell({
   const valueId = useId();
   const popupRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
-  const setTriggerRef = (element: HTMLButtonElement | null) => {
-    triggerRef.current = element;
-    assignRef(ref, element);
-  };
+  const setTriggerRef = useCallback(
+    (element: HTMLButtonElement | null) => {
+      triggerRef.current = element;
+      assignRef(ref, element);
+    },
+    [ref],
+  );
 
   const [open, setControllableOpen] = useControllableState(openProp, defaultOpen, onOpenChange);
   // Dedupe locally: the hook itself always calls onChange, but a Popover can re-request the

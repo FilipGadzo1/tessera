@@ -130,6 +130,9 @@ Server-safe, pure and unit-tested. Its helpers:
   - **Messages.** Custom validity, formatted with `dateStyle: "medium"` in the control's locale: "Enter a date on or after {min}.", "Enter a date on or before {max}.", "This date is unavailable.", DateField's partial input "Enter a complete date.", and DateRangePicker's lone start "Choose both a start and an end date." (it wins over `valueMissing`, as a custom message does natively). They are overridable through the existing `labels` prop (`rangeUnderflow(min)`, `rangeOverflow(max)`, `unavailable`, `incomplete`), so one localisation prop covers everything. `required` + empty gives the native `valueMissing` message.
   - **Name precedence.** The native input keeps the existing `name ?? Field name` (the prop wins, as before); the registration passes the `name` prop, and Base UI reports under the Field's name first, as it does for Select.
   - **Error display** is unchanged: the pickers and DateField already read `field.state.valid` for `aria-invalid` / `data-invalid`, and FieldError is Base UI's. No screenshot was needed.
+  - **Native submits** (fix round 1). The custom validity lives on a real input, so it also blocks a plain `<form>` submit outside a Form. This is a behaviour change: a picker value outside `min` / `max` or on a disabled day used to submit. `noValidate` on the `<form>` restores the old behaviour. It is documented in the README entries and the backlog.
+  - **onBlur timing** (fix round 1). `validationMode="onBlur"` validation runs in a layout effect after the render that follows the blur, not inside the blur handler. A DateField commits a year still being typed in that same blur, so validating inside it read the old value (year "20" below `min` showed no error until submit).
+  - **Label callbacks** (fix round 1). `rangeUnderflow` / `rangeOverflow` also get the bound as a `Date` (second argument), so a translation can format it another way.
 
 ## 4. DatePicker typed entry
 

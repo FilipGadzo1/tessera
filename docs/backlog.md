@@ -291,6 +291,10 @@ phase; items fixed by a later commit are left out).
   `forced-colors:data-invalid:focus-within:outline-[Highlight]`. `textFieldGroupBase` (NumberField
   group, Combobox input group) has the same class order, so it very likely shows CanvasText. This
   is unverified; check it and add the same rule there.
+- Date controls' custom validity (Task 2, upgrade note): DateField, DatePicker and DateRangePicker set a custom
+  validity on their hidden input (outside `min` / `max`, an `isDateDisabled` day, partial input, a range with one
+  end). That blocks a plain `<form>` submit too, not only a Base UI `Form`: before Phase H a picker with such a
+  value submitted anyway. A caller that wants the old behaviour adds `noValidate` to its `<form>`.
 
 ## Next components
 Follow the phases in the design-system spec §6

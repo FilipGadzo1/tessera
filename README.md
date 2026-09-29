@@ -469,11 +469,17 @@ source files automatically (build output + `"use client"` directive checks).
   disabled apply. In a `Form` it validates like Select (Base UI's hidden-input recipe): `required`,
   Field `validate` (it gets the `Date`), a value outside `min` / `max` or on a disabled day
   ("Enter a date on or after Sep 1, 2026."), `errors[name]`, and an invalid submit focuses the
-  trigger; `onFormSubmit` reports `YYYY-MM-DD` (`""` when empty). `DateRangePicker`
+  trigger; `onFormSubmit` reports `YYYY-MM-DD` (`""` when empty). The custom validity also blocks a
+  native `<form>` submit outside a Form. `DateRangePicker`
   shows two months (`numberOfMonths`), stays open after the start and closes after the end, reverts
   an unfinished pick on Escape or an outside click, reports only complete ranges, shows the range
-  via `formatRange` ("Sep 1 – 12, 2026") and submits `startName` / `endName`; in a `Form` it is one
-  control (`required` needs both ends) reported as `{ start, end }` under the Field's name. No clear button:
+  via `formatRange` ("Sep 1 – 12, 2026") and submits `startName` / `endName`. In a `Form` it is one
+  control: `required` needs both ends, an end outside `min` / `max` or only one end set ("Choose
+  both a start and an end date.") is invalid, Field `validate` gets the `DateRange`, and
+  `onFormSubmit` reports `{ start, end }` under the Field's name
+  (`<Field name="stay">` → `{ stay: { start: "2026-09-01", end: "2026-09-12" } }`). Native FormData
+  entries come only from `startName` / `endName`, not from the Field's `name` (unlike DatePicker).
+  The custom validity also blocks a native `<form>` submit outside a Form. No clear button:
   render a Button beside it. Pass `locale` explicitly when server-rendering; an inline Calendar's
   today marker is computed on the client. Client component)
 - [x] DateField (a typed, segmented date input on React Aria's date-field pattern: a `group` of
@@ -491,7 +497,8 @@ source files automatically (build output + `"use client"` directive checks).
   messages). Inside a `Field` the label names the group (clicking it focuses the first empty
   segment), the description describes it, and invalid / disabled apply. In a `Form` it validates
   like the pickers (`required`, `validate`, `min` / `max`, partial input "Enter a complete date.",
-  `errors[name]`), and an invalid submit focuses its first segment.
+  `errors[name]`), and an invalid submit focuses its first segment. The custom validity also
+  blocks a native `<form>` submit outside a Form.
   Pass `locale` explicitly when server-rendering. Client component)
 
 Phase A (foundation), Phase B (forms), Phase C (overlays), Phase D (navigation and feedback),
