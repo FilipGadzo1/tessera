@@ -78,6 +78,34 @@ describe("Popover", () => {
     }
   });
 
+  it("positions against `anchor` instead of the trigger", async () => {
+    function Anchored() {
+      const anchorRef = useRef<HTMLDivElement>(null);
+      return (
+        <div className="p-16">
+          <div ref={anchorRef} data-testid="anchor" className="h-10 w-24 bg-muted">
+            <Popover>
+              <PopoverTrigger render={<Button variant="outline" size="sm" className="ms-10" />}>
+                Open
+              </PopoverTrigger>
+              <PopoverContent anchor={anchorRef} align="start">
+                <PopoverTitle>Anchored</PopoverTitle>
+              </PopoverContent>
+            </Popover>
+          </div>
+        </div>
+      );
+    }
+    await render(<Anchored />);
+    await userEvent.click(page.getByRole("button", { name: "Open" }));
+    const popup = document.querySelector("[data-slot=popover-content]") as HTMLElement;
+    await waitForPopupSettled(popup);
+    const anchor = document.querySelector("[data-testid=anchor]") as HTMLElement;
+    expect(
+      Math.abs(popup.getBoundingClientRect().left - anchor.getBoundingClientRect().left),
+    ).toBeLessThanOrEqual(1);
+  });
+
   it("closes on Escape and returns focus to the trigger", async () => {
     await render(<WithForm />);
     await openByClick();

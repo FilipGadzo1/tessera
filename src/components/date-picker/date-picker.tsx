@@ -23,6 +23,7 @@ import { cn } from "../../lib/cn";
 import { resolveLocale, toISODate, type WeekDay } from "../../lib/date";
 import { CalendarIcon } from "../../lib/icons";
 import { useControllableState } from "../../lib/use-controllable-state";
+import { buttonVariants } from "../button/button-variants";
 import {
   Calendar,
   type DateRange,
@@ -31,6 +32,7 @@ import {
   type RangeCalendarProps,
 } from "../calendar";
 import type { CalendarLabels } from "../calendar/calendar-base";
+import { DateField, type DateFieldLabels, type DateFieldProps } from "../date-field/date-field";
 import { Popover, PopoverContent, type PopoverContentProps, PopoverTrigger } from "../popover";
 import { type SelectTriggerVariantProps, selectDefaults, selectTriggerVariants } from "../select";
 import {
@@ -45,12 +47,18 @@ import {
  * Translatable strings: the popup's name, the calendar's month buttons and the validation
  * messages (a value outside `min` / `max`, or a day `isDateDisabled` rejects).
  */
-export interface DatePickerLabels extends CalendarLabels, DateValidationLabels {
+export interface DatePickerLabels
+  extends CalendarLabels,
+    DateValidationLabels,
+    Pick<DateFieldLabels, "day" | "month" | "year" | "empty"> {
   /** The popup dialog's accessible name. @default "Choose date" ("Choose date range" for DateRangePicker) */
   dialog?: string;
+  /** `editable`: the calendar icon button's accessible name. @default "Choose date" */
+  openCalendar?: string;
   /**
-   * DateRangePicker: the validation message while only the start is set.
-   * @default "Choose both a start and an end date."
+   * DateRangePicker: the validation message while only the start is set. `editable` DatePicker:
+   * while only some segments are filled.
+   * @default "Choose both a start and an end date." ("Enter a complete date." when `editable`)
    */
   incomplete?: string;
 }
@@ -265,7 +273,141 @@ function PickerShell({
   );
 }
 
+interface EditableShellProps extends PickerTriggerProps {
+  value: Date | null;
+  /** The day typed or picked (`null` when the user clears a complete date). */
+  onPick: (value: Date | null) => void;
+  name?: string;
+  locale?: string;
+  min?: Date | null;
+  max?: Date | null;
+  defaultMonth?: Date;
+  isDateDisabled?: (date: Date) => boolean;
+  weekStartsOn?: WeekDay;
+  labels?: DatePickerLabels;
+}
+
+/**
+ * The `editable` picker: a DateField plus a calendar icon button inside its border. The DateField
+ * is the one Field / Form control (it registers, validates and renders the hidden input), so the
+ * popover adds none. The popup anchors to the whole field; focus returns to the icon button (the
+ * popover's trigger) after a pick or Escape.
+ */
+function EditableShell({
+  value,
+  onPick,
+  name,
+  locale,
+  min,
+  max,
+  defaultMonth,
+  isDateDisabled,
+  weekStartsOn,
+  labels,
+  disabled,
+  required,
+  size,
+  open: openProp,
+  defaultOpen = false,
+  onOpenChange,
+  container,
+  className,
+  ref,
+  ...props
+}: EditableShellProps) {
+  const field = useFieldRootContext();
+  const anchorRef = useRef<HTMLDivElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
+  const [open, setControllableOpen] = useControllableState(openProp, defaultOpen, onOpenChange);
+  const setOpen = (next: boolean) => {
+    if (next === open) return;
+    setControllableOpen(next);
+  };
+  const isDisabled = !!disabled || field.state.disabled;
+  // The rest props are the field's: on the group (ids, aria-*, handlers), as on the button
+  // otherwise. The types stay the button's; `ref` is the group element in this mode.
+  const fieldProps = props as unknown as DateFieldProps;
+
+  return (
+    <Popover open={open} onOpenChange={(next) => setOpen(next)}>
+      <div ref={anchorRef} data-slot="date-picker-editable" className="relative w-full">
+        <DateField
+          {...fieldProps}
+          ref={ref as Ref<HTMLDivElement>}
+          value={value}
+          onValueChange={onPick}
+          name={name}
+          locale={locale}
+          min={min}
+          max={max}
+          isDateDisabled={isDateDisabled}
+          disabled={isDisabled}
+          required={required}
+          size={size ?? undefined}
+          labels={labels}
+          className={cn("pe-10", className)}
+        />
+        <PopoverTrigger
+          type="button"
+          disabled={isDisabled}
+          aria-label={labels?.openCalendar ?? "Choose date"}
+          data-slot="date-picker-trigger"
+          className={buttonVariants({
+            variant: "ghost",
+            color: "neutral",
+            size: size === "sm" ? "icon-xs" : "icon-sm",
+            // The ring hugs the button (no offset): with the offset it overlaps the field's border.
+            className: "absolute inset-y-0 end-1 my-auto outline-offset-0",
+          })}
+        >
+          <CalendarIcon data-slot="date-picker-icon" />
+        </PopoverTrigger>
+      </div>
+      <PopoverContent
+        ref={popupRef}
+        anchor={anchorRef}
+        container={container}
+        align="start"
+        sideOffset={6}
+        aria-label={labels?.dialog ?? "Choose date"}
+        data-slot="date-picker-content"
+        className={contentBase}
+        initialFocus={() =>
+          popupRef.current?.querySelector<HTMLElement>(
+            '[data-slot="calendar-day"][tabindex="0"]',
+          ) ?? true
+        }
+      >
+        <Calendar
+          value={value}
+          onValueChange={(date) => {
+            onPick(date);
+            setOpen(false);
+          }}
+          locale={locale}
+          min={min}
+          max={max}
+          defaultMonth={value ?? defaultMonth}
+          isDateDisabled={isDateDisabled}
+          weekStartsOn={weekStartsOn}
+          labels={labels}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export interface DatePickerProps extends PickerSharedProps {
+  /**
+   * Replaces the button trigger with a typed, segmented `DateField` and a calendar icon button
+   * that opens the same popup. Typing a complete valid date updates the value (and the month the
+   * calendar opens on); picking in the calendar fills the segments, closes it and returns focus to
+   * the icon button. It joins a Field and Form as the DateField does. In this mode `placeholder`
+   * and `format` are unused, and `ref`, `className`, `id` and the other rest props go to the
+   * DateField's group element.
+   * @default false
+   */
+  editable?: boolean;
   /** The picked day, controlled (`null` for none). */
   value?: Date | null;
   /** The initially picked day. @default null */
@@ -301,6 +443,7 @@ export function DatePicker({
   isDateDisabled,
   weekStartsOn,
   labels,
+  editable = false,
   ...props
 }: DatePickerProps) {
   const field = useFieldRootContext();
@@ -308,6 +451,27 @@ export function DatePicker({
   const resolvedLocale = resolveLocale(locale);
   const formatter = new Intl.DateTimeFormat(resolvedLocale, format);
   const iso = value ? toISODate(value) : "";
+
+  if (editable) {
+    return (
+      <EditableShell
+        {...props}
+        value={value}
+        onPick={(date) => {
+          setValue(date);
+          onValueChange?.(date);
+        }}
+        name={name}
+        locale={locale}
+        min={min}
+        max={max}
+        defaultMonth={defaultMonth}
+        isDateDisabled={isDateDisabled}
+        weekStartsOn={weekStartsOn}
+        labels={labels}
+      />
+    );
+  }
 
   return (
     <PickerShell

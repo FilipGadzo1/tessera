@@ -169,7 +169,8 @@ source files automatically (build output + `"use client"` directive checks).
   PopoverDescription. Compose the trigger and close: `<PopoverTrigger render={<Button variant="outline" />}>`.
   Opens on click, Enter or Space; Escape, an outside click or PopoverClose closes it and focus returns
   to the trigger. On open, focus moves to the first tabbable element inside (or the panel itself);
-  change that with `initialFocus` on PopoverContent. Controlled via `open` / `onOpenChange`)
+  change that with `initialFocus` on PopoverContent, and position against another element (not the
+  trigger) with `anchor`. Controlled via `open` / `onOpenChange`)
 - [x] Dialog (Dialog, DialogTrigger, DialogContent, DialogHeader, DialogFooter, DialogTitle,
   DialogDescription, DialogClose; a centred modal `role="dialog"` over a dimmed backdrop. DialogContent
   takes `size` (`sm` / `md` default / `lg`) and `showCloseButton` (default true: a ghost icon Button
@@ -456,8 +457,8 @@ source files automatically (build output + `"use client"` directive checks).
   explicitly when server-rendering; an inline Calendar's today marker is computed on the client.
   Client component)
 - [x] DatePicker, DateRangePicker (a Select-styled trigger — same `size` scale and heights as
-  Select and Input, a leading calendar icon — opening a Calendar in a Popover; no typed date field.
-  Focus lands on the picked day (or today); picking closes and returns focus to the trigger, Escape
+  Select and Input, a leading calendar icon — opening a Calendar in a Popover. DatePicker also has
+  an `editable` mode (below); DateRangePicker has none. Focus lands on the picked day (or today); picking closes and returns focus to the trigger, Escape
   or an outside click closes unchanged. `value` / `defaultValue` / `onValueChange`, `placeholder`,
   `format` (Intl options, default `{ dateStyle: "medium" }`), `locale`, `min` / `max`,
   `defaultMonth` (the month shown while nothing is picked, e.g. decades back for a birthday; a
@@ -479,7 +480,13 @@ source files automatically (build output + `"use client"` directive checks).
   `onFormSubmit` reports `{ start, end }` under the Field's name
   (`<Field name="stay">` → `{ stay: { start: "2026-09-01", end: "2026-09-12" } }`). Native FormData
   entries come only from `startName` / `endName`, not from the Field's `name` (unlike DatePicker).
-  The custom validity also blocks a native `<form>` submit outside a Form. No clear button:
+  The custom validity also blocks a native `<form>` submit outside a Form. `DatePicker editable`
+  swaps the trigger for a typed, segmented DateField with a calendar icon button (`labels.openCalendar`,
+  default "Choose date") inside its border, at the Input / Select heights. Typing a
+  complete valid date updates the value and the month the calendar opens on; picking a day fills
+  the segments, closes the popup and returns focus to the icon button. The DateField is the one
+  Field / Form control (label names the group, first segment takes focus on an invalid submit), and
+  `placeholder` / `format` are unused; `ref`, `className` and `id` go to the DateField group. No clear button:
   render a Button beside it. Pass `locale` explicitly when server-rendering; an inline Calendar's
   today marker is computed on the client. Client component)
 - [x] DateField (a typed, segmented date input on React Aria's date-field pattern: a `group` of

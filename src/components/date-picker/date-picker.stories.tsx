@@ -14,6 +14,8 @@ import {
   DialogTrigger,
 } from "../dialog";
 import { Field, FieldDescription, FieldError, FieldLabel } from "../field";
+import { Input } from "../input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../select";
 import { DatePicker, DateRangePicker } from "./date-picker";
 
 const meta = {
@@ -82,6 +84,63 @@ export const Sizes: Story = {
     <div className="flex flex-col gap-3">
       {(["sm", "md", "lg"] as const).map((size) => (
         <DatePicker key={size} {...args} size={size} aria-label={`Date (${size})`} />
+      ))}
+    </div>
+  ),
+};
+
+/**
+ * `editable`: type the date into segments (digits auto-advance, arrows step) or open the calendar
+ * with the icon button. Typing a complete date moves the calendar to its month; picking fills the
+ * segments and returns focus to the icon button.
+ */
+export const Editable: Story = {
+  render: (args) => {
+    const [value, setValue] = useState<Date | null>(null);
+    return (
+      <Field>
+        <FieldLabel>Due date</FieldLabel>
+        <DatePicker {...args} editable value={value} onValueChange={setValue} name="due" />
+        <FieldDescription>Type it or pick it.</FieldDescription>
+      </Field>
+    );
+  },
+};
+
+/** An editable picker in an invalid and a disabled Field. */
+export const EditableInField: Story = {
+  render: (args) => (
+    <div className="flex flex-col gap-6">
+      <Field invalid>
+        <FieldLabel>Renewal date</FieldLabel>
+        <DatePicker {...args} editable />
+        <FieldError>Pick when the contract renews.</FieldError>
+      </Field>
+      <Field disabled>
+        <FieldLabel>Signed on</FieldLabel>
+        <DatePicker {...args} editable defaultValue={new Date(2026, 8, 14)} />
+      </Field>
+    </div>
+  ),
+};
+
+/** The editable picker next to Input and Select at every size. */
+export const EditableSizes: Story = {
+  render: (args) => (
+    <div className="flex flex-col gap-3">
+      {(["sm", "md", "lg"] as const).map((size) => (
+        <div key={size} className="flex flex-col gap-3">
+          <Input size={size} placeholder={`Input (${size})`} aria-label={`Input (${size})`} />
+          <Select items={{ a: "Select" }}>
+            <SelectTrigger size={size} aria-label={`Select (${size})`}>
+              <SelectValue placeholder={`Select (${size})`} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="a">Select</SelectItem>
+            </SelectContent>
+          </Select>
+          <DatePicker {...args} editable size={size} aria-label={`Date (${size})`} />
+        </div>
       ))}
     </div>
   ),

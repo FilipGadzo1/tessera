@@ -41,6 +41,8 @@ export interface PopoverContentProps extends BasePopover.Popup.Props {
   alignOffset?: PositionerProps["alignOffset"];
   /** Space kept between the popover and the viewport edges when colliding. */
   collisionPadding?: PositionerProps["collisionPadding"];
+  /** Element to position against instead of the trigger (e.g. a wider group the trigger sits in). */
+  anchor?: PositionerProps["anchor"];
   /**
    * Element to portal into (default `document.body`). Pass an element inside a nested theme scope
    * (`data-primary`, `data-surface`, `.dark` on an inner element) so the popover inherits it.
@@ -61,6 +63,7 @@ export function PopoverContent({
   sideOffset = 6,
   alignOffset,
   collisionPadding,
+  anchor,
   container,
   className,
   "data-slot": dataSlot = "popover-content",
@@ -74,6 +77,7 @@ export function PopoverContent({
         sideOffset={sideOffset}
         alignOffset={alignOffset}
         collisionPadding={collisionPadding}
+        anchor={anchor}
         className="z-(--z-overlay)"
       >
         <BasePopover.Popup

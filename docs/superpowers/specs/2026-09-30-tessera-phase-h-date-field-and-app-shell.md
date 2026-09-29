@@ -140,6 +140,14 @@ Server-safe, pure and unit-tested. Its helpers:
 - Typing a complete valid date updates the calendar's value and month. Picking in the calendar fills the segments and returns focus to the field's first segment (or the icon button; record which reads better).
 - Sizes line up with Select and Input.
 - A Story ("Editable") plus tests: typing then opening shows that month with that day selected; picking fills the segments; Escape closes and focus returns; Field and Form participation as §3.
+- *Amended in Task 3*: decisions.
+  - **Focus after a pick.** Focus returns to the calendar icon button, not the first segment. That is the Popover's natural return target (its trigger), and what a user expects after closing a popover they opened; Escape returns there too. (The spec left the choice open.)
+  - **One Field control.** The DateField is the registered control (it renders the hidden input, validates, and takes Form's focus-first-invalid on its first segment). The popover adds none: it is not a `PickerShell`, so there is no second `useDateFormControl`. The Field label names the group; the icon button is not labelable and carries its own `aria-label`.
+  - **Wiring.** `DatePicker editable` renders a wrapper `div` (`data-slot="date-picker-editable"`) holding the DateField (with `pe-10`) and the `PopoverTrigger` icon button, absolutely positioned at the trailing edge inside the border. The popup anchors to the wrapper through a new `PopoverContent` `anchor` prop (a pass-through to `Positioner`), so it aligns to the field's start like the button picker's.
+  - **Icon button.** `ghost` / `neutral`; `icon-sm` (32px) at md and lg, `icon-xs` (28px) at sm so it fits inside the 32px field. Its focus ring has `outline-offset-0`: with the default offset the ring overlapped the field's border.
+  - **Labels.** `labels.openCalendar` (default "Choose date"), plus DateField's `day` / `month` / `year` / `empty` and, in this mode, `incomplete`.
+  - **Rest props.** In editable mode `ref`, `className`, `id` and the other rest props go to the DateField group (typed as the button's, as the props type is shared); `placeholder` and `format` are unused. `DateRangePicker` has no editable mode (no DateRangeField yet).
+  - **Blur.** Focus moving from the segments to the icon button counts as leaving the DateField, so `validationMode="onBlur"` validates and the Field is marked touched at that point.
 
 ## 5. Sidebar (app shell)
 
