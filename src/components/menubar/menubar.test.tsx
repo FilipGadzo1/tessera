@@ -173,10 +173,12 @@ describe("Menubar", () => {
     expect(document.activeElement).toBe(trigger("File").element());
     await userEvent.keyboard("{ArrowRight}");
     expect(document.activeElement).toBe(trigger("Edit").element());
-    await userEvent.keyboard("{ArrowRight}{ArrowRight}");
-    expect(document.activeElement).toBe(trigger("File").element());
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(() => document.activeElement).toBe(trigger("View").element());
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(() => document.activeElement).toBe(trigger("File").element());
     await userEvent.keyboard("{ArrowLeft}");
-    expect(document.activeElement).toBe(trigger("View").element());
+    await expect.poll(() => document.activeElement).toBe(trigger("View").element());
     await userEvent.tab();
     expect(document.activeElement).toBe(page.getByRole("button", { name: "after" }).element());
   });
@@ -190,7 +192,10 @@ describe("Menubar", () => {
     await expect.element(trigger("File")).toHaveAttribute("aria-expanded", "false");
     await userEvent.keyboard("{ArrowRight}");
     await expect.element(page.getByRole("menuitemcheckbox", { name: "Word wrap" })).toBeVisible();
-    await userEvent.keyboard("{ArrowLeft}{ArrowLeft}");
+    await userEvent.keyboard("{ArrowLeft}");
+    await expect.element(trigger("Edit")).toHaveAttribute("aria-expanded", "true");
+    await expect.element(item("Undo")).toBeVisible();
+    await userEvent.keyboard("{ArrowLeft}");
     await expect.element(item("New")).toBeVisible();
     await expect.element(trigger("File")).toHaveAttribute("aria-expanded", "true");
   });
@@ -259,9 +264,20 @@ describe("Menubar", () => {
   it("opens a submenu with ArrowRight and closes it with ArrowLeft", async () => {
     await render(<AppMenubar />);
     await openByClick("File");
-    await userEvent.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}{ArrowRight}");
+    // One key at a time, each waiting for focus on the expected item before the next.
+    const focusedText = () => document.activeElement?.textContent?.trim();
+    for (const [key, expected] of [
+      ["{ArrowDown}", "New⌘N"],
+      ["{ArrowDown}", "Open…"],
+      ["{ArrowDown}", "Export"],
+      ["{ArrowRight}", "PDF"],
+    ]) {
+      await userEvent.keyboard(key);
+      await expect.poll(focusedText).toBe(expected);
+    }
     await expect.element(item("PDF")).toBeVisible();
     await userEvent.keyboard("{ArrowLeft}");
+    await expect.poll(focusedText).toBe("Export");
     await expect.poll(() => menus().length).toBe(1);
     await expect.element(trigger("File")).toHaveAttribute("aria-expanded", "true");
   });

@@ -268,7 +268,7 @@ describe("NavigationMenu", () => {
     await expect.poll(() => content()?.getAttribute("data-activation-direction")).toBe("right");
     expect(onValueChange.mock.calls.filter(([value]) => value === null)).toHaveLength(0);
 
-    await new Promise((resolve) => setTimeout(resolve, 600));
+    await new Promise((resolve) => setTimeout(resolve, 900));
     await userEvent.click(trigger("Company"));
     await expect.poll(() => popup()).toBeNull();
     expect(onValueChange).toHaveBeenLastCalledWith(

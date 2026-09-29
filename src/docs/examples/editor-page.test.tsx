@@ -124,9 +124,25 @@ describe("EditorPage example", () => {
     await tabTo(file.element());
     await userEvent.keyboard("{Enter}");
     await expect.element(page.getByRole("menuitem", { name: "Open…" })).toBeVisible();
-    await userEvent.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}{ArrowRight}");
+    // One key at a time: each waits for focus to reach the expected item before the next.
+    const focusedText = () => document.activeElement?.textContent?.trim();
+    const press = async (key: string, expected: string) => {
+      await userEvent.keyboard(key);
+      await expect.poll(focusedText).toBe(expected);
+    };
+    // A keyboard open highlights the first item.
+    await expect.poll(focusedText).toBe("New");
+    await press("{ArrowDown}", "Open…");
+    await press("{ArrowDown}", "Save");
+    await press("{ArrowDown}", "Export");
+    await press("{ArrowRight}", "PDF");
     await expect.element(page.getByRole("menuitem", { name: "Markdown" })).toBeVisible();
-    await userEvent.keyboard("{ArrowLeft}{ArrowUp}{ArrowRight}");
+    await press("{ArrowLeft}", "Export");
+    await press("{ArrowUp}", "Save");
+    await userEvent.keyboard("{ArrowRight}");
+    await expect
+      .element(page.getByRole("menuitem", { name: "Edit", exact: true }))
+      .toHaveAttribute("aria-expanded", "true");
     await expect.element(page.getByRole("menuitem", { name: "Undo" })).toBeVisible();
     await userEvent.keyboard("{Escape}");
     await expect.element(page.getByRole("menu")).not.toBeInTheDocument();
