@@ -48,6 +48,8 @@ export default defineConfig({
       "@base-ui/react/otp-field",
       "@base-ui/react/menubar",
       "@base-ui/react/navigation-menu",
+      // Sidebar switches to its mobile Drawer below `md` with Base UI's media-query hook.
+      "@base-ui/react/unstable-use-media-query",
       // The date controls join a Field and Form through these (the modules Select uses).
       "@base-ui/react/internals/field-root-context",
       "@base-ui/react/internals/labelable-provider",

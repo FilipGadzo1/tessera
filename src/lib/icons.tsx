@@ -76,6 +76,16 @@ export function CloseIcon(props: ComponentProps<"svg">) {
   );
 }
 
+/** A panel with a left column: the Sidebar toggle. */
+export function PanelLeftIcon(props: ComponentProps<"svg">) {
+  return (
+    <StrokeIcon {...props}>
+      <rect width="18" height="18" x="3" y="3" rx="2" />
+      <path d="M9 3v18" />
+    </StrokeIcon>
+  );
+}
+
 export function SearchIcon(props: ComponentProps<"svg">) {
   return (
     <StrokeIcon {...props}>

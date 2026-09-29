@@ -10,6 +10,7 @@ import {
   DotIcon,
   EllipsisIcon,
   MinusIcon,
+  PanelLeftIcon,
   PlusIcon,
   SearchIcon,
 } from "./icons";
@@ -24,6 +25,7 @@ const icons = {
   DotIcon,
   EllipsisIcon,
   MinusIcon,
+  PanelLeftIcon,
   PlusIcon,
   SearchIcon,
 };
