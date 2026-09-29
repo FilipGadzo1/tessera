@@ -49,3 +49,25 @@ export const comboboxChipsBase: string[] = [
   "has-[input:disabled]:cursor-not-allowed has-[input:disabled]:opacity-50 has-[input:read-only]:bg-muted",
   "transition-[color,background-color,border-color,box-shadow,translate] duration-150 ease-out motion-reduce:transition-none",
 ];
+
+/*
+ * Class strings the Combobox and the Autocomplete parts share (same Base UI parts underneath).
+ * Server-safe.
+ */
+export const comboboxInputBase =
+  "min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed";
+/* Trigger and clear: Base UI renders both with `tabIndex={-1}` (the input owns the keyboard), so
+ * they are mouse-only and carry no focus ring. */
+export const comboboxButtonBase =
+  "flex shrink-0 cursor-pointer items-center justify-center rounded-sm px-1 text-muted-foreground outline-none not-data-disabled:hover:text-foreground data-disabled:cursor-not-allowed [&_svg]:size-4";
+export const comboboxContentBase =
+  "min-w-(--anchor-width) max-h-[min(var(--available-height),20rem)] overflow-y-auto p-1";
+// A listbox must own options: while filtering leaves none, hide it (it stays in the DOM, so the
+// input's `aria-controls` still resolves) and let `ComboboxEmpty` / `ComboboxStatus` speak.
+export const comboboxListBase = "not-has-[[role=option]]:hidden";
+// `empty:p-0`: Base UI always renders Empty / Status (live regions must exist before their text
+// changes), so the padding collapses while they have nothing to say.
+export const comboboxEmptyBase = "px-2 py-6 text-center text-sm text-muted-foreground empty:p-0";
+export const comboboxStatusBase = "px-2 py-1.5 text-sm text-muted-foreground empty:p-0";
+export const comboboxGroupLabelBase = "px-2 py-1.5 text-xs font-medium text-muted-foreground";
+export const comboboxSeparatorBase = "-mx-1 my-1 h-px bg-border forced-colors:bg-[CanvasText]";

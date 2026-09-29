@@ -40,6 +40,7 @@ export default defineConfig({
       "@base-ui/react/slider",
       "@base-ui/react/number-field",
       "@base-ui/react/combobox",
+      "@base-ui/react/autocomplete",
       "@base-ui/react/drawer",
       "@base-ui/react/toast",
       "@base-ui/react/preview-card",

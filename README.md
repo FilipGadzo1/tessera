@@ -332,6 +332,16 @@ source files automatically (build output + `"use client"` directive checks).
   Only the input is in the Tab order (Base UI): trigger, clear and chip remove buttons are pointer
   affordances, chips are reached with ArrowLeft. Escape closes the list; on a closed combobox it
   clears the value (Base UI). Works inside a `Field` and a `Dialog`. Client component)
+- [x] Autocomplete, AutocompleteInput, AutocompleteTrigger, AutocompleteClear, AutocompleteContent, AutocompleteList,
+  AutocompleteItem, AutocompleteEmpty, AutocompleteStatus, AutocompleteGroup, AutocompleteGroupLabel,
+  AutocompleteCollection, AutocompleteSeparator (on Base UI `Autocomplete.*`, sharing its look with the Combobox. An input
+  that suggests as you type but keeps free text: choosing a suggestion only fills the input, so there is no selected state
+  or check mark. `value` / `onValueChange` are the input text; `name` submits it. `mode` `both` / `inline` fills the
+  highlighted suggestion into the input while arrowing, `filter={null}` + `AutocompleteStatus` is async search, groups use
+  `AutocompleteGroup` + `AutocompleteCollection`. `AutocompleteInput` takes `size`, `showClear` and `showTrigger` (both off
+  by default; both are pointer-only, out of the Tab order). For a command palette put `<Autocomplete open inline>` in a
+  `Dialog`, render `AutocompleteList` without `AutocompleteContent`, and run the action from each item's `onClick`. Works
+  inside a `Field`. Client component)
 - [x] Drawer, DrawerTrigger, DrawerContent, DrawerHeader, DrawerFooter, DrawerTitle,
   DrawerDescription, DrawerClose (Tessera's Sheet, on Base UI `Drawer.*`. A modal `role="dialog"`
   panel against an edge over a dimmed backdrop: `side` on the `Drawer` root — `right` (default),
@@ -508,6 +518,6 @@ body sits in a `ScrollArea` under a `ContextMenu` (right-click it) whose Format 
 ## Roadmap
 
 Phase G candidates: DateField, Menubar, NavigationMenu, Autocomplete, OTP field, Sidebar/app shell
-(Collapsible, CheckboxGroup and Form are done).
+(Collapsible, CheckboxGroup, Form and Autocomplete are done).
 
 Later: visual regression · React Compiler on output · publish to npm (`@tessera/ui` is free).

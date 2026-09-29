@@ -9,32 +9,23 @@ import { menuItemBase, popupMotion, popupSurface } from "../../lib/overlay-class
 import { useLayeredEscape } from "../../lib/tooltip-escape";
 import {
   type ComboboxInputGroupVariantProps,
+  comboboxButtonBase,
   comboboxChipsBase,
+  comboboxContentBase,
   comboboxDefaults,
+  comboboxEmptyBase,
+  comboboxGroupLabelBase,
+  comboboxInputBase,
   comboboxInputGroupVariants,
+  comboboxListBase,
+  comboboxSeparatorBase,
+  comboboxStatusBase,
 } from "./combobox-variants";
 
-const comboboxInputBase =
-  "min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed";
 const comboboxChipsInputBase =
   "h-7 min-w-16 flex-1 bg-transparent px-1.5 outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed";
-/* Trigger and clear: Base UI renders both with `tabIndex={-1}` (the input owns the keyboard), so
- * they are mouse-only and carry no focus ring. */
-const comboboxButtonBase =
-  "flex shrink-0 cursor-pointer items-center justify-center rounded-sm px-1 text-muted-foreground outline-none not-data-disabled:hover:text-foreground data-disabled:cursor-not-allowed [&_svg]:size-4";
-const comboboxContentBase =
-  "min-w-(--anchor-width) max-h-[min(var(--available-height),20rem)] overflow-y-auto p-1";
-// A listbox must own options: while filtering leaves none, hide it (it stays in the DOM, so the
-// input's `aria-controls` still resolves) and let `ComboboxEmpty` / `ComboboxStatus` speak.
-const comboboxListBase = "not-has-[[role=option]]:hidden";
 const comboboxItemBase = "pl-8 data-selected:font-medium";
 const comboboxItemIndicatorBase = "absolute left-2 flex size-4 items-center justify-center";
-// `empty:p-0`: Base UI always renders Empty / Status (live regions must exist before their text
-// changes), so the padding collapses while they have nothing to say.
-const comboboxEmptyBase = "px-2 py-6 text-center text-sm text-muted-foreground empty:p-0";
-const comboboxStatusBase = "px-2 py-1.5 text-sm text-muted-foreground empty:p-0";
-const comboboxGroupLabelBase = "px-2 py-1.5 text-xs font-medium text-muted-foreground";
-const comboboxSeparatorBase = "-mx-1 my-1 h-px bg-border forced-colors:bg-[CanvasText]";
 const comboboxChipBase =
   "inline-flex h-6 items-center gap-1 rounded-md bg-muted px-1.5 text-xs text-foreground outline-none outline-offset-1 outline-ring focus-visible:outline-2 focus-visible:outline-solid forced-colors:focus-visible:outline-[Highlight] data-disabled:opacity-50";
 const comboboxChipRemoveBase =

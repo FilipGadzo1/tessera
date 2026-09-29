@@ -11,6 +11,7 @@ import {
   EllipsisIcon,
   MinusIcon,
   PlusIcon,
+  SearchIcon,
 } from "./icons";
 
 const icons = {
@@ -24,6 +25,7 @@ const icons = {
   EllipsisIcon,
   MinusIcon,
   PlusIcon,
+  SearchIcon,
 };
 
 describe("icons", () => {
