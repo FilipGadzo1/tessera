@@ -71,14 +71,15 @@ function isTypeOnly(code) {
   return rest.slice(last).trim() === "";
 }
 
-// Library sources: src/**/*.{ts,tsx} minus tests, stories, declaration files and src/docs/.
+// Library sources: src/**/*.{ts,tsx} minus tests, shared test fixtures (`*.test-fixtures.tsx`),
+// stories, declaration files and src/docs/.
 const sources = readdirSync(src, { recursive: true })
   .map((file) => String(file).replaceAll("\\", "/"))
   .filter(
     (file) =>
       /\.tsx?$/.test(file) &&
       !/\.d\.ts$/.test(file) &&
-      !/\.(test|stories)\.tsx?$/.test(file) &&
+      !/\.(test|test-fixtures|stories)\.tsx?$/.test(file) &&
       !file.startsWith("docs/"),
   );
 if (sources.length === 0) fail("no library sources found under src/");

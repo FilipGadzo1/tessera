@@ -1,152 +1,24 @@
-import axe from "axe-core";
 import { type ReactNode, useState } from "react";
-import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
-import {
-  emulateForcedColors,
-  emulateReducedMotion,
-  resetEmulatedMedia,
-  systemColor,
-} from "../../../test/emulation";
+import { emulateReducedMotion } from "../../../test/emulation";
 import { auditOpenOverlay, waitForPopupSettled } from "../../../test/overlay";
-import { DotIcon } from "../../lib/icons";
 import { DateField } from "../date-field";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupAction,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarInset,
-  SidebarMenu,
-  SidebarMenuAction,
-  SidebarMenuBadge,
-  SidebarMenuButton,
-  type SidebarMenuButtonProps,
-  SidebarMenuItem,
-  SidebarMenuSkeleton,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
-  type SidebarProps,
-  SidebarProvider,
-  type SidebarProviderProps,
-  SidebarRail,
-  SidebarSeparator,
-  SidebarTrigger,
-  useSidebar,
-} from ".";
+import { SidebarProvider, useSidebar } from ".";
 import * as stories from "./sidebar.stories";
+import {
+  aside,
+  homeLink,
+  inner,
+  pressShortcut,
+  rail,
+  Shell,
+  setupSidebarTests,
+  trigger,
+} from "./sidebar.test-fixtures";
 
-interface ShellProps {
-  provider?: Omit<SidebarProviderProps, "children">;
-  sidebar?: Omit<SidebarProps, "children">;
-  inset?: ReactNode;
-}
-
-function Shell({ provider, sidebar, inset }: ShellProps) {
-  return (
-    <SidebarProvider {...provider}>
-      <Sidebar {...sidebar}>
-        <SidebarHeader>Acme Inc.</SidebarHeader>
-        <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupLabel>Platform</SidebarGroupLabel>
-            <SidebarGroupAction aria-label="Add project">
-              <DotIcon />
-            </SidebarGroupAction>
-            <SidebarGroupContent>
-              <nav aria-label="Main">
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton render={<a href="#home" />} isActive tooltip="Home">
-                      <DotIcon />
-                      <span>Home</span>
-                    </SidebarMenuButton>
-                    <SidebarMenuBadge>12</SidebarMenuBadge>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton tooltip="Settings">
-                      <DotIcon />
-                      <span>Settings</span>
-                    </SidebarMenuButton>
-                    <SidebarMenuAction aria-label="More settings">
-                      <DotIcon />
-                    </SidebarMenuAction>
-                    <SidebarMenuSub>
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton href="#general" isActive>
-                          General
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton href="#billing">Billing</SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                    </SidebarMenuSub>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </nav>
-            </SidebarGroupContent>
-          </SidebarGroup>
-          <SidebarSeparator data-testid="separator" />
-        </SidebarContent>
-        <SidebarFooter>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton size="lg" tooltip="Ada Lovelace">
-                <DotIcon />
-                <span>Ada Lovelace</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarFooter>
-        <SidebarRail />
-      </Sidebar>
-      <SidebarInset>
-        <header>
-          <SidebarTrigger />
-        </header>
-        {inset}
-        <button type="button">Inset action</button>
-      </SidebarInset>
-    </SidebarProvider>
-  );
-}
-
-const aside = () => document.querySelector<HTMLElement>("aside[data-slot=sidebar]");
-const inner = () => document.querySelector<HTMLElement>("[data-slot=sidebar-inner]");
-const trigger = () => page.getByRole("button", { name: "Toggle sidebar" });
-const homeLink = () => page.getByRole("link", { name: "Home" });
-const pressShortcut = (modifier: "Control" | "Meta") =>
-  userEvent.keyboard(`{${modifier}>}b{/${modifier}}`);
-
-async function axeResults(container: Element) {
-  const results = await axe.run(container, { rules: { region: { enabled: false } } });
-  return {
-    violations: results.violations.map((v) => `${v.id}: ${v.help}`),
-    incomplete: results.incomplete.map(
-      (v) => `${v.id}: ${v.help} (${v.nodes.map((node) => node.html).join(", ")})`,
-    ),
-  };
-}
-
-beforeEach(async () => {
-  // Vitest's iframe defaults to a phone-sized viewport; the desktop sidebar starts at `md`.
-  await page.viewport(1280, 800);
-});
-
-afterEach(async () => {
-  document.documentElement.classList.remove("dark");
-  await resetEmulatedMedia();
-});
-
-afterAll(async () => {
-  await page.viewport(414, 896);
-});
+setupSidebarTests();
 
 describe("SidebarProvider", () => {
   it("renders the wrapper with the width variables and an aside landmark named Sidebar", async () => {
@@ -225,9 +97,15 @@ describe("SidebarProvider", () => {
       openMobile: false,
       isMobile: false,
     });
-    expect(typeof api?.setOpen).toBe("function");
-    expect(typeof api?.setOpenMobile).toBe("function");
-    expect(typeof api?.toggleSidebar).toBe("function");
+    expect(Object.keys(api ?? {}).sort()).toEqual([
+      "isMobile",
+      "open",
+      "openMobile",
+      "setOpen",
+      "setOpenMobile",
+      "state",
+      "toggleSidebar",
+    ]);
 
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     await expect(render(<Probe />)).rejects.toThrow(/SidebarProvider/);
@@ -381,16 +259,33 @@ describe("collapsible offcanvas", () => {
     await userEvent.click(trigger());
     await expect.poll(() => sidebar.inert).toBe(false);
   });
+});
 
-  it("collapsible='none' never collapses", async () => {
-    await render(<Shell sidebar={{ collapsible: "none" }} />);
+describe("collapsible none", () => {
+  it("never collapses: the trigger and the shortcut do nothing, and it stays expanded", async () => {
+    const onOpenChange = vi.fn();
+    await render(<Shell provider={{ onOpenChange }} sidebar={{ collapsible: "none" }} />);
+    const button = trigger().element();
+    await userEvent.click(trigger());
     await pressShortcut("Control");
-    await expect.poll(() => aside()?.getAttribute("data-state")).toBe("collapsed");
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(aside()?.getAttribute("data-state")).toBe("expanded");
+    expect(button.getAttribute("aria-expanded")).toBe("true");
+    expect(button.getAttribute("aria-controls")).toBe(aside()?.id);
     expect(aside()?.hasAttribute("data-collapsible")).toBe(false);
     expect(aside()?.inert).toBe(false);
     expect(aside()?.getBoundingClientRect().width).toBe(256);
     // Nothing to toggle: no rail.
-    expect(document.querySelector("[data-slot=sidebar-rail]")).toBeNull();
+    expect(rail()).toBeNull();
+  });
+
+  it("stays a static aside at mobile widths (no Drawer)", async () => {
+    await page.viewport(390, 800);
+    await render(<Shell sidebar={{ collapsible: "none" }} />);
+    await userEvent.click(trigger());
+    expect(aside()).not.toBeNull();
+    expect(document.querySelector("[role=dialog]")).toBeNull();
+    expect(trigger().element().getAttribute("aria-expanded")).toBe("true");
   });
 });
 
@@ -404,6 +299,8 @@ describe("mobile", () => {
     expect(aside()).toBeNull();
     const button = trigger().element() as HTMLElement;
     expect(button.getAttribute("aria-expanded")).toBe("false");
+    // The closed Drawer does not exist: no aria-controls pointing at nothing.
+    expect(button.hasAttribute("aria-controls")).toBe(false);
     await userEvent.click(trigger());
     const drawer = page.getByRole("dialog", { name: "Sidebar" });
     await expect.element(drawer).toBeVisible();
@@ -420,6 +317,7 @@ describe("mobile", () => {
     await expect.element(drawer).not.toBeInTheDocument();
     await expect.poll(() => document.activeElement).toBe(button);
     expect(button.getAttribute("aria-expanded")).toBe("false");
+    expect(button.hasAttribute("aria-controls")).toBe(false);
   });
 
   it("uses the sidebar's side, a custom label, and the shortcut opens it", async () => {
@@ -433,10 +331,10 @@ describe("mobile", () => {
     const popup = drawer.element() as HTMLElement;
     await waitForPopupSettled(popup);
     expect(Math.round(popup.getBoundingClientRect().right)).toBe(390);
-    // Rest props reach the drawer's sidebar wrapper; the rail is not rendered there.
+    // Rest props reach the drawer's sidebar wrapper; there is no rail on mobile.
     const wrapper = popup.querySelector<HTMLElement>("[data-slot=sidebar]");
     expect(wrapper?.getAttribute("title")).toBe("Main navigation");
-    expect(popup.querySelector("[data-slot=sidebar-rail]")).toBeNull();
+    expect(rail()).toBeNull();
   });
 
   it.each(["light", "dark"] as const)(
@@ -452,111 +350,61 @@ describe("mobile", () => {
   );
 });
 
-describe("menu", () => {
-  it("isActive sets aria-current=page on a link and data-active on a button", async () => {
-    await render(
-      <SidebarProvider>
-        <Sidebar>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton render={<a href="#a" />} isActive>
-                Link
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton isActive>Button</SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton render={<a href="#b" />}>Other</SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </Sidebar>
-      </SidebarProvider>,
-    );
-    const link = page.getByRole("link", { name: "Link" }).element();
-    expect(link.getAttribute("aria-current")).toBe("page");
-    expect(link.hasAttribute("data-active")).toBe(true);
-    expect(link.getAttribute("data-slot")).toBe("sidebar-menu-button");
-    const button = page.getByRole("button", { name: "Button" }).element();
-    expect(button.hasAttribute("aria-current")).toBe(false);
-    expect(button.hasAttribute("data-active")).toBe(true);
-    expect(button.getAttribute("type")).toBe("button");
-    const other = page.getByRole("link", { name: "Other" }).element();
-    expect(other.hasAttribute("aria-current")).toBe(false);
-    expect(other.hasAttribute("data-active")).toBe(false);
-    const style = getComputedStyle(link);
-    expect(style.fontWeight).toBe("500");
-    expect(style.backgroundColor).not.toBe(getComputedStyle(other).backgroundColor);
-  });
-
-  it("sizes are h-8 / h-9 / h-12", async () => {
-    const sizes: NonNullable<SidebarMenuButtonProps["size"]>[] = ["sm", "md", "lg"];
-    await render(
-      <SidebarProvider>
-        <Sidebar>
-          <SidebarMenu>
-            {sizes.map((size) => (
-              <SidebarMenuItem key={size}>
-                <SidebarMenuButton size={size}>{size}</SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </Sidebar>
-      </SidebarProvider>,
-    );
-    const heights = sizes.map(
-      (size) => page.getByRole("button", { name: size }).element().getBoundingClientRect().height,
-    );
-    expect(heights).toEqual([32, 36, 48]);
-  });
-
-  it("renders sub lists as nested ul/li with an indent guide", async () => {
-    await render(<Shell />);
-    const sub = document.querySelector<HTMLElement>("[data-slot=sidebar-menu-sub]");
-    expect(sub?.tagName).toBe("UL");
-    expect(sub?.parentElement?.getAttribute("data-slot")).toBe("sidebar-menu-item");
-    expect(sub?.parentElement?.tagName).toBe("LI");
-    expect(sub?.querySelectorAll("li[data-slot=sidebar-menu-sub-item]").length).toBe(2);
-    const style = getComputedStyle(sub as HTMLElement);
-    expect(style.borderInlineStartWidth).toBe("1px");
-    const general = page.getByRole("link", { name: "General" }).element();
-    expect(general.getAttribute("aria-current")).toBe("page");
-    expect(general.getAttribute("data-slot")).toBe("sidebar-menu-sub-button");
-    expect(page.getByRole("link", { name: "Billing" }).element().hasAttribute("aria-current")).toBe(
-      false,
-    );
-    expect(page.getByRole("navigation", { name: "Main" }).getByRole("list").all().length).toBe(2);
-  });
-
-  it("renders a skeleton hidden from assistive technology", async () => {
-    await render(
-      <SidebarProvider>
-        <Sidebar>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuSkeleton data-testid="skeleton" showIcon />
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </Sidebar>
-      </SidebarProvider>,
-    );
-    const skeleton = page.getByTestId("skeleton").element();
-    expect(skeleton.getAttribute("data-slot")).toBe("sidebar-menu-skeleton");
-    expect(skeleton.getAttribute("aria-hidden")).toBe("true");
-    expect(skeleton.querySelectorAll("[data-slot=skeleton]").length).toBe(2);
-  });
-});
-
 describe("rail", () => {
   it("is hidden from AT, out of the Tab order, and toggles on click", async () => {
     await render(<Shell sidebar={{ collapsible: "icon" }} />);
-    const rail = document.querySelector<HTMLElement>("[data-slot=sidebar-rail]") as HTMLElement;
-    expect(rail.getAttribute("aria-hidden")).toBe("true");
-    expect(rail.tabIndex).toBe(-1);
-    await userEvent.click(rail);
+    const element = rail() as HTMLElement;
+    expect(element.getAttribute("aria-hidden")).toBe("true");
+    expect(element.tabIndex).toBe(-1);
+    await userEvent.click(element);
     await expect.poll(() => aside()?.getAttribute("data-state")).toBe("collapsed");
-    await userEvent.click(rail);
+    await userEvent.click(element);
     await expect.poll(() => aside()?.getAttribute("data-state")).toBe("expanded");
+  });
+
+  it("lives outside the aside, just past its inner edge, on either side", async () => {
+    for (const side of ["left", "right"] as const) {
+      const screen = await render(<Shell sidebar={{ side }} />);
+      const element = rail() as HTMLElement;
+      const sidebar = aside() as HTMLElement;
+      expect(sidebar.contains(element)).toBe(false);
+      const railBox = element.getBoundingClientRect();
+      const asideBox = sidebar.getBoundingClientRect();
+      if (side === "left") expect(railBox.left).toBe(asideBox.right);
+      else expect(railBox.right).toBe(asideBox.left);
+      await screen.unmount();
+    }
+  });
+
+  it("reopens a collapsed off-canvas sidebar", async () => {
+    await render(<Shell provider={{ defaultOpen: false }} />);
+    await expect.poll(() => aside()?.getBoundingClientRect().width).toBe(0);
+    expect(aside()?.inert).toBe(true);
+    await userEvent.click(rail() as HTMLElement);
+    await expect.poll(() => aside()?.getAttribute("data-state")).toBe("expanded");
+    expect(aside()?.inert).toBe(false);
+  });
+
+  it.each([
+    ["expanded", true],
+    ["icon", false],
+  ] as const)("does not cover the menu buttons' end (%s)", async (_mode, open) => {
+    await render(<Shell provider={{ defaultOpen: open }} sidebar={{ collapsible: "icon" }} />);
+    await expect.poll(() => inner()?.clientWidth).toBe(open ? 255 : 48);
+    const button = page.getByRole("button", { name: "Ada Lovelace" }).element();
+    const box = button.getBoundingClientRect();
+    const hit = document.elementFromPoint(box.right - 1, box.top + box.height / 2);
+    expect(hit && button.contains(hit)).toBe(true);
+  });
+
+  it("does not cover the content's scrollbar area", async () => {
+    await render(<Shell />);
+    const content = document.querySelector<HTMLElement>(
+      "[data-slot=sidebar-content]",
+    ) as HTMLElement;
+    const box = content.getBoundingClientRect();
+    const hit = document.elementFromPoint(box.right - 1, box.bottom - 4);
+    expect(hit && content.contains(hit)).toBe(true);
   });
 });
 
@@ -572,81 +420,6 @@ describe("motion", () => {
   });
 });
 
-describe("focus", () => {
-  it("menu buttons show an inset 2px ring on keyboard focus", async () => {
-    await render(<Shell />);
-    await userEvent.tab();
-    const action = page.getByRole("button", { name: "Add project" }).element();
-    expect(document.activeElement).toBe(action);
-    expect(getComputedStyle(action).outlineStyle).toBe("solid");
-    await userEvent.tab();
-    const link = homeLink().element();
-    expect(document.activeElement).toBe(link);
-    const style = getComputedStyle(link);
-    expect(style.outlineStyle).toBe("solid");
-    expect(style.outlineWidth).toBe("2px");
-    expect(style.outlineOffset).toBe("-2px");
-  });
-
-  it("forced colors: active item Highlight/HighlightText with forced-color-adjust none; rings until focus", async () => {
-    await emulateForcedColors(true);
-    expect(matchMedia("(forced-colors: active)").matches).toBe(true);
-    await render(<Shell />);
-    const link = homeLink().element();
-    const settings = page.getByRole("button", { name: "Settings" }).element();
-    let style = getComputedStyle(link);
-    expect(style.backgroundColor).toBe(systemColor("Highlight"));
-    expect(style.color).toBe(systemColor("HighlightText"));
-    expect(style.forcedColorAdjust).toBe("none");
-    expect(getComputedStyle(settings).forcedColorAdjust).toBe("auto");
-    expect(style.outlineStyle).toBe("none");
-    // Focused active item: the ring sits inside the Highlight fill, so it is HighlightText.
-    await userEvent.tab(); // the group action
-    await userEvent.tab();
-    expect(document.activeElement).toBe(link);
-    style = getComputedStyle(link);
-    expect(style.outlineStyle).toBe("solid");
-    // outline-color transitions (150ms): wait for it to settle.
-    await expect.poll(() => getComputedStyle(link).outlineColor).toBe(systemColor("HighlightText"));
-    // An ordinary item: a Highlight ring.
-    await userEvent.tab();
-    expect(document.activeElement).toBe(settings);
-    expect(getComputedStyle(settings).outlineStyle).toBe("solid");
-    await expect.poll(() => getComputedStyle(settings).outlineColor).toBe(systemColor("Highlight"));
-    // The separator stays visible.
-    expect(getComputedStyle(page.getByTestId("separator").element()).backgroundColor).toBe(
-      systemColor("CanvasText"),
-    );
-  });
-
-  it("forced colors: the trigger's focus ring is Highlight", async () => {
-    await emulateForcedColors(true);
-    await render(<Shell provider={{ defaultOpen: false }} />);
-    await userEvent.tab();
-    expect(document.activeElement).toBe(trigger().element());
-    await expect
-      .poll(() => getComputedStyle(trigger().element()).outlineColor)
-      .toBe(systemColor("Highlight"));
-  });
-});
-
-describe("axe", () => {
-  for (const theme of ["light", "dark"] as const) {
-    for (const mode of ["expanded", "icon"] as const) {
-      it(`has no violations ${mode} in the ${theme} theme`, async () => {
-        if (theme === "dark") document.documentElement.classList.add("dark");
-        const screen = await render(
-          <Shell
-            provider={{ defaultOpen: mode === "expanded" }}
-            sidebar={{ collapsible: "icon" }}
-          />,
-        );
-        expect(await axeResults(screen.container)).toEqual({ violations: [], incomplete: [] });
-      });
-    }
-  }
-});
-
 describe("stories", () => {
   for (const [name, story] of Object.entries(stories)) {
     if (name === "default" || typeof story !== "object" || !("render" in story)) continue;
@@ -657,4 +430,21 @@ describe("stories", () => {
       expect(aside()).not.toBeNull();
     });
   }
+
+  it("only the Default story keeps the shortcut", async () => {
+    for (const [name, story] of Object.entries(stories)) {
+      if (name === "default" || typeof story !== "object" || !("render" in story)) continue;
+      const Story = story.render as () => ReactNode;
+      const screen = await render(<Story />);
+      const before = aside()?.getAttribute("data-state");
+      await userEvent.click(screen.getByRole("heading", { name: "Dashboard" }));
+      await pressShortcut("Control");
+      if (name === "Default") {
+        await expect.poll(() => aside()?.getAttribute("data-state")).not.toBe(before);
+      } else {
+        expect(aside()?.getAttribute("data-state"), name).toBe(before);
+      }
+      await screen.unmount();
+    }
+  });
 });

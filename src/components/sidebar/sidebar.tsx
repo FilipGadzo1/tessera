@@ -7,7 +7,9 @@ import {
   type Ref,
   useContext,
   useEffect,
+  useState,
 } from "react";
+import { createPortal } from "react-dom";
 import { cloneRender } from "../../lib/clone-render";
 import { cn } from "../../lib/cn";
 import { PanelLeftIcon } from "../../lib/icons";
@@ -29,6 +31,7 @@ import {
   sidebarInsetClasses,
   sidebarMobileClasses,
   sidebarRailClasses,
+  sidebarRailHostClasses,
   sidebarSeparatorClasses,
   sidebarStaticClasses,
   sidebarTriggerClasses,
@@ -71,16 +74,22 @@ export function Sidebar({
   ref,
   ...props
 }: SidebarProps) {
-  const { state, isMobile, openMobile, setOpenMobile, sidebarId, setSidebarId } =
+  const { state, isMobile, openMobile, setOpenMobile, sidebarId, setSidebarId, setStatic } =
     useSidebarInternal();
+  const [railHost, setRailHost] = useState<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setSidebarId(id);
     return () => setSidebarId(undefined);
   }, [id, setSidebarId]);
 
+  useEffect(() => {
+    setStatic(collapsible === "none");
+    return () => setStatic(false);
+  }, [collapsible, setStatic]);
+
   const content = (
-    <SidebarInstanceContext.Provider value={{ side, collapsible }}>
+    <SidebarInstanceContext.Provider value={{ side, collapsible, railHost }}>
       {children}
     </SidebarInstanceContext.Provider>
   );
@@ -93,7 +102,8 @@ export function Sidebar({
         id={sidebarId}
         aria-label={ariaLabel}
         data-slot="sidebar"
-        data-state={state}
+        // Never collapses, whatever the provider's `open`.
+        data-state="expanded"
         data-variant={variant}
         data-side={side}
         className={cn(sidebarStaticClasses, className)}
@@ -125,26 +135,42 @@ export function Sidebar({
   }
 
   const collapsed = state === "collapsed";
-  return (
-    <aside
-      {...props}
-      ref={ref}
-      id={sidebarId}
-      aria-label={ariaLabel}
-      inert={collapsed && collapsible === "offcanvas"}
-      data-slot="sidebar"
-      data-state={state}
-      data-collapsible={collapsed ? collapsible : undefined}
-      data-variant={variant}
+  // The rail's host: a zero-width, non-inert flex item on the column's inner edge (after a left
+  // column, before a right one, which is `order-last` like the column), so the rail neither
+  // covers the panel's content nor goes inert with a collapsed off-canvas column.
+  const railHostElement = (
+    <div
+      ref={setRailHost}
+      data-slot="sidebar-rail-host"
       data-side={side}
-      className={cn(sidebarColumnVariants({ variant }), className)}
-    >
-      <div data-slot="sidebar-container" className={sidebarContainerVariants({ variant })}>
-        <div data-slot="sidebar-inner" className={sidebarInnerVariants({ variant })}>
-          {content}
+      data-state={state}
+      className={sidebarRailHostClasses}
+    />
+  );
+  return (
+    <>
+      {side === "right" && railHostElement}
+      <aside
+        {...props}
+        ref={ref}
+        id={sidebarId}
+        aria-label={ariaLabel}
+        inert={collapsed && collapsible === "offcanvas"}
+        data-slot="sidebar"
+        data-state={state}
+        data-collapsible={collapsed ? collapsible : undefined}
+        data-variant={variant}
+        data-side={side}
+        className={cn(sidebarColumnVariants({ variant }), className)}
+      >
+        <div data-slot="sidebar-container" className={sidebarContainerVariants({ variant })}>
+          <div data-slot="sidebar-inner" className={sidebarInnerVariants({ variant })}>
+            {content}
+          </div>
         </div>
-      </div>
-    </aside>
+      </aside>
+      {side === "left" && railHostElement}
+    </>
   );
 }
 
@@ -153,7 +179,8 @@ export type SidebarTriggerProps = ComponentProps<"button">;
 /**
  * A ghost icon button (`icon-sm`) with a panel icon that toggles the sidebar (the Drawer on
  * mobile). Named "Toggle sidebar" (override with `aria-label`), with `aria-expanded` and
- * `aria-controls` pointing at the sidebar. Children replace the icon.
+ * `aria-controls` pointing at the sidebar. Children replace the icon. With a
+ * `collapsible="none"` Sidebar it does nothing (and stays `aria-expanded`); leave it out there.
  */
 export function SidebarTrigger({
   className,
@@ -162,8 +189,8 @@ export function SidebarTrigger({
   "aria-label": ariaLabel = "Toggle sidebar",
   ...props
 }: SidebarTriggerProps) {
-  const { open, openMobile, isMobile, toggleSidebar, sidebarId } = useSidebarInternal();
-  const expanded = isMobile ? openMobile : open;
+  const { open, openMobile, isMobile, toggleSidebar, sidebarId, isStatic } = useSidebarInternal();
+  const expanded = isStatic || (isMobile ? openMobile : open);
   return (
     <button
       type="button"
@@ -171,7 +198,7 @@ export function SidebarTrigger({
       aria-label={ariaLabel}
       aria-expanded={expanded}
       // The mobile Drawer only exists while open; never point at a missing element.
-      aria-controls={!isMobile || openMobile ? sidebarId : undefined}
+      aria-controls={isStatic || !isMobile || openMobile ? sidebarId : undefined}
       data-slot="sidebar-trigger"
       className={buttonVariants({
         variant: "ghost",
@@ -192,16 +219,18 @@ export function SidebarTrigger({
 export type SidebarRailProps = ComponentProps<"button">;
 
 /**
- * A thin hit area on the sidebar's inner edge that toggles it on click; a line shows on hover.
+ * A thin hit area just outside the sidebar's inner edge that toggles it on click; a line shows on
+ * hover. Place it anywhere inside `Sidebar`: it renders into a sibling of the column, so it never
+ * covers the sidebar's buttons or scrollbar, and it still reopens a collapsed off-canvas sidebar.
  * Pointer-only: `aria-hidden` and out of the Tab order (the trigger and shortcut cover the
- * keyboard). An off-canvas sidebar is `inert` while collapsed, so there the rail only collapses.
+ * keyboard). Renders nothing in the mobile Drawer or with `collapsible="none"`.
  */
 export function SidebarRail({ className, onClick, ...props }: SidebarRailProps) {
   const { toggleSidebar, isMobile } = useSidebarInternal();
-  const { collapsible } = useContext(SidebarInstanceContext);
+  const { collapsible, railHost } = useContext(SidebarInstanceContext);
   // Nothing to toggle in a static sidebar or in the mobile Drawer.
-  if (isMobile || collapsible === "none") return null;
-  return (
+  if (isMobile || collapsible === "none" || !railHost) return null;
+  return createPortal(
     <button
       type="button"
       {...props}
@@ -213,7 +242,8 @@ export function SidebarRail({ className, onClick, ...props }: SidebarRailProps) 
         onClick?.(event);
         if (!event.defaultPrevented) toggleSidebar();
       }}
-    />
+    />,
+    railHost,
   );
 }
 

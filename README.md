@@ -518,12 +518,16 @@ source files automatically (build output + `"use client"` directive checks).
   `open` / `defaultOpen` / `onOpenChange` (persist it yourself, e.g. to localStorage, and pass it back as
   `defaultOpen`), sets `--sidebar-width` (16rem) and `--sidebar-width-icon` (3rem), and binds Ctrl/⌘+B
   (`shortcut={false}` turns it off; it is ignored while typing in an input, a textarea, a select or a
-  contenteditable such as DateField). From `md` up the Sidebar is an `<aside aria-label="Sidebar">` column —
-  put a `<nav>` inside — sticky to the viewport, with `side` left/right, `variant` sidebar (bordered) /
-  floating (a card) / inset (the page becomes a card) and `collapsible` offcanvas (slides out and is `inert`) /
-  icon (a 3rem column of icons; menu buttons show their `tooltip`, labels stay in the accessible name) / none.
-  Below `md` the same children open in a `Drawer` from `side`, named "Sidebar". `SidebarTrigger` is a ghost
-  icon button with `aria-expanded` / `aria-controls`; `SidebarRail` is a pointer-only edge that toggles.
+  contenteditable such as DateField). The shortcut listens on `window`, so keep it on for only one provider
+  per page. From `md` up the Sidebar is an `<aside aria-label="Sidebar">` column — put a `<nav>` inside —
+  sticky to the viewport, with `side` left/right, `variant` sidebar (bordered) / floating (a card) / inset (the
+  page becomes a card) and `collapsible` offcanvas (slides out and is `inert`) / icon (a 3rem column of icons;
+  menu buttons show their `tooltip`, labels stay in the accessible name) / none (static at every width; the
+  trigger and shortcut do nothing, so leave the trigger out). `side` is physical, as in shadcn: it is not
+  mirrored under `dir="rtl"`. Below `md` the same children open in a `Drawer` from `side`, named "Sidebar".
+  `SidebarTrigger` is a ghost icon button with `aria-expanded` / `aria-controls`; `SidebarRail` is a
+  pointer-only 8px strip just outside the column's edge (over the page, never over the sidebar's buttons or
+  scrollbar) that toggles, and reopens a collapsed off-canvas sidebar.
   `SidebarMenuButton` is a `<button>`, or a link via `render={<a href="…" />}`; `isActive` sets `data-active`
   (and `aria-current="page"` on a link); sizes sm / md / lg (32 / 36 / 48px). `SidebarContent` scrolls. The
   width animates over 200ms, instantly under reduced motion. The first render assumes desktop (server-safe);

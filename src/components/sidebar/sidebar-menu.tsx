@@ -85,7 +85,8 @@ export function SidebarMenuButton({
   const element = render ? (
     cloneRender(
       render,
-      { ...shared, "aria-current": isActive ? "page" : undefined },
+      // An active link is the current page; otherwise keep the caller's own value (e.g. "step").
+      { ...shared, "aria-current": isActive ? "page" : props["aria-current"] },
       {
         slot: "sidebar-menu-button",
         className: classes,
@@ -175,7 +176,7 @@ export function SidebarMenuSubButton({
   const classes = cn(sidebarMenuSubButtonClasses, className);
   const shared = {
     ...props,
-    "aria-current": isActive ? ("page" as const) : undefined,
+    "aria-current": isActive ? ("page" as const) : props["aria-current"],
     "data-active": isActive ? "" : undefined,
   };
   if (render) {

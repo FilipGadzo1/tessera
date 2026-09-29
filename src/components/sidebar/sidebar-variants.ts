@@ -102,14 +102,25 @@ export const sidebarInsetClasses = cn(
   "md:group-has-[[data-slot=sidebar][data-variant=inset]]/sidebar-wrapper:shadow-sm",
 );
 
-/** A thin pointer-only hit area on the panel's inner edge; a 2px line shows on hover. */
+/**
+ * The rail's host: a zero-width flex item beside the column, on its inner edge, stretched to the
+ * row's height. Not inside the clipped, possibly inert `aside`. A right sidebar's host is
+ * `order-last` like the column, and comes before it in the DOM.
+ */
+export const sidebarRailHostClasses =
+  "group/sidebar-rail relative z-20 hidden w-0 shrink-0 md:block data-[side=right]:order-last";
+
+/**
+ * The rail: an 8px pointer-only hit area just outside the column's inner edge (over the page's
+ * edge, not the sidebar's buttons or scrollbar). A 2px line on the edge shows on hover.
+ */
 export const sidebarRailClasses = cn(
-  "absolute inset-y-0 z-20 hidden w-3 cursor-pointer md:flex",
+  "absolute inset-y-0 flex w-2 cursor-pointer",
   "after:absolute after:inset-y-0 after:w-0.5 after:transition-[background-color] after:duration-150 motion-reduce:after:transition-none hover:after:bg-border forced-colors:hover:after:bg-[Highlight]",
-  "group-data-[side=left]/sidebar:right-0 group-data-[side=left]/sidebar:after:right-0 group-data-[side=left]/sidebar:cursor-w-resize",
-  "group-data-[side=right]/sidebar:left-0 group-data-[side=right]/sidebar:after:left-0 group-data-[side=right]/sidebar:cursor-e-resize",
-  "group-data-[side=left]/sidebar:group-data-[state=collapsed]/sidebar:cursor-e-resize",
-  "group-data-[side=right]/sidebar:group-data-[state=collapsed]/sidebar:cursor-w-resize",
+  "group-data-[side=left]/sidebar-rail:left-0 group-data-[side=left]/sidebar-rail:after:left-0 group-data-[side=left]/sidebar-rail:cursor-w-resize",
+  "group-data-[side=right]/sidebar-rail:right-0 group-data-[side=right]/sidebar-rail:after:right-0 group-data-[side=right]/sidebar-rail:cursor-e-resize",
+  "group-data-[side=left]/sidebar-rail:group-data-[state=collapsed]/sidebar-rail:cursor-e-resize",
+  "group-data-[side=right]/sidebar-rail:group-data-[state=collapsed]/sidebar-rail:cursor-w-resize",
 );
 
 /** Hidden while collapsed to icons. */

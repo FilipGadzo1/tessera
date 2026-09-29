@@ -19,13 +19,15 @@ import { sidebarWrapperClasses } from "./sidebar-variants";
 export type SidebarSide = "left" | "right";
 
 /**
- * @internal The enclosing Sidebar's `side` (menu tooltips open away from it) and `collapsible`
- * (the rail renders nothing when it is `"none"`).
+ * @internal The enclosing Sidebar's `side` (menu tooltips open away from it), `collapsible` (the
+ * rail renders nothing when it is `"none"`) and the element the rail renders into: a zero-width
+ * sibling on the column's edge, outside the clipped (and, collapsed off-canvas, inert) `aside`.
  */
 export const SidebarInstanceContext = createContext<{
   side: SidebarSide;
   collapsible: "offcanvas" | "icon" | "none";
-}>({ side: "left", collapsible: "offcanvas" });
+  railHost: HTMLElement | null;
+}>({ side: "left", collapsible: "offcanvas", railHost: null });
 
 /** Tailwind's `md` breakpoint: the desktop sidebar from here up, the mobile Drawer below it. */
 const DESKTOP_QUERY = "(min-width: 48rem)";
@@ -49,6 +51,9 @@ interface SidebarInternalValue {
   /** The id the trigger's `aria-controls` points at: the aside, or the open mobile Drawer. */
   sidebarId: string;
   setSidebarId: (id: string | undefined) => void;
+  /** A `collapsible="none"` Sidebar registers here: there is nothing to toggle. */
+  isStatic: boolean;
+  setStatic: (isStatic: boolean) => void;
 }
 
 const SidebarContext = createContext<(SidebarContextValue & SidebarInternalValue) | null>(null);
@@ -65,7 +70,13 @@ function useSidebarContext() {
  * toggleSidebar }`. Throws outside a `SidebarProvider`.
  */
 export function useSidebar(): SidebarContextValue {
-  const { sidebarId: _id, setSidebarId: _setId, ...value } = useSidebarContext();
+  const {
+    sidebarId: _id,
+    setSidebarId: _setId,
+    isStatic: _isStatic,
+    setStatic: _setStatic,
+    ...value
+  } = useSidebarContext();
   return value;
 }
 
@@ -86,7 +97,8 @@ export interface SidebarProviderProps extends ComponentProps<"div"> {
   onOpenChange?: (open: boolean) => void;
   /**
    * Ctrl+B / ⌘+B toggles the sidebar. The shortcut is ignored while typing in an input, a
-   * textarea, a select or a contenteditable element (e.g. DateField's segments). @default true
+   * textarea, a select or a contenteditable element (e.g. DateField's segments). It listens on
+   * `window`, so keep it on for only one provider per page. @default true
    */
   shortcut?: boolean;
 }
@@ -125,6 +137,7 @@ export function SidebarProvider({
   const generatedId = useId();
   const [customId, setSidebarId] = useState<string | undefined>(undefined);
   const sidebarId = customId ?? generatedId;
+  const [isStatic, setStatic] = useState(false);
 
   const setOpen = useCallback(
     (next: boolean) => {
@@ -134,9 +147,11 @@ export function SidebarProvider({
   );
 
   const toggleSidebar = useCallback(() => {
+    // A static sidebar never collapses and never becomes a Drawer.
+    if (isStatic) return;
     if (isMobile) setOpenMobile((current) => !current);
     else setOpen(!open);
-  }, [isMobile, open, setOpen]);
+  }, [isStatic, isMobile, open, setOpen]);
 
   // Leaving the mobile layout drops the Drawer; do not reopen it on the way back.
   useEffect(() => {
@@ -167,8 +182,10 @@ export function SidebarProvider({
       toggleSidebar,
       sidebarId,
       setSidebarId,
+      isStatic,
+      setStatic,
     }),
-    [open, setOpen, openMobile, isMobile, toggleSidebar, sidebarId],
+    [open, setOpen, openMobile, isMobile, toggleSidebar, sidebarId, isStatic],
   );
 
   return (

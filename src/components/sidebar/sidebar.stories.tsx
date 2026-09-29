@@ -66,8 +66,11 @@ function Shell({
   sidebar?: Omit<SidebarProps, "children">;
   submenus?: boolean;
 }) {
+  // The shortcut listens on `window`: on the Docs page every shell would toggle at once, so only
+  // the Default story keeps it (one provider per page should).
+  const shortcut = provider?.shortcut ?? false;
   return (
-    <SidebarProvider {...provider}>
+    <SidebarProvider {...provider} shortcut={shortcut}>
       <Sidebar {...sidebar}>
         <SidebarHeader>
           <SidebarMenu>
@@ -172,21 +175,23 @@ function Shell({
         <SidebarRail />
       </Sidebar>
       <SidebarInset>
-        <Page />
+        <Page shortcut={shortcut} />
       </SidebarInset>
     </SidebarProvider>
   );
 }
 
-function Page(): ReactNode {
+function Page({ shortcut }: { shortcut: boolean }): ReactNode {
   return (
     <>
       <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-4">
         <SidebarTrigger className="-ms-1" />
         <h1 className="text-sm font-medium">Dashboard</h1>
-        <span className="ms-auto hidden text-xs text-muted-foreground sm:inline">
-          Ctrl/⌘+B toggles the sidebar
-        </span>
+        {shortcut && (
+          <span className="ms-auto hidden text-xs text-muted-foreground sm:inline">
+            Ctrl/⌘+B toggles the sidebar
+          </span>
+        )}
       </header>
       <div className="grid gap-4 p-4 sm:grid-cols-3">
         {["Revenue", "Orders", "Customers"].map((title) => (
@@ -206,7 +211,7 @@ function Page(): ReactNode {
  * it; below `md` it becomes a Drawer.
  */
 export const Default: Story = {
-  render: () => <Shell />,
+  render: () => <Shell provider={{ shortcut: true }} />,
 };
 
 /** `collapsible="icon"`: collapses to a 3rem column of icons; each item shows its tooltip. */
