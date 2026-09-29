@@ -48,9 +48,11 @@ export default defineConfig({
       "@base-ui/react/otp-field",
       "@base-ui/react/menubar",
       "@base-ui/react/navigation-menu",
-      // DatePicker joins a Field through these (the same context modules Field uses).
+      // The date controls join a Field and Form through these (the modules Select uses).
       "@base-ui/react/internals/field-root-context",
       "@base-ui/react/internals/labelable-provider",
+      "@base-ui/react/internals/field-register-control",
+      "@base-ui/react/internals/form-context",
       // Icons used by the docs examples (src/docs/examples).
       "lucide-react",
     ],

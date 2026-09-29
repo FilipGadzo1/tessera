@@ -586,8 +586,26 @@ describe("DateField: value", () => {
     expect(texts()).toEqual(["09", "04", "2026"]);
   });
 
-  // Task 2 adds Form participation (the hidden form control carrying the ISO value under `name`).
-  it.skip("submits the ISO value under `name` (Task 2)", () => {});
+  it("submits the ISO value under `name` (empty when unset) through native FormData", async () => {
+    let data: FormData | null = null;
+    await render(
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          data = new FormData(event.currentTarget);
+        }}
+      >
+        <Basic name="due" defaultValue={d(2026, 9, 5)} />
+        <Basic aria-label="Other" name="other" />
+        <button type="submit">Save</button>
+      </form>,
+    );
+    await userEvent.click(page.getByRole("button", { name: "Save" }));
+    await expect.poll(() => data).not.toBeNull();
+    const form = data as unknown as FormData;
+    expect(form.get("due")).toBe("2026-09-05");
+    expect(form.get("other")).toBe("");
+  });
 });
 
 describe("DateField: states", () => {

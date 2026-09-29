@@ -5,13 +5,15 @@
  * the Field root context (disabled / invalid state) and the labelable context (the label's id and
  * the description ids). The group isn't a labelable element, so — like Base UI's CheckboxGroup —
  * it registers a `null` control id (the FieldLabel then omits `for`) and takes its name from
- * `aria-labelledby` instead.
+ * `aria-labelledby` instead. Form and Field validation go through the shared date form control
+ * (`../date-picker/date-form-control.tsx`).
  */
 import { useFieldRootContext } from "@base-ui/react/internals/field-root-context";
 import { useLabelableContext, useLabelableId } from "@base-ui/react/internals/labelable-provider";
 import {
   type ComponentProps,
   type KeyboardEvent,
+  type RefObject,
   useEffect,
   useId,
   useMemo,
@@ -19,7 +21,7 @@ import {
   useState,
 } from "react";
 import { cn } from "../../lib/cn";
-import { compareDay, isSameDay, resolveLocale } from "../../lib/date";
+import { isSameDay, resolveLocale, toISODate } from "../../lib/date";
 import {
   type DateSegments,
   type DateSegmentType,
@@ -36,10 +38,21 @@ import {
   typeDigit,
 } from "../../lib/date-segments";
 import { useControllableState } from "../../lib/use-controllable-state";
+import {
+  type DateValidationLabels,
+  dateValidationMessage,
+  focusLeaves,
+  useDateFormControl,
+} from "../date-picker/date-form-control";
 import { textFieldSizes } from "../input/input-variants";
 
-/** Translatable strings for the segments' accessible names and the empty value text. */
-export interface DateFieldLabels {
+/**
+ * Translatable strings for the segments' accessible names, the empty value text and the
+ * validation messages.
+ */
+export interface DateFieldLabels extends DateValidationLabels {
+  /** The validation message while only some segments are filled. @default "Enter a complete date." */
+  incomplete?: string;
   /** @default the locale's `Intl.DisplayNames` "day" (English "day" where unsupported) */
   day?: string;
   /** @default the locale's `Intl.DisplayNames` "month" */
@@ -79,13 +92,16 @@ export interface DateFieldProps
   disabled?: boolean;
   /** Keeps the segments focusable but ignores edits. */
   readOnly?: boolean;
-  /** Marks the segments `aria-required`. */
+  /** Requires a complete date to submit (marks the segments `aria-required`). */
   required?: boolean;
-  /** The form field name (Form participation arrives with spec §3's form control). */
+  /**
+   * Submits the value as `YYYY-MM-DD` (empty when unset) through a visually hidden input; in a
+   * `Field` and `Form`, `onFormSubmit` reports it under the Field's name (else this one).
+   */
   name?: string;
   /** Height, padding and text size, as Input and Select. @default "md" */
   size?: keyof typeof textFieldSizes;
-  /** Translated segment names and empty text. */
+  /** Translated segment names, empty text and validation messages. */
   labels?: DateFieldLabels;
 }
 
@@ -174,7 +190,7 @@ export function DateField({
   disabled: disabledProp,
   readOnly = false,
   required,
-  name: _name,
+  name,
   size,
   labels,
   id: idProp,
@@ -236,13 +252,35 @@ export function DateField({
 
   const disabled = !!disabledProp || field.state.disabled;
   const editable = !disabled && !readOnly;
-  const outOfRange =
-    !!value &&
-    ((!!min && compareDay(value, min) < 0) ||
-      (!!max && compareDay(value, max) > 0) ||
-      !!isDateDisabled?.(value));
+  const rangeMessage = dateValidationMessage(value, { min, max, isDateDisabled }, labels, locale);
+  const outOfRange = rangeMessage !== "";
   const invalid =
     field.state.valid === false || outOfRange || ariaInvalid === true || ariaInvalid === "true";
+  // Some segments typed but no complete date: invalid at validation time (not shown before).
+  const partial =
+    value === null && (segments.month !== null || segments.day !== null || segments.year !== null);
+
+  // Form focuses the first segment of an invalid field.
+  const firstSegmentRef = useMemo<RefObject<HTMLElement | null>>(
+    () => ({
+      get current() {
+        return rootRef.current?.querySelector<HTMLElement>(segmentSelector) ?? null;
+      },
+    }),
+    [],
+  );
+  const formControl = useDateFormControl({
+    value,
+    inputValue: value ? toISODate(value) : "",
+    formValue: value ? toISODate(value) : "",
+    name: name ?? field.name,
+    registrationName: name,
+    required,
+    disabled,
+    readOnly,
+    customValidity: partial ? (labels?.incomplete ?? "Enter a complete date.") : rangeMessage,
+    controlRef: firstSegmentRef,
+  });
 
   const ariaLabelledBy =
     props["aria-labelledby"] ?? (props["aria-label"] ? undefined : fieldLabelId);
@@ -417,105 +455,118 @@ export function DateField({
 
   let segmentIndex = 0;
   return (
-    // biome-ignore lint/a11y/useSemanticElements: React Aria's pattern is a div group; a <fieldset> brings UA borders, padding and min-width, and names itself from a <legend>, not the Field label.
-    <div
-      {...props}
-      ref={rootRef}
-      id={id}
-      role="group"
-      aria-labelledby={ariaLabelledBy}
-      aria-describedby={ariaDescribedBy}
-      data-slot="date-field"
-      data-size={size ?? "md"}
-      data-invalid={invalid ? "" : undefined}
-      data-disabled={disabled ? "" : undefined}
-      data-readonly={readOnly ? "" : undefined}
-      className={cn(rootBase, textFieldSizes[size ?? "md"], className)}
-      onMouseDown={(event) => {
-        props.onMouseDown?.(event);
-        if (disabled || event.defaultPrevented) return;
-        if ((event.target as HTMLElement).closest(segmentSelector)) return;
-        // Clicking the padding or a literal focuses the first empty segment (else the first).
-        event.preventDefault();
-        focusFirstEmpty(rootRef.current);
-      }}
-      onPaste={(event) => {
-        props.onPaste?.(event);
-        if (event.defaultPrevented) return;
-        event.preventDefault();
-        if (!editable) return;
-        const date = parseDateString(event.clipboardData.getData("text"), locale);
-        if (!date) return;
-        setEntry(null);
-        commit(dateToSegments(date));
-      }}
-    >
-      {intl.order.map((part, partIndex) => {
-        if (part.type === "literal") {
+    <>
+      {/* biome-ignore lint/a11y/useSemanticElements: React Aria's pattern is a div group; a <fieldset> brings UA borders, padding and min-width, and names itself from a <legend>, not the Field label. */}
+      <div
+        {...props}
+        ref={rootRef}
+        id={id}
+        role="group"
+        aria-labelledby={ariaLabelledBy}
+        aria-describedby={ariaDescribedBy}
+        data-slot="date-field"
+        data-size={size ?? "md"}
+        data-invalid={invalid ? "" : undefined}
+        data-disabled={disabled ? "" : undefined}
+        data-readonly={readOnly ? "" : undefined}
+        className={cn(rootBase, textFieldSizes[size ?? "md"], className)}
+        onFocus={(event) => {
+          props.onFocus?.(event);
+          if (focusLeaves(event, event.currentTarget)) formControl.onFocus();
+        }}
+        onBlur={(event) => {
+          props.onBlur?.(event);
+          if (focusLeaves(event, event.currentTarget)) formControl.onBlur();
+        }}
+        onMouseDown={(event) => {
+          props.onMouseDown?.(event);
+          if (disabled || event.defaultPrevented) return;
+          if ((event.target as HTMLElement).closest(segmentSelector)) return;
+          // Clicking the padding or a literal focuses the first empty segment (else the first).
+          event.preventDefault();
+          focusFirstEmpty(rootRef.current);
+        }}
+        onPaste={(event) => {
+          props.onPaste?.(event);
+          if (event.defaultPrevented) return;
+          event.preventDefault();
+          if (!editable) return;
+          const date = parseDateString(event.clipboardData.getData("text"), locale);
+          if (!date) return;
+          setEntry(null);
+          commit(dateToSegments(date));
+        }}
+      >
+        {intl.order.map((part, partIndex) => {
+          if (part.type === "literal") {
+            return (
+              <span
+                // biome-ignore lint/suspicious/noArrayIndexKey: the pattern is static per locale
+                key={`literal-${partIndex}`}
+                aria-hidden="true"
+                data-slot="date-field-literal"
+                className={literalBase}
+              >
+                {part.value}
+              </span>
+            );
+          }
+          const { type } = part;
+          const index = segmentIndex++;
+          const segmentValue = segments[type];
+          const bounds = boundsOf(type);
+          const segmentId = `${id}-${type}`;
+          const empty = segmentValue === null && !(entry?.type === type && entry.buffer);
           return (
             <span
-              // biome-ignore lint/suspicious/noArrayIndexKey: the pattern is static per locale
-              key={`literal-${partIndex}`}
-              aria-hidden="true"
-              data-slot="date-field-literal"
-              className={literalBase}
+              key={type}
+              role="spinbutton"
+              data-slot="date-field-segment"
+              data-type={type}
+              data-placeholder={empty ? "" : undefined}
+              id={segmentId}
+              // No tabindex at all when disabled: -1 would still take focus from a click.
+              tabIndex={disabled ? undefined : 0}
+              contentEditable={editable}
+              suppressContentEditableWarning
+              inputMode="numeric"
+              spellCheck={false}
+              autoCapitalize="off"
+              autoCorrect="off"
+              aria-label={labels?.[type] ?? intl.label(type)}
+              // "month, Due date" (as React Aria): the segment's own name, then the field's.
+              aria-labelledby={
+                segmentLabelSource ? `${segmentId} ${segmentLabelSource}` : undefined
+              }
+              aria-valuenow={segmentValue ?? undefined}
+              aria-valuemin={bounds.min}
+              aria-valuemax={bounds.max}
+              aria-valuetext={valueText(type)}
+              aria-readonly={readOnly || undefined}
+              aria-disabled={disabled || undefined}
+              aria-invalid={invalid || undefined}
+              aria-required={required || undefined}
+              className={cn(segmentBase)}
+              onFocus={(event) => {
+                setEntry(null);
+                // Collapse the selection into the segment (as React Aria's useDateSegment): Chrome
+                // on Android then fires input events, and no native ::selection highlight shows.
+                event.currentTarget.ownerDocument.defaultView
+                  ?.getSelection()
+                  ?.collapse(event.currentTarget, 0);
+              }}
+              onBlur={() => {
+                // Reports a year held while it was being typed.
+                if (heldRef.current) commit(segments);
+              }}
+              onKeyDown={(event) => handleKeyDown(event, type, index)}
             >
-              {part.value}
+              {display(type)}
             </span>
           );
-        }
-        const { type } = part;
-        const index = segmentIndex++;
-        const segmentValue = segments[type];
-        const bounds = boundsOf(type);
-        const segmentId = `${id}-${type}`;
-        const empty = segmentValue === null && !(entry?.type === type && entry.buffer);
-        return (
-          <span
-            key={type}
-            role="spinbutton"
-            data-slot="date-field-segment"
-            data-type={type}
-            data-placeholder={empty ? "" : undefined}
-            id={segmentId}
-            // No tabindex at all when disabled: -1 would still take focus from a click.
-            tabIndex={disabled ? undefined : 0}
-            contentEditable={editable}
-            suppressContentEditableWarning
-            inputMode="numeric"
-            spellCheck={false}
-            autoCapitalize="off"
-            autoCorrect="off"
-            aria-label={labels?.[type] ?? intl.label(type)}
-            // "month, Due date" (as React Aria): the segment's own name, then the field's.
-            aria-labelledby={segmentLabelSource ? `${segmentId} ${segmentLabelSource}` : undefined}
-            aria-valuenow={segmentValue ?? undefined}
-            aria-valuemin={bounds.min}
-            aria-valuemax={bounds.max}
-            aria-valuetext={valueText(type)}
-            aria-readonly={readOnly || undefined}
-            aria-disabled={disabled || undefined}
-            aria-invalid={invalid || undefined}
-            aria-required={required || undefined}
-            className={cn(segmentBase)}
-            onFocus={(event) => {
-              setEntry(null);
-              // Collapse the selection into the segment (as React Aria's useDateSegment): Chrome
-              // on Android then fires input events, and no native ::selection highlight shows.
-              event.currentTarget.ownerDocument.defaultView
-                ?.getSelection()
-                ?.collapse(event.currentTarget, 0);
-            }}
-            onBlur={() => {
-              // Reports a year held while it was being typed.
-              if (heldRef.current) commit(segments);
-            }}
-            onKeyDown={(event) => handleKeyDown(event, type, index)}
-          >
-            {display(type)}
-          </span>
-        );
-      })}
-    </div>
+        })}
+      </div>
+      {formControl.input}
+    </>
   );
 }

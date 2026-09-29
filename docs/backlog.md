@@ -194,13 +194,6 @@ phase; items fixed by a later commit are left out).
 - DatePicker (final review I2): a caller's own `aria-invalid` on the trigger doesn't set
   `data-invalid` (only the Field's `invalid` state does), so the invalid border only applies
   through a Field, not a bare `aria-invalid` prop.
-- Field validation registration (final review I2; decided in Phase G Task 2): `internals/field-register-control`
-  exists in 1.8 (`useRegisterFieldControl`), but registering is not enough. Field validation reads the native
-  validity of a registered `<input>` (`required` and `setCustomValidity` need a real, non-hidden input; the pickers'
-  submitted value sits in `type="hidden"` inputs, which are barred from validation). Wiring it means a visually hidden
-  validating input, a `required` prop and a focus target for the trigger, for both pickers. That is a change of its own,
-  not a small one, so it is left. Form `errors` already work (the Field derives `invalid` from them); a test in
-  `src/components/form/form.test.tsx` documents that `validate` / `required` are not consulted.
 - ToggleGroup (final review I2): vertical attached geometry (`variant="outline"` +
   `orientation="vertical"`) has no test — only the horizontal attached case
   (`attachedClasses.vertical` in `toggle.tsx`) is exercised.
@@ -219,13 +212,16 @@ phase; items fixed by a later commit are left out).
   validates in `onValueChange`. Possible later: an `allowsNonContiguousRanges`-style prop.
 - DatePicker / DateRangePicker (Task 5): no built-in clear button (spec §3, YAGNI; render a Button
   beside the picker that sets the value to `null` / `{ start: null, end: null }`).
-- DatePicker / DateRangePicker (Task 5): Field wiring uses two Base UI internals
-  (`@base-ui/react/internals/field-root-context`, `…/internals/labelable-provider`); they are in the
-  package's `exports` but undocumented, so a Base UI upgrade can move them. The Field tests
-  (label name, description, invalid, disabled) are the guard. Field `validate` / `required` are not
-  wired (the picker doesn't register as a Field control; see "Field validation registration" above). Before bumping Base UI, run the DatePicker Field tests against the new version; the
-  range is pinned to `~1.8.0` because of this (a minor that moved either subpath would break every
-  import from Tessera, since `src/index.ts` re-exports the pickers).
+- DatePicker / DateRangePicker / DateField (Task 5; Phase H Task 2): Field and Form wiring uses four Base UI
+  internals (`@base-ui/react/internals/field-root-context`, `…/internals/labelable-provider`,
+  `…/internals/field-register-control` and `…/internals/form-context`, the last two in
+  `src/components/date-picker/date-form-control.tsx`, which follows `SelectRoot.js`'s hidden-input recipe); they are
+  in the package's `exports` but undocumented, so a Base UI upgrade can move or change them. The Field tests (label
+  name, description, invalid, disabled) and the date-control tests in `src/components/form/form.test.tsx` (required,
+  `validate`, `errors`, `onFormSubmit` values, focus-first-invalid, FormData) are the guard. Before bumping Base UI,
+  re-read `SelectRoot.js` / `useRegisterFieldControl` and run those tests against the new version; the range is pinned
+  to `~1.8.0` because of this (a minor that moved any subpath would break every import from Tessera, since
+  `src/index.ts` re-exports the date controls).
 - Editor example (Task 6): `ContextMenu` marks the rest of the page inert while open (Base UI's
   `data-base-ui-inert` on the background), so a test that picks a Format submenu item and then
   checks the toolbar's mirrored `ToggleGroup` state must close the context menu first — the
@@ -235,9 +231,8 @@ phase; items fixed by a later commit are left out).
   `Intl.NumberFormatOptions`) on `Meter` itself, not just a custom `MeterValue` render function.
 
 ### Phase G notes
-- Checkout example (Task 7): a `DatePicker` in a `Form` is absent from `onFormSubmit`'s values object (its
-  value sits in hidden inputs), so the example has none; read a picker's value from native `FormData` if a form
-  needs one. `ContextMenu` cannot be opened from the keyboard (Base UI opens it on `contextmenu` only).
+- Checkout example (Task 7): `ContextMenu` cannot be opened from the keyboard (Base UI opens it on `contextmenu`
+  only).
 - Autocomplete (Task 7, upstream): with the input outside the popup, Base UI's focus manager treats the open
   list as modal and marks the rest of the page `aria-hidden` while its buttons and inputs stay focusable, which
   axe reports as `aria-hidden-focus` on any page with other controls. The Checkout test audits the open list with

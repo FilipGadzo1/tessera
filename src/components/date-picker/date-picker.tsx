@@ -4,11 +4,20 @@
  * Field wiring goes through two Base UI internals (exported by the package, not documented): the
  * Field root context (disabled / invalid state) and the labelable context (the control id the
  * FieldLabel points at, the label's id, and the description ids). They are the same hooks Base UI's
- * own SelectTrigger uses; no public API lets a custom control join a Field.
+ * own SelectTrigger uses; no public API lets a custom control join a Field. Form and Field
+ * validation go through `date-form-control.tsx` (Base UI Select's hidden-input recipe).
  */
 import { useFieldRootContext } from "@base-ui/react/internals/field-root-context";
 import { useLabelableContext, useLabelableId } from "@base-ui/react/internals/labelable-provider";
-import { type ComponentProps, type ReactNode, useId, useRef, useState } from "react";
+import {
+  type ComponentProps,
+  type FocusEvent,
+  type ReactNode,
+  type Ref,
+  useId,
+  useRef,
+  useState,
+} from "react";
 import { cn } from "../../lib/cn";
 import { resolveLocale, toISODate, type WeekDay } from "../../lib/date";
 import { CalendarIcon } from "../../lib/icons";
@@ -23,11 +32,26 @@ import {
 import type { CalendarLabels } from "../calendar/calendar-base";
 import { Popover, PopoverContent, type PopoverContentProps, PopoverTrigger } from "../popover";
 import { type SelectTriggerVariantProps, selectDefaults, selectTriggerVariants } from "../select";
+import {
+  type DateFormControlOptions,
+  type DateValidationLabels,
+  dateValidationMessage,
+  focusLeaves,
+  useDateFormControl,
+} from "./date-form-control";
 
-/** Translatable strings: the popup's name plus the calendar's month buttons. */
-export interface DatePickerLabels extends CalendarLabels {
+/**
+ * Translatable strings: the popup's name, the calendar's month buttons and the validation
+ * messages (a value outside `min` / `max`, or a day `isDateDisabled` rejects).
+ */
+export interface DatePickerLabels extends CalendarLabels, DateValidationLabels {
   /** The popup dialog's accessible name. @default "Choose date" ("Choose date range" for DateRangePicker) */
   dialog?: string;
+  /**
+   * DateRangePicker: the validation message while only the start is set.
+   * @default "Choose both a start and an end date."
+   */
+  incomplete?: string;
 }
 
 /** Trigger and popup props shared by `DatePicker` and `DateRangePicker`. */
@@ -38,6 +62,8 @@ interface PickerTriggerProps
   > {
   /** Disables the trigger (a disabled `Field` does too). */
   disabled?: boolean;
+  /** Requires a value to submit (DateRangePicker: both dates). */
+  required?: boolean;
   /** Trigger height, padding and text size, as Select and Input. @default "md" */
   size?: SelectTriggerVariantProps["size"];
   /** Whether the calendar is open, controlled. */
@@ -82,6 +108,11 @@ interface PickerSharedProps extends PickerTriggerProps {
   labels?: DatePickerLabels;
 }
 
+function assignRef<T>(ref: Ref<T> | undefined, value: T) {
+  if (typeof ref === "function") ref(value);
+  else if (ref) ref.current = value;
+}
+
 const triggerExtras = "justify-start";
 const valueBase = "min-w-0 truncate";
 const iconBase = "size-4 shrink-0 text-muted-foreground";
@@ -92,7 +123,10 @@ interface PickerShellProps extends PickerTriggerProps {
   text: string | null;
   placeholder: string;
   dialogLabel: string;
-  hiddenInputs: ReactNode;
+  /** The Form / Field participation (the trigger is the control Form focuses). */
+  formControl: Omit<DateFormControlOptions, "controlRef" | "disabled" | "required">;
+  /** Extra native inputs (DateRangePicker's named start / end). */
+  hiddenInputs?: ReactNode;
   /**
    * Renders the calendar: `close` asks to close the popup (focus returns to the trigger), `open`
    * is the effective open state (controlled or not).
@@ -109,9 +143,11 @@ function PickerShell({
   text,
   placeholder,
   dialogLabel,
+  formControl: formControlOptions,
   hiddenInputs,
   renderCalendar,
   disabled,
+  required,
   size,
   open: openProp,
   defaultOpen = false,
@@ -119,6 +155,7 @@ function PickerShell({
   container,
   id: idProp,
   className,
+  ref,
   ...props
 }: PickerShellProps) {
   const field = useFieldRootContext();
@@ -126,6 +163,11 @@ function PickerShell({
   const id = useLabelableId({ id: idProp });
   const valueId = useId();
   const popupRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const setTriggerRef = (element: HTMLButtonElement | null) => {
+    triggerRef.current = element;
+    assignRef(ref, element);
+  };
 
   const [open, setControllableOpen] = useControllableState(openProp, defaultOpen, onOpenChange);
   // Dedupe locally: the hook itself always calls onChange, but a Popover can re-request the
@@ -136,8 +178,18 @@ function PickerShell({
     setControllableOpen(next);
   };
 
-  const isDisabled = disabled || field.state.disabled;
+  const isDisabled = !!disabled || field.state.disabled;
   const invalid = field.state.valid === false;
+  const formControl = useDateFormControl({
+    ...formControlOptions,
+    required,
+    disabled: isDisabled,
+    controlRef: triggerRef,
+  });
+  // The Field's focus leaves the picker when it leaves both the trigger and the popup.
+  const onBlurOut = (event: FocusEvent) => {
+    if (focusLeaves(event, triggerRef.current, popupRef.current)) formControl.onBlur();
+  };
 
   // The name is the label followed by the value ("Due date Sep 25, 2026"): on its own, a
   // <label for> or aria-label would replace the button's content — the value — as its name.
@@ -154,6 +206,15 @@ function PickerShell({
     <Popover open={open} onOpenChange={(next) => setOpen(next)}>
       <PopoverTrigger
         {...props}
+        ref={setTriggerRef}
+        onFocus={(event) => {
+          props.onFocus?.(event);
+          formControl.onFocus();
+        }}
+        onBlur={(event) => {
+          props.onBlur?.(event);
+          onBlurOut(event);
+        }}
         id={id}
         type="button"
         disabled={isDisabled}
@@ -176,9 +237,11 @@ function PickerShell({
           {text ?? placeholder}
         </span>
       </PopoverTrigger>
+      {formControl.input}
       {hiddenInputs}
       <PopoverContent
         ref={popupRef}
+        onBlur={onBlurOut}
         container={container}
         align="start"
         sideOffset={6}
@@ -205,7 +268,11 @@ export interface DatePickerProps extends PickerSharedProps {
   defaultValue?: Date | null;
   /** Called with the day the user picks. */
   onValueChange?: (value: Date | null) => void;
-  /** Submits the value as `YYYY-MM-DD` (empty when unset) through a hidden input. @default the Field's `name` */
+  /**
+   * Submits the value as `YYYY-MM-DD` (empty when unset) through a visually hidden input; in a
+   * `Field` and `Form`, `onFormSubmit` reports it under the Field's name (else this one).
+   * @default the Field's `name`
+   */
   name?: string;
   /** @default "Pick a date" */
   placeholder?: string;
@@ -234,8 +301,9 @@ export function DatePicker({
 }: DatePickerProps) {
   const field = useFieldRootContext();
   const [value, setValue] = useControllableState(valueProp, defaultValue);
-  const formatter = new Intl.DateTimeFormat(resolveLocale(locale), format);
-  const inputName = name ?? field.name;
+  const resolvedLocale = resolveLocale(locale);
+  const formatter = new Intl.DateTimeFormat(resolvedLocale, format);
+  const iso = value ? toISODate(value) : "";
 
   return (
     <PickerShell
@@ -243,9 +311,19 @@ export function DatePicker({
       text={value ? formatter.format(value) : null}
       placeholder={placeholder}
       dialogLabel={labels?.dialog ?? "Choose date"}
-      hiddenInputs={
-        inputName && <input type="hidden" name={inputName} value={value ? toISODate(value) : ""} />
-      }
+      formControl={{
+        value,
+        inputValue: iso,
+        formValue: iso,
+        name: name ?? field.name,
+        registrationName: name,
+        customValidity: dateValidationMessage(
+          value,
+          { min, max, isDateDisabled },
+          labels,
+          resolvedLocale,
+        ),
+      }}
       renderCalendar={(close) => (
         <Calendar
           value={value}
@@ -347,11 +425,21 @@ export function DateRangePicker({
   ...props
 }: DateRangePickerProps) {
   const [value, setValue] = useControllableState(valueProp, defaultValue);
-  const formatter = new Intl.DateTimeFormat(resolveLocale(locale), format);
+  const resolvedLocale = resolveLocale(locale);
+  const formatter = new Intl.DateTimeFormat(resolvedLocale, format);
 
   const { start, end } = value;
   const text =
     start && end ? formatter.formatRange(start, end) : start ? formatter.format(start) : null;
+  const startISO = start ? toISODate(start) : "";
+  const endISO = end ? toISODate(end) : "";
+  const bounds = { min, max, isDateDisabled };
+  // Only the ends are checked (a range may span disabled days); a lone start is incomplete.
+  const customValidity =
+    (start && !end) || (!start && end)
+      ? (labels?.incomplete ?? "Choose both a start and an end date.")
+      : dateValidationMessage(start, bounds, labels, resolvedLocale) ||
+        dateValidationMessage(end, bounds, labels, resolvedLocale);
 
   return (
     <PickerShell
@@ -359,12 +447,19 @@ export function DateRangePicker({
       text={text}
       placeholder={placeholder}
       dialogLabel={labels?.dialog ?? "Choose date range"}
+      // One Field control (a Field registers one): the validating input holds the ISO interval
+      // ("start/end", empty until both are set, so `required` needs both), `onFormSubmit` gets
+      // `{ start, end }` under the Field's name, and the named inputs keep native FormData.
+      formControl={{
+        value,
+        inputValue: start && end ? `${startISO}/${endISO}` : "",
+        formValue: { start: startISO, end: endISO },
+        customValidity,
+      }}
       hiddenInputs={
         <>
-          {startName && (
-            <input type="hidden" name={startName} value={start ? toISODate(start) : ""} />
-          )}
-          {endName && <input type="hidden" name={endName} value={end ? toISODate(end) : ""} />}
+          {startName && <input type="hidden" name={startName} value={startISO} />}
+          {endName && <input type="hidden" name={endName} value={endISO} />}
         </>
       }
       renderCalendar={(close, open) => (
