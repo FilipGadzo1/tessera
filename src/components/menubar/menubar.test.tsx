@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
-import { emulateForcedColors, resetEmulatedMedia, systemColor } from "../../../test/emulation";
+import {
+  emulateForcedColors,
+  emulateMedia,
+  resetEmulatedMedia,
+  systemColor,
+} from "../../../test/emulation";
 import { auditOpenOverlay, waitForPopupSettled } from "../../../test/overlay";
 import {
   Menu,
@@ -294,11 +299,21 @@ describe("Menubar", () => {
     expect(bar.getAttribute("aria-orientation")).toBe("vertical");
     expect(getComputedStyle(bar).flexDirection).toBe("column");
     await expect.element(trigger("Help")).toHaveAttribute("data-disabled");
+    expect(getComputedStyle(trigger("Help").element()).cursor).toBe("not-allowed");
   });
 
   it("uses a pointer cursor on triggers", async () => {
     await render(<AppMenubar />);
     expect(getComputedStyle(trigger("File").element()).cursor).toBe("pointer");
+  });
+
+  it("eases colours in, without a transition under reduced motion", async () => {
+    await render(<AppMenubar />);
+    const style = getComputedStyle(trigger("File").element());
+    expect(style.transitionProperty).toContain("background-color");
+    expect(style.transitionDuration).toBe("0.15s");
+    await emulateMedia([{ name: "prefers-reduced-motion", value: "reduce" }]);
+    expect(getComputedStyle(trigger("File").element()).transitionProperty).toBe("none");
   });
 
   it("paints the open trigger with the muted surface", async () => {

@@ -479,6 +479,56 @@ describe("NavigationMenu", () => {
     expect(getComputedStyle(trigger("Products").element()).cursor).toBe("pointer");
   });
 
+  it("uses a not-allowed cursor on a disabled trigger", async () => {
+    await render(
+      <NavigationMenu aria-label="Main">
+        <NavigationMenuList>
+          <NavigationMenuItem>
+            <NavigationMenuTrigger disabled>Products</NavigationMenuTrigger>
+            <NavigationMenuContent>Body</NavigationMenuContent>
+          </NavigationMenuItem>
+        </NavigationMenuList>
+      </NavigationMenu>,
+    );
+    const disabled = trigger("Products").element();
+    expect(disabled.hasAttribute("data-disabled")).toBe(true);
+    expect(getComputedStyle(disabled).cursor).toBe("not-allowed");
+  });
+
+  it("eases trigger and link colours in, without a transition under reduced motion", async () => {
+    await render(<SiteHeader />);
+    for (const element of [trigger("Products").element(), link("Pricing").element()]) {
+      const style = getComputedStyle(element);
+      expect(style.transitionProperty).toContain("background-color");
+      expect(style.transitionDuration).toBe("0.15s");
+    }
+    await emulateMedia([{ name: "prefers-reduced-motion", value: "reduce" }]);
+    expect(getComputedStyle(trigger("Products").element()).transitionProperty).toBe("none");
+    expect(getComputedStyle(link("Pricing").element()).transitionProperty).toBe("none");
+  });
+
+  it("bar links in a vertical list fill the column like the triggers", async () => {
+    await render(
+      <NavigationMenu aria-label="Side" orientation="vertical">
+        <NavigationMenuList>
+          <NavigationMenuItem>
+            <NavigationMenuTrigger>Products</NavigationMenuTrigger>
+            <NavigationMenuContent>
+              <NavigationMenuLink href="#a">Analytics</NavigationMenuLink>
+            </NavigationMenuContent>
+          </NavigationMenuItem>
+          <NavigationMenuItem>
+            <NavigationMenuLink href="#orders">Orders</NavigationMenuLink>
+          </NavigationMenuItem>
+        </NavigationMenuList>
+      </NavigationMenu>,
+    );
+    const products = trigger("Products").element().getBoundingClientRect().width;
+    const orders = link("Orders").element().getBoundingClientRect().width;
+    expect(orders).toBe(products);
+    expect(orders).toBeGreaterThan(80);
+  });
+
   it("rotates the chevron while open, without a transition under reduced motion", async () => {
     await render(<SiteHeader />);
     const icon = trigger("Products")

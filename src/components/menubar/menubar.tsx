@@ -1,7 +1,7 @@
 "use client";
 
 import { Menubar as BaseMenubar } from "@base-ui/react/menubar";
-import { toggleFocusClasses } from "../../lib/focus-classes";
+import { barTriggerClasses } from "../../lib/bar-classes";
 import { mergeClassName } from "../../lib/merge-class-name";
 import { MenuTrigger, type MenuTriggerProps } from "../menu";
 
@@ -34,10 +34,7 @@ export function MenubarTrigger({ className, ...props }: MenubarTriggerProps) {
     <MenuTrigger
       {...props}
       data-slot="menubar-trigger"
-      className={mergeClassName(
-        `inline-flex h-8 cursor-pointer select-none items-center rounded-md px-3 text-sm font-medium not-data-disabled:not-data-popup-open:hover:bg-muted data-popup-open:bg-muted data-disabled:cursor-default data-disabled:opacity-50 ${toggleFocusClasses} forced-colors:focus-visible:outline-[Highlight] forced-colors:data-popup-open:bg-[Highlight] forced-colors:data-popup-open:text-[HighlightText] forced-colors:data-popup-open:forced-color-adjust-none`,
-        className,
-      )}
+      className={mergeClassName(barTriggerClasses, className)}
     />
   );
 }

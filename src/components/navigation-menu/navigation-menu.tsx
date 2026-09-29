@@ -2,6 +2,7 @@
 
 import { NavigationMenu as BaseNavigationMenu } from "@base-ui/react/navigation-menu";
 import { createContext, useCallback, useContext, useMemo, useRef } from "react";
+import { barTriggerClasses } from "../../lib/bar-classes";
 import { cn } from "../../lib/cn";
 import { toggleFocusClasses } from "../../lib/focus-classes";
 import { ChevronDownIcon } from "../../lib/icons";
@@ -186,7 +187,8 @@ export function NavigationMenuTrigger({
       data-slot="navigation-menu-trigger"
       className={mergeClassName(
         cn(
-          `inline-flex h-8 cursor-pointer select-none items-center gap-1 rounded-md px-3 text-sm font-medium not-data-disabled:not-data-popup-open:hover:bg-muted data-popup-open:bg-muted data-disabled:cursor-default data-disabled:opacity-50 ${toggleFocusClasses} forced-colors:focus-visible:outline-[Highlight] forced-colors:data-popup-open:bg-[Highlight] forced-colors:data-popup-open:text-[HighlightText] forced-colors:data-popup-open:forced-color-adjust-none`,
+          barTriggerClasses,
+          "gap-1",
           vertical && "w-full justify-between",
         ),
         className,
@@ -237,7 +239,7 @@ const panelLinkClasses = `block rounded-md p-3 text-sm not-data-disabled:hover:b
  * underlined (a non-colour marker, so it does not read as an open trigger's `bg-muted`, and it
  * holds in forced colors too).
  */
-const barLinkClasses = `inline-flex h-8 select-none items-center rounded-md px-3 text-sm font-medium not-data-disabled:hover:bg-muted data-active:underline data-active:decoration-2 data-active:underline-offset-[6px] forced-colors:data-active:underline ${toggleFocusClasses} forced-colors:focus-visible:outline-[Highlight]`;
+const barLinkClasses = `${barTriggerClasses} data-active:underline data-active:decoration-2 data-active:underline-offset-[6px] forced-colors:data-active:underline`;
 
 export interface NavigationMenuLinkProps extends BaseNavigationMenu.Link.Props {}
 
@@ -250,11 +252,15 @@ export interface NavigationMenuLinkProps extends BaseNavigationMenu.Link.Props {
  */
 export function NavigationMenuLink({ className, ...props }: NavigationMenuLinkProps) {
   const inPanel = useContext(InPanelContext);
+  const vertical = useContext(MenuContext)?.vertical;
   return (
     <BaseNavigationMenu.Link
       {...props}
       data-slot="navigation-menu-link"
-      className={mergeClassName(inPanel ? panelLinkClasses : barLinkClasses, className)}
+      className={mergeClassName(
+        inPanel ? panelLinkClasses : cn(barLinkClasses, vertical && "w-full"),
+        className,
+      )}
     />
   );
 }
