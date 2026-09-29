@@ -101,7 +101,7 @@ describe("Collapsible", () => {
     await expect.element(trigger).toHaveAttribute("aria-expanded", "false");
   });
 
-  it("gives a plain trigger a pointer cursor and no other classes", async () => {
+  it("gives a plain trigger a pointer cursor, not-allowed when disabled, and no other classes", async () => {
     const screen = await render(
       <Collapsible>
         <CollapsibleTrigger>Plain</CollapsibleTrigger>
@@ -110,8 +110,20 @@ describe("Collapsible", () => {
     );
     const trigger = screen.getByRole("button", { name: "Plain" }).element();
     expect(trigger.tagName).toBe("BUTTON");
-    expect(trigger.className).toBe("cursor-pointer");
+    expect(trigger.className).toBe("cursor-pointer data-disabled:cursor-not-allowed");
     expect(getComputedStyle(trigger).cursor).toBe("pointer");
+  });
+
+  it("uses a not-allowed cursor on a disabled trigger", async () => {
+    const screen = await render(
+      <Collapsible disabled>
+        <CollapsibleTrigger>Locked</CollapsibleTrigger>
+        <CollapsiblePanel>Body</CollapsiblePanel>
+      </Collapsible>,
+    );
+    const trigger = screen.getByRole("button", { name: "Locked" }).element();
+    expect(trigger.hasAttribute("data-disabled")).toBe(true);
+    expect(getComputedStyle(trigger).cursor).toBe("not-allowed");
   });
 
   it("merges className (string and function form) on trigger and panel", async () => {

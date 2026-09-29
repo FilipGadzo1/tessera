@@ -25,7 +25,7 @@ export function CollapsibleTrigger({ className, ...props }: CollapsibleTriggerPr
     <BaseCollapsible.Trigger
       {...props}
       data-slot="collapsible-trigger"
-      className={mergeClassName("cursor-pointer", className)}
+      className={mergeClassName("cursor-pointer data-disabled:cursor-not-allowed", className)}
     />
   );
 }
