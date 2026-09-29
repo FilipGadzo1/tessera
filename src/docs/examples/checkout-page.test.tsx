@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { auditOpenOverlay, waitForPopupSettled } from "../../../test/overlay";
@@ -30,6 +30,37 @@ async function openPromo() {
   await userEvent.keyboard("{Enter}");
   await expect.element(trigger).toHaveAttribute("aria-expanded", "true");
 }
+
+/**
+ * Holds the example's fake server (its 250ms `setTimeout`) until `release()`; every other timer
+ * passes through. `held()` is how many server calls are waiting, so a test can tell whether an
+ * Apply started. Restored in `afterEach`.
+ */
+function holdServer() {
+  const real = globalThis.setTimeout;
+  const callbacks: Array<() => void> = [];
+  vi.spyOn(globalThis, "setTimeout").mockImplementation(((
+    handler: TimerHandler,
+    ms?: number,
+    ...args: unknown[]
+  ) => {
+    if (ms === 250 && typeof handler === "function") {
+      callbacks.push(() => handler(...args));
+      return 0;
+    }
+    return real(handler, ms, ...args);
+  }) as typeof setTimeout);
+  return {
+    held: () => callbacks.length,
+    release() {
+      for (const callback of callbacks.splice(0)) callback();
+    },
+  };
+}
+
+const placeOrder = () => page.getByRole("button", { name: "Place order" });
+
+afterEach(() => vi.restoreAllMocks());
 
 const popup = () => document.querySelector<HTMLElement>("[data-slot=navigation-menu-popup]");
 
@@ -157,51 +188,68 @@ describe("CheckoutPage example", () => {
   });
 
   it("keeps the one-shot focus when the promo panel is closed while the order is pending", async () => {
+    const server = holdServer();
     await render(<CheckoutPage />);
     await fillContact();
     await openPromo();
     await typeInto(textbox("Promo code"), "EXPIRED");
     const trigger = page.getByRole("button", { name: "Promo code", exact: true });
-    await tabTo(el(page.getByRole("button", { name: "Place order" })));
+    await tabTo(el(placeOrder()));
     await userEvent.keyboard("{Enter}");
-    // Still pending: the close request must not clear the errors set later.
+    await expect.element(placeOrder()).toHaveAttribute("aria-busy", "true");
+    expect(server.held()).toBe(1);
+    // Pending: the close request must not clear the errors that are set later.
     await trigger.click();
-    await expect.element(page.getByText("This code has expired.")).toBeVisible();
     await expect.element(trigger).toHaveAttribute("aria-expanded", "true");
+    server.release();
+    await expect.element(page.getByText("This code has expired.")).toBeVisible();
     await expect.poll(() => document.activeElement).toBe(el(textbox("Promo code")));
     expect(document.activeElement?.getAttribute("aria-invalid")).toBe("true");
   });
 
-  it("ignores Enter in the promo code while the order is pending", async () => {
+  it("ignores Enter and the Apply button in the promo code while the order is pending", async () => {
+    const server = holdServer();
     await render(<CheckoutPage />);
     await fillContact();
     await openPromo();
     await typeInto(textbox("Promo code"), "SAVE10");
-    await tabTo(el(page.getByRole("button", { name: "Place order" })));
+    await tabTo(el(placeOrder()));
     await userEvent.keyboard("{Enter}");
+    await expect.element(placeOrder()).toHaveAttribute("aria-busy", "true");
+    expect(server.held()).toBe(1);
     (el(textbox("Promo code")) as HTMLInputElement).focus();
     await userEvent.keyboard("{Enter}");
+    await page.getByRole("button", { name: "Apply" }).click();
+    // Neither started an Apply: the only server call waiting is the order's own.
+    expect(server.held()).toBe(1);
+    server.release();
     await expect.element(page.getByText("Order placed")).toBeVisible();
-    // A started Apply would have marked the code as applied.
     expect(page.getByText("Code applied.").elements()).toHaveLength(0);
   });
 
-  it("ignores Enter while an IME is composing", async () => {
+  it("ignores Enter while an IME is composing (isComposing or keyCode 229)", async () => {
+    const server = holdServer();
     await render(<CheckoutPage />);
     await openPromo();
     await typeInto(textbox("Promo code"), "EXPIRED");
     const input = el(textbox("Promo code"));
-    const composing = new KeyboardEvent("keydown", {
-      key: "Enter",
-      bubbles: true,
-      cancelable: true,
-      isComposing: true,
-    });
-    input.dispatchEvent(composing);
-    // Committing a composition must not submit the code (the fake server answers after 250ms).
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    expect(page.getByText("This code has expired.").elements()).toHaveLength(0);
-    await userEvent.keyboard("{Enter}");
+    const enter = (init: KeyboardEventInit & { keyCode?: number }) => {
+      const event = new KeyboardEvent("keydown", {
+        key: "Enter",
+        bubbles: true,
+        cancelable: true,
+        ...init,
+      });
+      input.dispatchEvent(event);
+      return event;
+    };
+    expect(enter({ isComposing: true }).defaultPrevented).toBe(false);
+    expect(enter({ keyCode: 229 }).defaultPrevented).toBe(false);
+    expect(server.held()).toBe(0);
+    // A plain Enter is an Apply.
+    expect(enter({}).defaultPrevented).toBe(true);
+    expect(server.held()).toBe(1);
+    server.release();
     await expect.element(page.getByText("This code has expired.")).toBeVisible();
   });
 
