@@ -471,6 +471,21 @@ source files automatically (build output + `"use client"` directive checks).
   via `formatRange` ("Sep 1 – 12, 2026") and submits `startName` / `endName`. No clear button:
   render a Button beside it. Pass `locale` explicitly when server-rendering; an inline Calendar's
   today marker is computed on the client. Client component)
+- [x] DateField (a typed, segmented date input on React Aria's date-field pattern: a `group` of
+  `spinbutton` segments in the locale's order — en-US mm/dd/yyyy, de-DE tt.mm.jjjj, ja-JP
+  yyyy/mm/dd, ar-EG with Arabic-Indic digits — with the Input look and `size` heights. Digits type
+  with auto-advance (month "2"–"9" or two digits, day "4"–"9" or two digits, four year digits; a
+  year is reported once its four digits are in or on blur), ↑/↓ step with wrap (an empty segment
+  starts at today's), PageUp/PageDown step month 1 / day 7 / year 10, Home/End jump to the
+  bounds, Backspace/Delete clear (Backspace on an empty segment goes back), ←/→ (flipped in RTL)
+  and Tab move, the separator key advances, and pasting a locale-formatted or ISO date fills every
+  segment. `value` / `defaultValue` / `onValueChange` (a `Date` once all segments form a valid
+  day, `null` when a complete date is cleared; partial input never reports), `min` / `max` /
+  `isDateDisabled` (outside them it is invalid, not blocked), `locale`, `disabled`, `readOnly`,
+  `required`, `size`, `labels` (segment names, "Empty"). Inside a `Field` the label names the
+  group (clicking it focuses the first empty segment), the description describes it, and invalid
+  / disabled apply. `name` is accepted; Form participation lands with the Phase H form control.
+  Pass `locale` explicitly when server-rendering. Client component)
 
 Phase A (foundation), Phase B (forms), Phase C (overlays), Phase D (navigation and feedback),
 Phase E (data entry and display), Phase F (dates, toolbars and surfaces — Meter, ScrollArea,

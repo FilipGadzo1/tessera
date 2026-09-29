@@ -10,7 +10,7 @@ import { useFieldRootContext } from "@base-ui/react/internals/field-root-context
 import { useLabelableContext, useLabelableId } from "@base-ui/react/internals/labelable-provider";
 import { type ComponentProps, type ReactNode, useId, useRef, useState } from "react";
 import { cn } from "../../lib/cn";
-import { toISODate, type WeekDay } from "../../lib/date";
+import { resolveLocale, toISODate, type WeekDay } from "../../lib/date";
 import { CalendarIcon } from "../../lib/icons";
 import { useControllableState } from "../../lib/use-controllable-state";
 import {
@@ -20,7 +20,7 @@ import {
   RangeCalendar,
   type RangeCalendarProps,
 } from "../calendar";
-import { type CalendarLabels, resolveLocale } from "../calendar/calendar-base";
+import type { CalendarLabels } from "../calendar/calendar-base";
 import { Popover, PopoverContent, type PopoverContentProps, PopoverTrigger } from "../popover";
 import { type SelectTriggerVariantProps, selectDefaults, selectTriggerVariants } from "../select";
 

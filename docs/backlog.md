@@ -158,9 +158,10 @@ phase; items fixed by a later commit are left out).
 
 ### Phase F notes
 - Calendar / DatePicker (final review I1, SSR/hydration): `calendar-base.tsx` resolves the locale
-  from `document.documentElement.lang` and computes "today" during render (`calendar-base.tsx`
-  `resolveLocale` and the `today` local; `date-picker.tsx`'s pickers inherit both through
-  `Calendar`/`RangeCalendar`). When a client component is server-rendered, the server (no
+  from `document.documentElement.lang` and computes "today" during render (`resolveLocale`, moved
+  to `src/lib/date.ts` in Phase H, and `calendar-base.tsx`'s `today` local; `date-picker.tsx`'s
+  pickers inherit both through `Calendar`/`RangeCalendar`, and DateField shares `resolveLocale`).
+  When a client component is server-rendered, the server (no
   `document`, no reliable "now") and the client can disagree, causing a hydration mismatch. The
   README and the `locale` prop's JSDoc now say to pass `locale` explicitly when server-rendering.
   Real fix later: a `today` prop (so the caller controls it, e.g. from a server-computed value), or
@@ -172,7 +173,9 @@ phase; items fixed by a later commit are left out).
 - `date.ts` (final review I2): years 0–99 are handled inconsistently — `parseISODate` keeps them
   literal (via `setFullYear`), but the `Date(year, month, day)` constructor used elsewhere (e.g.
   `toDay`, `addDays`) maps a 0–99 year to 1900–1999, per the spec. A round trip through
-  `parseISODate` then any other helper can silently jump a century for such years.
+  `parseISODate` then any other helper can silently jump a century for such years. (DateField, Phase
+  H, builds its dates with `setFullYear` and never passes them through those helpers, so a typed
+  year 4 stays year 4; its `min`/`max` checks use `compareDay`, which reads the fields directly.)
 - Calendar (final review I2): the two-month Tab-stop fallback (`CalendarBase`'s `firstEnabledDay`)
   only searches the first visible month, so with `numberOfMonths={2}` and every day of the first
   month disabled, the Tab stop can land on a disabled day instead of falling through to the second

@@ -22,6 +22,7 @@ import {
   getWeekStartsOn,
   isSameDay,
   isSameMonth,
+  resolveLocale,
   startOfMonth,
   startOfWeek,
   toDay,
@@ -123,18 +124,6 @@ export interface CalendarBaseProps extends CalendarSharedProps {
   onDaySelect: (date: Date) => void;
   /** The hovered or focused day (`null` when the pointer leaves), for range previews. */
   onPreviewDay?: (date: Date | null) => void;
-}
-
-/** The `locale` prop, else the document's `lang`, canonicalised; `undefined` (the browser default) if invalid. */
-export function resolveLocale(locale: string | undefined): string | undefined {
-  const candidate =
-    locale ?? (typeof document === "undefined" ? undefined : document.documentElement.lang);
-  if (!candidate) return undefined;
-  try {
-    return Intl.getCanonicalLocales(candidate)[0];
-  } catch {
-    return undefined;
-  }
 }
 
 interface CalendarFormatters extends CalendarViewFormatters {

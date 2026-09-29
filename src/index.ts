@@ -176,6 +176,7 @@ export {
   ContextMenuTrigger,
   type ContextMenuTriggerProps,
 } from "./components/context-menu";
+export { DateField, type DateFieldLabels, type DateFieldProps } from "./components/date-field";
 export {
   DatePicker,
   type DatePickerLabels,

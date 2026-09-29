@@ -36,7 +36,8 @@ export function addDays(date: Date, amount: number): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate() + amount);
 }
 
-function daysInMonth(year: number, month: number): number {
+/** The number of days in `month` (0-based, as `Date#getMonth`) of `year`; years 0–99 stay literal. */
+export function daysInMonth(year: number, month: number): number {
   const date = new Date(2000, 0, 1);
   date.setFullYear(year, month + 1, 0);
   return date.getDate();
@@ -80,6 +81,22 @@ export function clampDay(date: Date, min?: Date | null, max?: Date | null): Date
   if (min && compareDay(date, min) < 0) return toDay(min);
   if (max && compareDay(date, max) > 0) return toDay(max);
   return toDay(date);
+}
+
+/**
+ * The `locale` prop, else the document's `lang`, canonicalised; `undefined` (the browser default)
+ * if invalid. Server-safe, but on the server there is no `document`, so without an explicit
+ * `locale` the server and the client can resolve differently (see the backlog's SSR note).
+ */
+export function resolveLocale(locale: string | undefined): string | undefined {
+  const candidate =
+    locale ?? (typeof document === "undefined" ? undefined : document.documentElement.lang);
+  if (!candidate) return undefined;
+  try {
+    return Intl.getCanonicalLocales(candidate)[0];
+  } catch {
+    return undefined;
+  }
 }
 
 interface WeekInfo {

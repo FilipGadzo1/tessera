@@ -51,6 +51,13 @@ Server-safe, pure and unit-tested. Its helpers:
   - Table-driven tests.
 - `incrementSegment(value, type, delta, bounds)` wraps within bounds.
 - `segmentsToDate({ day, month, year })` returns `Date | null` (null unless all three are set and valid; Feb 30 → null), and `dateToSegments(date)`.
+- *Amended in Task 1*: the helpers as built.
+  - `getDateSegmentOrder` passes `calendar: "gregory"`. fa-IR otherwise formats in the Persian calendar (verified: 2001-11-23 comes out as `۱۳۸۰/۰۹/۰۲`). Consecutive literals merge, and trailing ones are kept (ko-KR `2001. 11. 23.`, bg-BG ` г.`).
+  - `typeDigit(buffer, digit, type, max?)` returns `{ buffer, value, advance }`. `buffer` is the digits typed into the segment so far. `max` is the day's month-dependent bound, so "3" advances at once in February. A digit that would overflow the bound or the segment length starts over, React Aria-style: month "1" then "3" gives 3. A leading "0" waits, with `value: null`.
+  - `incrementSegment(value | null, type, delta, bounds, today?)`: an empty segment starts at today's value for that segment, clamped, without stepping, as React Aria does.
+  - Also added: `getLocaleDigits` / `parseDigit` (ASCII plus the locale's digits), `parseDateString` (strict ISO, else three digit groups in the locale's order, for paste), `getSegmentLabel` and `getSegmentPlaceholder`.
+  - `daysInMonth` is now exported from `date.ts`, which is not duplicated. `resolveLocale` moved from `calendar-base.tsx` to `date.ts` because it is server-safe (it guards `document`). Calendar and DatePicker import it from there.
+  - Years 1–9999 stay literal. Dates are built with `setFullYear`, so year 4 is not 1904, and there is no clamp to 100.
 
 ## 2. DateField
 
@@ -82,6 +89,17 @@ Server-safe, pure and unit-tested. Its helpers:
   - FieldLabel names the group (`aria-labelledby`) and FieldDescription describes it.
   - Invalid shows the danger border; disabled and readOnly apply.
   - FieldError shows Base UI validation messages (§3).
+- *Amended in Task 1*: decisions and deviations.
+  - **Placeholders.** The first letter of the segment's `Intl.DisplayNames` name, repeated to the segment's length, for Latin, Cyrillic and Greek scripts. That yields each locale's own convention: en mm/dd/yyyy, de tt.mm.jjjj, fr jj/mm/aaaa, nl dd-mm-jjjj, ru дд.мм.гггг. Other scripts (ja, zh, ar, …) get the English letters, since a repeated 年 or ي is not a convention.
+  - **PageUp/PageDown.** They step as the spec says: month 1, day 7, year 10. For month, PageUp is the same as ↑.
+  - **Year reporting.** A year is held (shown but not reported) until its fourth digit or blur. Otherwise "2", "20" and "202" on the way to "2026" each count as a valid complete date. Each would fire `onValueChange` and flash min/max invalid (the first failing test showed 4 calls). Arrows, Home/End and paste report at once.
+  - **Invalid state** comes from the reported value, not the shown segments, so a held year never flashes invalid. An `aria-invalid` prop moves to the segments (the group carries none) and sets `data-invalid`.
+  - **Day clamping.** Once month and year are both known, a too-long day clamps (Jan 31 → month 2 → 28), as React Aria's date `set` does.
+  - **Segment class.** It is `data-placeholder:not-focus:text-muted-foreground`, not `data-placeholder:text-muted-foreground`. Tailwind emits `data-*` variants after `focus:`, so the spec string painted muted text on the focused `bg-primary` fill (test evidence: the computed colour was `oklch(0.535 0.009 265)`, expected `oklch(1 0 0)`).
+  - **Editable segments.** Segments are `contentEditable` (not when disabled or read-only) with `spellCheck=false`, `autoCorrect`/`autoCapitalize` off and `suppressContentEditableWarning`. The spec's `inputMode="numeric"` and `caret-transparent` only take effect on an editable element, and without it mobile keyboards never open. Every keydown that would edit is prevented. A native `beforeinput` listener handles mobile keyboards ("Unidentified" keydowns): it types the digit, clears on a delete input type, and always `preventDefault`s so React keeps the DOM.
+  - **Labelling.** The group registers a `null` control id (`useLabelableId({ id: null })`, Base UI CheckboxGroup's recipe), so FieldLabel omits `for`. The group is named by `aria-labelledby` = the label id. A native click listener on the label focuses the first empty segment, the way a `for` label focuses its control. Clicking the root's padding or a literal does the same.
+  - **Layout.** The root is `w-full min-w-0` like Input and Select. Its inline padding comes from `textFieldSizes` (sm `px-2.5`, md `px-3`, lg `px-4`) rather than a fixed `px-3`, so it lines up with Input at every size. Literals are `text-muted-foreground`. `cursor-text` is on the root, and disabled sets `cursor-not-allowed`.
+  - **Extras.** `labels` (`DateFieldLabels`: `day` / `month` / `year` names and `empty`, the "Empty" value text) is added. `required` sets `aria-required` on the segments. The validation-time `required` check and `name` come with §3 (Task 2).
 
 ## 3. Form participation (DateField, DatePicker, DateRangePicker)
 
