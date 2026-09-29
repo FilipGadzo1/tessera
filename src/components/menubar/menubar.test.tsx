@@ -266,12 +266,13 @@ describe("Menubar", () => {
     await openByClick("File");
     // One key at a time, each waiting for focus on the expected item before the next.
     const focusedText = () => document.activeElement?.textContent?.trim();
-    for (const [key, expected] of [
+    const steps: [string, string][] = [
       ["{ArrowDown}", "New⌘N"],
       ["{ArrowDown}", "Open…"],
       ["{ArrowDown}", "Export"],
       ["{ArrowRight}", "PDF"],
-    ]) {
+    ];
+    for (const [key, expected] of steps) {
       await userEvent.keyboard(key);
       await expect.poll(focusedText).toBe(expected);
     }

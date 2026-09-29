@@ -186,11 +186,7 @@ export function NavigationMenuTrigger({
       {...props}
       data-slot="navigation-menu-trigger"
       className={mergeClassName(
-        cn(
-          barTriggerClasses,
-          "gap-1",
-          vertical && "w-full justify-between",
-        ),
+        cn(barTriggerClasses, "gap-1", vertical && "w-full justify-between"),
         className,
       )}
     >
