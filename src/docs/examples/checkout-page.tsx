@@ -285,7 +285,17 @@ function PromoSection({
         <Field name="promo" className="pt-1">
           <FieldLabel>Promo code</FieldLabel>
           <div className="flex gap-2">
-            <Input value={promo} onChange={(event) => onPromoChange(event.target.value)} />
+            <Input
+              value={promo}
+              onChange={(event) => onPromoChange(event.target.value)}
+              onKeyDown={(event) => {
+                // Enter applies the code; it does not place the whole order.
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  onApply();
+                }
+              }}
+            />
             <Button type="button" variant="outline" color="neutral" onClick={onApply}>
               Apply
             </Button>
@@ -367,14 +377,14 @@ export function CheckoutPage() {
   const [placed, setPlaced] = useState(false);
 
   async function validatePromo() {
-    setErrors({});
+    // The errors are set once, with the result: Base UI's Form focuses the first invalid control
+    // on the first `errors` change after a submit, so clearing them before the await would use
+    // that up and leave focus where it was.
     setApplied(false);
     const error = promo ? await checkPromo(promo) : null;
-    if (error) {
-      setErrors({ promo: error });
-      // The error sits under the promo Field, so the panel must be open to show it.
-      setPromoOpen(true);
-    }
+    setErrors(error ? { promo: error } : {});
+    // The error sits under the promo Field, so the panel must be open to show it.
+    if (error) setPromoOpen(true);
     return error === null;
   }
 
@@ -421,7 +431,7 @@ export function CheckoutPage() {
                 if (ok && promo) setApplied(true);
               }}
             />
-            <Button type="submit" disabled={pending} className="w-fit">
+            <Button type="submit" loading={pending} className="w-fit">
               Place order
             </Button>
           </Form>

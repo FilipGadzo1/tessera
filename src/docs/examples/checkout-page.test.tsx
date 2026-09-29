@@ -100,6 +100,62 @@ describe("CheckoutPage example", () => {
     await expect.poll(() => page.getByText("This code has expired.").elements().length).toBe(0);
   });
 
+  it("Enter in the promo code applies it instead of placing the order", async () => {
+    await render(<CheckoutPage />);
+    await openPromo();
+    await typeInto(textbox("Promo code"), "SAVE10");
+    await userEvent.keyboard("{Enter}");
+    await expect.element(page.getByText("Code applied.")).toBeVisible();
+    // The contact fields are empty, yet the order was not submitted.
+    await expect.element(textbox("Full name")).not.toHaveAttribute("aria-invalid", "true");
+    expect(page.getByText("Order placed").elements()).toHaveLength(0);
+    expect(document.activeElement).toBe(el(textbox("Promo code")));
+    await userEvent.keyboard("{Backspace}{Backspace}{Backspace}{Backspace}{Backspace}{Backspace}");
+    await userEvent.keyboard("EXPIRED{Enter}");
+    await expect.element(page.getByText("This code has expired.")).toBeVisible();
+    expect(page.getByText("Order placed").elements()).toHaveLength(0);
+  });
+
+  it("keeps focus on the button while placing, then moves it to the rejected promo code", async () => {
+    await render(<CheckoutPage />);
+    await fillContact();
+    await openPromo();
+    await typeInto(textbox("Promo code"), "EXPIRED");
+    const place = el(page.getByRole("button", { name: "Place order" }));
+    await tabTo(place);
+    await userEvent.keyboard("{Enter}");
+    // Pending: the button stays focusable and focused (never dropped to <body>).
+    let onBody = 0;
+    for (
+      let i = 0;
+      i < 40 && page.getByText("This code has expired.").elements().length === 0;
+      i++
+    ) {
+      if (document.activeElement === document.body) onBody += 1;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    expect(onBody).toBe(0);
+    await expect.element(page.getByText("This code has expired.")).toBeVisible();
+    await expect.poll(() => document.activeElement).toBe(el(textbox("Promo code")));
+    expect(document.activeElement?.getAttribute("aria-invalid")).toBe("true");
+  });
+
+  it("focuses the rejected promo code even when its panel was closed at submit", async () => {
+    await render(<CheckoutPage />);
+    await fillContact();
+    await openPromo();
+    await typeInto(textbox("Promo code"), "EXPIRED");
+    const trigger = page.getByRole("button", { name: "Promo code", exact: true });
+    await tabTo(el(trigger));
+    await userEvent.keyboard("{Enter}");
+    await expect.element(trigger).toHaveAttribute("aria-expanded", "false");
+    await tabTo(el(page.getByRole("button", { name: "Place order" })));
+    await userEvent.keyboard("{Enter}");
+    await expect.element(trigger).toHaveAttribute("aria-expanded", "true");
+    await expect.element(page.getByText("This code has expired.")).toBeVisible();
+    await expect.poll(() => document.activeElement).toBe(el(textbox("Promo code")));
+  });
+
   it("hides a rejected code's error with the panel and shows it again on the next submit", async () => {
     await render(<CheckoutPage />);
     await fillContact();
@@ -108,6 +164,7 @@ describe("CheckoutPage example", () => {
     await userEvent.keyboard("{Enter}");
     await expect.element(page.getByText("This code has expired.")).toBeVisible();
     const trigger = page.getByRole("button", { name: "Promo code", exact: true });
+    const place = page.getByRole("button", { name: "Place order" });
     await tabTo(el(trigger));
     await userEvent.keyboard("{Enter}");
     await expect.element(trigger).toHaveAttribute("aria-expanded", "false");
@@ -115,16 +172,15 @@ describe("CheckoutPage example", () => {
     await expect.element(trigger).toHaveAttribute("aria-expanded", "true");
     expect(page.getByText("This code has expired.").elements()).toHaveLength(0);
     await expect.element(textbox("Promo code")).not.toHaveAttribute("aria-invalid", "true");
-    // Submitting again re-checks the code, and the error reopens the panel if it was closed.
-    await userEvent.keyboard("{Enter}");
-    await tabTo(el(page.getByRole("button", { name: "Place order" })));
+    // Submitting re-checks the code, and the error is back.
+    await tabTo(el(place));
     await userEvent.keyboard("{Enter}");
     await expect.element(page.getByText("This code has expired.")).toBeVisible();
-    await userEvent.keyboard("{Enter}");
+    // Closing the panel drops the error again; the next submit reopens it.
     await tabTo(el(trigger));
     await userEvent.keyboard("{Enter}");
     await expect.element(trigger).toHaveAttribute("aria-expanded", "false");
-    await tabTo(el(page.getByRole("button", { name: "Place order" })));
+    await tabTo(el(place));
     await userEvent.keyboard("{Enter}");
     await expect.element(trigger).toHaveAttribute("aria-expanded", "true");
     await expect.element(page.getByText("This code has expired.")).toBeVisible();
