@@ -74,7 +74,7 @@ const items = [
 ];
 
 const shipping = 4;
-const giftWrap = 3;
+const giftWrapPrice = 3;
 
 const money = (amount: number) => `€${amount.toFixed(2)}`;
 
@@ -121,9 +121,7 @@ function SiteHeader() {
             </NavigationMenuContent>
           </NavigationMenuItem>
           <NavigationMenuItem>
-            <NavigationMenuLink href="#orders" active>
-              Orders
-            </NavigationMenuLink>
+            <NavigationMenuLink href="#orders">Orders</NavigationMenuLink>
           </NavigationMenuItem>
         </NavigationMenuList>
       </NavigationMenu>
@@ -131,8 +129,16 @@ function SiteHeader() {
   );
 }
 
-function ContactSection({ verified, onVerified }: { verified: boolean; onVerified: () => void }) {
-  const [codeSent, setCodeSent] = useState(false);
+function ContactSection({
+  verified,
+  onVerifiedChange,
+}: {
+  verified: boolean;
+  onVerifiedChange: (verified: boolean) => void;
+}) {
+  // Counts the codes sent; a new code remounts the OTPField so the old digits are cleared.
+  const [codesSent, setCodesSent] = useState(0);
+  const codeSent = codesSent > 0;
   return (
     <section aria-labelledby="checkout-contact" className="flex flex-col gap-4">
       <h2 id="checkout-contact" className="text-base font-semibold">
@@ -157,7 +163,10 @@ function ContactSection({ verified, onVerified }: { verified: boolean; onVerifie
               type="button"
               variant="outline"
               color="neutral"
-              onClick={() => setCodeSent(true)}
+              onClick={() => {
+                setCodesSent((count) => count + 1);
+                onVerifiedChange(false);
+              }}
             >
               {codeSent ? "Resend code" : "Send code"}
             </Button>
@@ -167,7 +176,13 @@ function ContactSection({ verified, onVerified }: { verified: boolean; onVerifie
         {codeSent && (
           <Field name="code">
             <FieldLabel>Verification code</FieldLabel>
-            <OTPField length={6} groups={[3, 3]} onValueComplete={onVerified} />
+            <OTPField
+              key={codesSent}
+              length={6}
+              groups={[3, 3]}
+              onValueChange={() => onVerifiedChange(false)}
+              onValueComplete={() => onVerifiedChange(true)}
+            />
             {verified && (
               <Badge color="success" className="w-fit">
                 Phone verified
@@ -180,8 +195,13 @@ function ContactSection({ verified, onVerified }: { verified: boolean; onVerifie
   );
 }
 
-function ShippingSection() {
-  const [delivery, setDelivery] = useState<string[]>([]);
+function ShippingSection({
+  delivery,
+  onDeliveryChange,
+}: {
+  delivery: string[];
+  onDeliveryChange: (value: string[]) => void;
+}) {
   return (
     <section aria-labelledby="checkout-shipping" className="flex flex-col gap-4">
       <h2 id="checkout-shipping" className="text-base font-semibold">
@@ -209,7 +229,7 @@ function ShippingSection() {
           render={
             <CheckboxGroup
               value={delivery}
-              onValueChange={setDelivery}
+              onValueChange={onDeliveryChange}
               allValues={deliveryValues}
             />
           }
@@ -239,18 +259,22 @@ function ShippingSection() {
 }
 
 function PromoSection({
+  open,
+  onOpenChange,
   promo,
   onPromoChange,
   onApply,
   applied,
 }: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   promo: string;
   onPromoChange: (value: string) => void;
   onApply: () => void;
   applied: boolean;
 }) {
   return (
-    <Collapsible className="flex flex-col gap-2" defaultOpen={false}>
+    <Collapsible className="flex flex-col gap-2" open={open} onOpenChange={onOpenChange}>
       <CollapsibleTrigger
         render={<Button variant="ghost" color="neutral" className="group w-fit -ml-4" />}
       >
@@ -275,8 +299,9 @@ function PromoSection({
   );
 }
 
-function OrderSummary() {
+function OrderSummary({ giftWrap }: { giftWrap: boolean }) {
   const subtotal = items.reduce((sum, item) => sum + item.price, 0);
+  const total = subtotal + shipping + (giftWrap ? giftWrapPrice : 0);
   return (
     <Card className="h-fit">
       <CardHeader>
@@ -311,15 +336,19 @@ function OrderSummary() {
           <dd className="text-right">{money(subtotal)}</dd>
           <dt className="text-muted-foreground">Shipping</dt>
           <dd className="text-right">{money(shipping)}</dd>
+          {giftWrap && (
+            <>
+              <dt className="text-muted-foreground">Gift wrap</dt>
+              <dd className="text-right">{money(giftWrapPrice)}</dd>
+            </>
+          )}
           <dt className="font-medium">Total</dt>
-          <dd className="text-right font-medium">{money(subtotal + shipping)}</dd>
+          <dd className="text-right font-medium">{money(total)}</dd>
         </dl>
       </CardContent>
     </Card>
   );
 }
-
-export type CheckoutPageProps = {};
 
 /**
  * A checkout page composing the Phase G components: a NavigationMenu header, a Form with contact
@@ -327,11 +356,13 @@ export type CheckoutPageProps = {};
  * and a Collapsible promo code, beside an order summary Card. A fake server rejects the promo
  * code "EXPIRED" through the Form's `errors`.
  */
-export function CheckoutPage(_props: CheckoutPageProps) {
+export function CheckoutPage() {
   const [errors, setErrors] = useState<FormProps["errors"]>({});
   const [promo, setPromo] = useState("");
   const [applied, setApplied] = useState(false);
   const [verified, setVerified] = useState(false);
+  const [delivery, setDelivery] = useState<string[]>([]);
+  const [promoOpen, setPromoOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [placed, setPlaced] = useState(false);
 
@@ -339,7 +370,11 @@ export function CheckoutPage(_props: CheckoutPageProps) {
     setErrors({});
     setApplied(false);
     const error = promo ? await checkPromo(promo) : null;
-    if (error) setErrors({ promo: error });
+    if (error) {
+      setErrors({ promo: error });
+      // The error sits under the promo Field, so the panel must be open to show it.
+      setPromoOpen(true);
+    }
     return error === null;
   }
 
@@ -369,9 +404,15 @@ export function CheckoutPage(_props: CheckoutPageProps) {
               if (ok) setPlaced(true);
             }}
           >
-            <ContactSection verified={verified} onVerified={() => setVerified(true)} />
-            <ShippingSection />
+            <ContactSection verified={verified} onVerifiedChange={setVerified} />
+            <ShippingSection delivery={delivery} onDeliveryChange={setDelivery} />
             <PromoSection
+              open={promoOpen}
+              onOpenChange={(open) => {
+                setPromoOpen(open);
+                // A closed panel hides its error, so drop it; the next submit brings it back.
+                if (!open) setErrors({});
+              }}
               promo={promo}
               onPromoChange={setPromo}
               applied={applied}
@@ -384,7 +425,7 @@ export function CheckoutPage(_props: CheckoutPageProps) {
               Place order
             </Button>
           </Form>
-          <OrderSummary />
+          <OrderSummary giftWrap={delivery.includes("gift")} />
         </div>
       </main>
     </div>

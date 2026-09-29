@@ -239,9 +239,8 @@ phase; items fixed by a later commit are left out).
   list as modal and marks the rest of the page `aria-hidden` while its buttons and inputs stay focusable, which
   axe reports as `aria-hidden-focus` on any page with other controls. The Checkout test audits the open list with
   the header and main content hidden for that reason; a Base UI upgrade may change it.
-- Checkout example (Task 7): the summary is static (the gift-wrap option's "+€3.00" does not change the
-  total), and the fake server only knows the code `EXPIRED`. The delivery option label includes its price note, so
-  its accessible name is "Gift wrap +€3.00".
+- Checkout example (Task 7): the fake server only knows the code `EXPIRED`. The delivery option label
+  includes its price note, so its accessible name is "Gift wrap +€3.00".
 - NavigationMenu (Task 7): an open panel covers page text, so axe leaves that text's contrast undecided
   (`incomplete`). The Checkout test hides `main` for the open-panel audit; the closed page is audited whole.
 

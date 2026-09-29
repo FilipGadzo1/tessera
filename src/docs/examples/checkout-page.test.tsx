@@ -45,7 +45,7 @@ describe("CheckoutPage example", () => {
     expect(page.getByRole("textbox", { name: "Verification code" }).elements()).toHaveLength(0);
   });
 
-  it("navigates the header menu by keyboard to a link, and marks Orders as current", async () => {
+  it("navigates the header menu by keyboard to a link; no item is marked current", async () => {
     await render(<CheckoutPage />);
     const shop = page.getByRole("button", { name: "Shop" });
     await tabTo(el(shop));
@@ -59,7 +59,8 @@ describe("CheckoutPage example", () => {
     expect(document.activeElement).toBe(el(shop));
     const orders = page.getByRole("link", { name: "Orders" });
     await tabTo(el(orders));
-    expect(el(orders).getAttribute("aria-current")).toBe("page");
+    expect(el(orders).hasAttribute("aria-current")).toBe(false);
+    expect(document.querySelectorAll("nav [aria-current]")).toHaveLength(0);
   });
 
   it("picks a city from the Autocomplete suggestions with the keyboard", async () => {
@@ -99,6 +100,49 @@ describe("CheckoutPage example", () => {
     await expect.poll(() => page.getByText("This code has expired.").elements().length).toBe(0);
   });
 
+  it("hides a rejected code's error with the panel and shows it again on the next submit", async () => {
+    await render(<CheckoutPage />);
+    await fillContact();
+    await openPromo();
+    await typeInto(textbox("Promo code"), "EXPIRED");
+    await userEvent.keyboard("{Enter}");
+    await expect.element(page.getByText("This code has expired.")).toBeVisible();
+    const trigger = page.getByRole("button", { name: "Promo code", exact: true });
+    await tabTo(el(trigger));
+    await userEvent.keyboard("{Enter}");
+    await expect.element(trigger).toHaveAttribute("aria-expanded", "false");
+    await userEvent.keyboard("{Enter}");
+    await expect.element(trigger).toHaveAttribute("aria-expanded", "true");
+    expect(page.getByText("This code has expired.").elements()).toHaveLength(0);
+    await expect.element(textbox("Promo code")).not.toHaveAttribute("aria-invalid", "true");
+    // Submitting again re-checks the code, and the error reopens the panel if it was closed.
+    await userEvent.keyboard("{Enter}");
+    await tabTo(el(page.getByRole("button", { name: "Place order" })));
+    await userEvent.keyboard("{Enter}");
+    await expect.element(page.getByText("This code has expired.")).toBeVisible();
+    await userEvent.keyboard("{Enter}");
+    await tabTo(el(trigger));
+    await userEvent.keyboard("{Enter}");
+    await expect.element(trigger).toHaveAttribute("aria-expanded", "false");
+    await tabTo(el(page.getByRole("button", { name: "Place order" })));
+    await userEvent.keyboard("{Enter}");
+    await expect.element(trigger).toHaveAttribute("aria-expanded", "true");
+    await expect.element(page.getByText("This code has expired.")).toBeVisible();
+  });
+
+  it("adds gift wrap to the total when selected", async () => {
+    await render(<CheckoutPage />);
+    await expect.element(page.getByText("€75.00", { exact: true })).toBeVisible();
+    const gift = page.getByRole("checkbox", { name: /^Gift wrap/ });
+    await tabTo(el(gift));
+    await userEvent.keyboard(" ");
+    await expect.element(page.getByText("€78.00", { exact: true })).toBeVisible();
+    await expect.element(page.getByText("€3.00", { exact: true })).toBeVisible();
+    await userEvent.keyboard(" ");
+    await expect.element(page.getByText("€75.00", { exact: true })).toBeVisible();
+    expect(page.getByText("€78.00", { exact: true }).elements()).toHaveLength(0);
+  });
+
   it("places the order when the code is fine", async () => {
     await render(<CheckoutPage />);
     await fillContact();
@@ -126,6 +170,30 @@ describe("CheckoutPage example", () => {
     await tabTo(el(first));
     await userEvent.keyboard("123456");
     await expect.element(page.getByText("Phone verified")).toBeVisible();
+  });
+
+  it("drops Phone verified when the code changes or is resent", async () => {
+    await render(<CheckoutPage />);
+    const send = page.getByRole("button", { name: /^(Send|Resend) code$/ });
+    await tabTo(el(send));
+    await userEvent.keyboard("{Enter}");
+    const first = textbox("Verification code");
+    await tabTo(el(first));
+    await userEvent.keyboard("123456");
+    await expect.element(page.getByText("Phone verified")).toBeVisible();
+    await userEvent.keyboard("{Backspace}");
+    await expect.poll(() => page.getByText("Phone verified").elements().length).toBe(0);
+    // Resending sends a fresh code: the old digits are cleared and the field starts over.
+    await tabTo(el(send));
+    await userEvent.keyboard("{Enter}");
+    await tabTo(el(first));
+    await userEvent.keyboard("654321");
+    await expect.element(page.getByText("Phone verified")).toBeVisible();
+    await tabTo(el(send));
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(() => page.getByText("Phone verified").elements().length).toBe(0);
+    for (const input of document.querySelectorAll<HTMLInputElement>("[data-slot=otp-field-input]"))
+      expect(input.value).toBe("");
   });
 
   it("verifies the phone by paste", async () => {

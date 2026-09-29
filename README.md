@@ -534,12 +534,13 @@ checkbox items really hide the Toolbar and switch the body between wrapping and 
 `DateRangePicker` sit in a Field row; and a `Meter` reports the character count.
 
 The Storybook story **Tessera/Examples/Checkout** (`src/docs/examples/checkout-page.tsx`) composes the
-Phase G components: a `NavigationMenu` header (Shop and Help panels, a plain Orders link marked `active`);
-a `Form` with contact Fields; a phone check whose "Send code" button reveals an `OTPField` (6 digits, groups
-`[3, 3]`, `onValueComplete` shows "Phone verified"); a city `Autocomplete`; a delivery-options
-`CheckboxGroup` with a "Select all" parent checkbox; and a `Collapsible` promo code. A fake server rejects the
-code `EXPIRED` after a short delay and the message comes back through the Form's `errors`, under the promo
-Field, until the field is edited. An order-summary Card holds a `Collapsible` list of items.
+Phase G components: a `NavigationMenu` header (Shop and Help panels and a plain Orders link, none marked
+current); a `Form` with contact Fields; a phone check whose "Send code" button reveals an `OTPField` (6 digits,
+groups `[3, 3]`, `onValueComplete` shows "Phone verified"); a city `Autocomplete`; a delivery-options
+`CheckboxGroup` with a "Select all" parent checkbox (gift wrap adds a row to the total); and a `Collapsible`
+promo code. A fake server rejects the code `EXPIRED` after a short delay and the message comes back through the
+Form's `errors`, under the promo Field, until the field is edited or the panel is closed. An order-summary Card
+holds a `Collapsible` list of items.
 
 ## Roadmap
 
