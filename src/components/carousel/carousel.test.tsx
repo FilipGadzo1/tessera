@@ -270,6 +270,32 @@ describe("Carousel", () => {
       expect(current()).toBe(3);
     });
 
+    it("a focused disabled end keeps full opacity and a full-strength ring; its text is muted", async () => {
+      await render(
+        <>
+          <Slides count={3} />
+          <span data-testid="muted" className="text-muted-foreground" />
+        </>,
+      );
+      await expect.poll(() => prev().getAttribute("aria-disabled")).toBe("true");
+      // Keyboard focus (so :focus-visible): the content, slide 1's link, then Previous.
+      for (let i = 0; i < 3; i += 1) await userEvent.tab();
+      expect(document.activeElement).toBe(prev());
+      await expect.poll(() => getComputedStyle(prev()).outlineStyle).toBe("solid");
+      const disabledRing = getComputedStyle(prev()).outlineColor;
+      expect(getComputedStyle(prev()).opacity).toBe("1");
+      // Past the three dots to the enabled Next: the same ring colour.
+      for (let i = 0; i < 4; i += 1) await userEvent.tab();
+      expect(document.activeElement).toBe(next());
+      await expect.poll(() => getComputedStyle(next()).outlineStyle).toBe("solid");
+      await expect.poll(() => getComputedStyle(next()).outlineColor).toBe(disabledRing);
+      expect(getComputedStyle(next()).opacity).toBe("1");
+      const muted = getComputedStyle(page.getByTestId("muted").element()).color;
+      await expect.poll(() => getComputedStyle(prev()).color).toBe(muted);
+      expect(getComputedStyle(next()).color).not.toBe(muted);
+      expect(getComputedStyle(prev()).cursor).toBe("not-allowed");
+    });
+
     it("with loop the ends wrap around", async () => {
       await render(<Slides count={3} loop />);
       await expect.poll(current).toBe(1);
@@ -986,6 +1012,19 @@ describe("Carousel", () => {
       const off = getComputedStyle(mark(2));
       expect(off.borderColor).toBe(systemColor("CanvasText"));
       expect(off.getPropertyValue("forced-color-adjust")).toBe("auto");
+    });
+
+    it("a disabled end is GrayText at full opacity, with a Highlight ring when focused", async () => {
+      await emulateForcedColors(true);
+      await render(<Slides count={3} />);
+      await expect.poll(() => prev().getAttribute("aria-disabled")).toBe("true");
+      for (let i = 0; i < 3; i += 1) await userEvent.tab();
+      expect(document.activeElement).toBe(prev());
+      await expect.poll(() => getComputedStyle(prev()).outlineStyle).toBe("solid");
+      await expect.poll(() => getComputedStyle(prev()).outlineColor).toBe(systemColor("Highlight"));
+      expect(getComputedStyle(prev()).opacity).toBe("1");
+      await expect.poll(() => getComputedStyle(prev()).color).toBe(systemColor("GrayText"));
+      expect(getComputedStyle(next()).color).not.toBe(systemColor("GrayText"));
     });
 
     it("focus rings are Highlight and show only on focus", async () => {

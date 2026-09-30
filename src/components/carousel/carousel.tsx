@@ -648,6 +648,16 @@ function controlVariants(className: string | undefined) {
   });
 }
 
+/**
+ * Previous/Next at an end stay focusable (`aria-disabled`), so they are dimmed with muted text, not
+ * buttonVariants' `opacity-50`, which would fade the focus ring too (as Tree's disabled rows);
+ * GrayText in forced colors.
+ */
+const endControlClasses = cn(
+  "data-disabled:not-data-loading:opacity-100 data-disabled:text-muted-foreground",
+  "forced-colors:data-disabled:text-[GrayText]",
+);
+
 export type CarouselPreviousProps = ComponentProps<"button">;
 
 /**
@@ -672,7 +682,7 @@ export function CarouselPrevious({
       aria-disabled={disabled || undefined}
       data-disabled={disabled ? "" : undefined}
       data-slot="carousel-previous"
-      className={controlVariants(className)}
+      className={controlVariants(cn(endControlClasses, className))}
       onClick={(event: MouseEvent<HTMLButtonElement>) => {
         onClick?.(event);
         if (!event.defaultPrevented && !disabled) carousel.previous();
@@ -712,7 +722,7 @@ export function CarouselNext({
       aria-disabled={disabled || undefined}
       data-disabled={disabled ? "" : undefined}
       data-slot="carousel-next"
-      className={controlVariants(className)}
+      className={controlVariants(cn(endControlClasses, className))}
       onClick={(event: MouseEvent<HTMLButtonElement>) => {
         onClick?.(event);
         if (!event.defaultPrevented && !disabled) carousel.next();

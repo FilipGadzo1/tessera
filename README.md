@@ -621,7 +621,7 @@ source files automatically (build output + `"use client"` directive checks).
   labelled "3 of 8" (`slideLabel` localises it). Touch, trackpad and wheel scrolling are the browser's; an
   IntersectionObserver tracks the leading slide (≥ 60% visible) as `index` / `defaultIndex` / `onIndexChange`
   (0-based). Previous/Next (outline icon buttons, "Previous slide" / "Next slide") are `aria-disabled` at the
-  ends but stay focusable; `loop` makes them jump from the first to the last slide and back. The content is a
+  ends but stay focusable (muted text, GrayText in forced colors, not faded, so their focus ring stays full strength); `loop` makes them jump from the first to the last slide and back. The content is a
   focusable `role="group"` named "Slides" (`aria-label` localises it): focus it and ←/→ move the slides (↑/↓
   with `orientation="vertical"`; RTL flips ←/→). Slides out of view are `inert`; if one holds focus as it
   leaves, focus moves to the content. Only programmatic moves scroll: an index reported from the user's own
