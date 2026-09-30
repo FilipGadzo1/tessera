@@ -138,23 +138,47 @@ export const EditableInField: Story = {
   ),
 };
 
-/** The editable picker next to Input and Select at every size. */
+const sizeRows = [
+  { size: "sm", name: "Small", height: "32px" },
+  { size: "md", name: "Medium", height: "40px" },
+  { size: "lg", name: "Large", height: "48px" },
+] as const;
+
+/**
+ * Alignment check, not a form: at each size the editable picker sits under an Input and a Select
+ * so you can compare heights and where the text starts. The Input and Select are only reference
+ * controls and do nothing.
+ */
 export const EditableSizes: Story = {
+  name: "Editable sizes (alignment check)",
   render: (args) => (
-    <div className="flex flex-col gap-3">
-      {(["sm", "md", "lg"] as const).map((size) => (
-        <div key={size} className="flex flex-col gap-3">
-          <Input size={size} placeholder={`Input (${size})`} aria-label={`Input (${size})`} />
-          <Select items={{ a: "Select" }}>
-            <SelectTrigger size={size} aria-label={`Select (${size})`}>
-              <SelectValue placeholder={`Select (${size})`} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="a">Select</SelectItem>
-            </SelectContent>
-          </Select>
-          <DatePicker {...editableArgs(args)} editable size={size} aria-label={`Date (${size})`} />
-        </div>
+    <div className="flex flex-col gap-6">
+      {sizeRows.map(({ size, name, height }) => (
+        <section key={size} aria-label={`${name} (${size})`} className="flex flex-col gap-2">
+          <h3 className="text-xs font-medium text-muted-foreground">
+            {name} · <code className="font-mono">size="{size}"</code> · {height}
+          </h3>
+          <div className="grid grid-cols-[5.5rem_1fr] items-center gap-x-3 gap-y-2">
+            <span className="text-xs text-muted-foreground">Reference</span>
+            <Input size={size} placeholder="Input" aria-label={`Reference input (${size})`} />
+            <span className="text-xs text-muted-foreground">Reference</span>
+            <Select items={{ a: "Select" }}>
+              <SelectTrigger size={size} aria-label={`Reference select (${size})`}>
+                <SelectValue placeholder="Select" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="a">Select</SelectItem>
+              </SelectContent>
+            </Select>
+            <span className="text-xs font-medium text-foreground">DatePicker</span>
+            <DatePicker
+              {...editableArgs(args)}
+              editable
+              size={size}
+              aria-label={`Date (${size})`}
+            />
+          </div>
+        </section>
       ))}
     </div>
   ),

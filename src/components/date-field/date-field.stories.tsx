@@ -103,20 +103,42 @@ export const InField: Story = {
   ),
 };
 
-/** The Input heights (sm 32px, md 40px, lg 48px), with the text starting where Input's does. */
+/**
+ * Alignment check, not a form: each size sits under a read-only reference Input, so you can see
+ * the matching heights (sm 32px, md 40px, lg 48px) and that the text starts where Input's does.
+ */
 export const Sizes: Story = {
+  name: "Sizes (alignment check)",
   render: (args) => (
-    <div className="flex flex-col gap-3">
-      {(["sm", "md", "lg"] as const).map((size) => (
-        <div key={size} className="flex flex-col gap-3">
-          <Input size={size} defaultValue="09 / 25 / 2026" aria-label={`Input (${size})`} />
-          <DateField
-            {...args}
-            size={size}
-            aria-label={`Date (${size})`}
-            defaultValue={new Date(2026, 8, 25)}
-          />
-        </div>
+    <div className="flex flex-col gap-6">
+      {(
+        [
+          { size: "sm", name: "Small", height: "32px" },
+          { size: "md", name: "Medium", height: "40px" },
+          { size: "lg", name: "Large", height: "48px" },
+        ] as const
+      ).map(({ size, name, height }) => (
+        <section key={size} aria-label={`${name} (${size})`} className="flex flex-col gap-2">
+          <h3 className="text-xs font-medium text-muted-foreground">
+            {name} · <code className="font-mono">size="{size}"</code> · {height}
+          </h3>
+          <div className="grid grid-cols-[5.5rem_1fr] items-center gap-x-3 gap-y-2">
+            <span className="text-xs text-muted-foreground">Reference</span>
+            <Input
+              size={size}
+              readOnly
+              defaultValue="09 / 25 / 2026"
+              aria-label={`Reference input (${size})`}
+            />
+            <span className="text-xs font-medium text-foreground">DateField</span>
+            <DateField
+              {...args}
+              size={size}
+              aria-label={`Date (${size})`}
+              defaultValue={new Date(2026, 8, 25)}
+            />
+          </div>
+        </section>
       ))}
     </div>
   ),
