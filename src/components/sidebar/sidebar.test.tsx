@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useLayoutEffect, useRef, useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
@@ -338,6 +338,33 @@ describe("static state is per Sidebar", () => {
     );
     await pressShortcut("Control");
     await expect.element(probe()).toHaveTextContent("expanded:true");
+  });
+
+  it("a lone static Sidebar never paints collapsed under defaultOpen={false}", async () => {
+    const painted: (string | null)[] = [];
+    function Watch() {
+      const { state } = useSidebar();
+      const ref = useRef<HTMLOutputElement>(null);
+      // The first commit's layout phase: whatever is on screen at the next frame is what paints.
+      useLayoutEffect(() => {
+        requestAnimationFrame(() => painted.push(ref.current?.textContent ?? null));
+      }, []);
+      return <output ref={ref}>{state}</output>;
+    }
+    await render(
+      <SidebarProvider defaultOpen={false}>
+        <Sidebar collapsible="none">
+          <p>fixed</p>
+        </Sidebar>
+        <SidebarInset>
+          <SidebarTrigger />
+          <Watch />
+        </SidebarInset>
+      </SidebarProvider>,
+    );
+    await expect.poll(() => painted.length).toBe(1);
+    expect(painted).toEqual(["expanded"]);
+    expect(trigger().element().getAttribute("aria-expanded")).toBe("true");
   });
 
   it("the collapsible Sidebar leaving does not un-static the remaining one", async () => {

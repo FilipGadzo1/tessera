@@ -6,7 +6,7 @@
 export function findDefaultButton(
   form: HTMLFormElement,
 ): HTMLButtonElement | HTMLInputElement | null {
-  const root = form.getRootNode() as Document | ShadowRoot;
+  const root = form.getRootNode() as ParentNode;
   for (const element of root.querySelectorAll<HTMLButtonElement | HTMLInputElement>(
     "button, input",
   )) {

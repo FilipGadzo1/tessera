@@ -7,6 +7,7 @@ import {
   type Ref,
   useContext,
   useEffect,
+  useLayoutEffect,
   useState,
 } from "react";
 import { createPortal } from "react-dom";
@@ -101,7 +102,9 @@ export function Sidebar({
     return () => setSidebarId(undefined);
   }, [id, setSidebarId]);
 
-  useEffect(() => registerSidebar(collapsible === "none"), [collapsible, registerSidebar]);
+  // A layout effect: the provider's `isStatic` (and so `state` and the trigger's `aria-expanded`)
+  // is settled before the first paint, not one frame later.
+  useLayoutEffect(() => registerSidebar(collapsible === "none"), [collapsible, registerSidebar]);
 
   const content = (
     <SidebarInstanceContext.Provider value={{ side, edge, collapsible, railHost }}>

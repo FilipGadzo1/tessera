@@ -1,13 +1,20 @@
 "use client";
 
 import { Drawer as BaseDrawer } from "@base-ui/react/drawer";
-import { type ComponentProps, createContext, useCallback, useContext, useState } from "react";
+import {
+  type ComponentProps,
+  createContext,
+  useCallback,
+  useContext,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { cn } from "../../lib/cn";
 import { isRtl } from "../../lib/direction";
 import { CloseIcon } from "../../lib/icons";
 import { mergeClassName } from "../../lib/merge-class-name";
 import { useLayeredEscape } from "../../lib/tooltip-escape";
-import { useMergedRefs } from "../../lib/use-merged-refs";
 import { Button } from "../button";
 import { dialogDescriptionClasses, dialogTitleClasses } from "../dialog/dialog-variants";
 import {
@@ -48,9 +55,10 @@ export interface DrawerProps extends Omit<BaseDrawer.Root.Props, "swipeDirection
   /**
    * The edge the drawer slides in from; it is swiped back towards it to dismiss. Set on the root
    * because Base UI's swipe direction is a root prop. `start` and `end` follow the writing
-   * direction of the drawer panel (read from its computed `direction`, so a `dir` on the content
-   * or on the portal container counts). The first render assumes left-to-right; the panel corrects
-   * itself before it paints. @default "right"
+   * direction of the panel: the `dir` passed to `DrawerContent`, else the computed direction of its
+   * portal `container` (default `<body>`, so a `dir` on the document counts). It is read each time
+   * the drawer opens, before the panel mounts, and not again while it is open. Server-rendered
+   * markup assumes left-to-right. @default "right"
    */
   side?: DrawerSide;
 }
@@ -62,25 +70,56 @@ export interface DrawerProps extends Omit<BaseDrawer.Root.Props, "swipeDirection
 const DrawerContext = createContext<{
   side: PhysicalDrawerSide;
   modal: DrawerProps["modal"];
-  setRtl: (rtl: boolean) => void;
+  /** `DrawerContent` sets how the root reads the direction (true = right-to-left). */
+  directionSource: { current: () => boolean };
+  /** Reads it now. */
+  readDirection: () => void;
 }>({
   side: drawerDefaults.side,
   modal: true,
-  setRtl: () => {},
+  directionSource: { current: () => false },
+  readDirection: () => {},
 });
+
+/** The element whose direction the portalled panel inherits: its container, else `<body>`. */
+function containerElement(container: BaseDrawer.Portal.Props["container"]): Element {
+  const resolved = container && "current" in container ? container.current : container;
+  if (resolved instanceof ShadowRoot) return resolved.host;
+  return resolved ?? document.body;
+}
 
 /**
  * Groups a trigger and its content. Renders no element. Modal by default: focus is trapped, page
  * scroll is locked and outside pointer interaction is blocked. Controlled via `open` / `onOpenChange`.
  */
 export function Drawer({ side, onOpenChange, ...props }: DrawerProps) {
-  const handleOpenChange = useLayeredEscape(onOpenChange);
-  // The panel's resolved direction, reported by `DrawerContent` when it mounts (LTR until then).
+  // The direction `start` / `end` resolve against, read before the panel mounts: `DrawerContent`
+  // registers how to read it (its explicit `dir`, else its portal container's direction), and the
+  // root reads it when the drawer is asked to open, so the panel's first render already has the
+  // right edge (LTR before any read, and on the server).
+  const directionSource = useRef<() => boolean>(() => false);
   const [rtl, setRtl] = useState(false);
+  const readDirection = useCallback(() => setRtl(directionSource.current()), []);
+  const handleOpenChange = useLayeredEscape<Parameters<NonNullable<typeof onOpenChange>>[1]>(
+    (nextOpen, eventDetails) => {
+      if (nextOpen) readDirection();
+      onOpenChange?.(nextOpen, eventDetails);
+    },
+  );
+  // A controlled `open` flipping to true from outside the handler: read in the render that
+  // carries it, which is before the panel mounts (the state set here re-renders this component
+  // first). Only ever on the client, where `open` changes.
+  const [wasOpen, setWasOpen] = useState(props.open ?? false);
+  if (props.open !== undefined && props.open !== wasOpen) {
+    setWasOpen(props.open);
+    if (props.open) readDirection();
+  }
   // A JS caller can still pass null; treat it like undefined.
   const resolvedSide = resolveSide(side ?? drawerDefaults.side, rtl);
   return (
-    <DrawerContext.Provider value={{ side: resolvedSide, modal: props.modal ?? true, setRtl }}>
+    <DrawerContext.Provider
+      value={{ side: resolvedSide, modal: props.modal ?? true, directionSource, readDirection }}
+    >
       <BaseDrawer.Root
         {...props}
         swipeDirection={swipeDirections[resolvedSide]}
@@ -121,26 +160,26 @@ export function DrawerContent({
   container,
   className,
   children,
-  ref,
   ...props
 }: DrawerContentProps) {
-  const { side, modal, setRtl } = useContext(DrawerContext);
-  // Reports the panel's direction as it attaches (a layout-phase ref, before paint), so `start` /
-  // `end` resolve without a visible jump.
-  const directionRef = useCallback(
-    (element: HTMLDivElement | null) => {
-      if (element) setRtl(isRtl(element));
-    },
-    [setRtl],
-  );
-  const popupRef = useMergedRefs(directionRef, ref);
+  const { side, modal, directionSource, readDirection } = useContext(DrawerContext);
+  const { dir } = props;
+  // Tells the root how to read the direction. An explicit `dir` wins with no DOM read; otherwise
+  // the panel inherits the container's. Read once now too (this runs at mount, before any open),
+  // and again by the root each time the drawer opens.
+  useLayoutEffect(() => {
+    directionSource.current =
+      dir === "rtl" || dir === "ltr"
+        ? () => dir === "rtl"
+        : () => isRtl(containerElement(container));
+    readDirection();
+  }, [dir, container, directionSource, readDirection]);
   return (
     <BaseDrawer.Portal container={container}>
       <BaseDrawer.Backdrop data-slot="drawer-backdrop" className={drawerBackdropClasses} />
       <BaseDrawer.Viewport data-slot="drawer-viewport">
         <BaseDrawer.Popup
           {...props}
-          ref={popupRef}
           aria-modal={modal !== false ? true : undefined}
           data-slot="drawer-content"
           data-side={side}

@@ -107,6 +107,34 @@ describe("Drawer logical sides and RTL", () => {
     },
   );
 
+  it.each([
+    ["the document", {}, "rtl"],
+    ["an explicit dir on the content", { dir: "rtl" }, "ltr"],
+  ] as const)(
+    "first open from a resolved start edge slides in from that edge (dir from %s)",
+    async (_source, content, docDir) => {
+      document.documentElement.dir = docDir;
+      await render(<Basic side="start" {...content} />);
+      // Sample the panel's left edge on every frame from the click until it settles. Sliding in
+      // from the right edge, it only ever moves left: a sample left of the final position means it
+      // started (or wandered) out of the wrong place.
+      const lefts: number[] = [];
+      let sampling = true;
+      const sample = () => {
+        const panel = document.querySelector("[role=dialog]");
+        if (panel) lefts.push(panel.getBoundingClientRect().left);
+        if (sampling) requestAnimationFrame(sample);
+      };
+      requestAnimationFrame(sample);
+      const popup = await openByClick();
+      sampling = false;
+      const settled = popup.getBoundingClientRect();
+      expect(Math.round(settled.right)).toBe(width());
+      expect(lefts.length).toBeGreaterThan(0);
+      for (const left of lefts) expect(left).toBeGreaterThanOrEqual(settled.left - 1);
+    },
+  );
+
   it("physical left and right stay physical under RTL", async () => {
     document.documentElement.dir = "rtl";
     await render(<Basic side="left" />);

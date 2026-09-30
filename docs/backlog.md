@@ -307,6 +307,9 @@ phase; items fixed by a later commit are left out).
   only on its next render (e.g. the next toggle) for the JS-driven parts: the mobile Drawer's side, the
   icon-mode tooltip side and the rail's resize cursor (`data-edge`). The desktop column, rail placement
   and off-canvas slide are CSS and follow at once.
+- Drawer direction (Phase I Task 0): `start` / `end` read the direction once per open, before the panel
+  mounts (an explicit `dir` on `DrawerContent`, else the portal container's). A runtime `dir` change while
+  the drawer is open is not reflected until it is reopened, like the Sidebar direction note above.
 - Dialog / AlertDialog: the close button is still physical (`right-4`), as Drawer's was before Phase I
   Task 0 made it `end-4`.
 - Dashboard tests (Task 5): the keyboard flow still clicks in places (the segments, the Period trigger and

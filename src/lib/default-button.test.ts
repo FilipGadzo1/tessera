@@ -73,6 +73,13 @@ describe("findDefaultButton", () => {
     expect(findDefaultButton(form)).toBeNull();
   });
 
+  it("works for a form that is not in the document (its root is a detached element)", () => {
+    const host = document.createElement("div");
+    host.innerHTML = `<form id="f"><input name="a" /><input id="image" type="image" alt="go" /><button id="b">b</button></form>`;
+    const form = host.querySelector("form") as HTMLFormElement;
+    expect(findDefaultButton(form)?.id).toBe("image");
+  });
+
   it("returns null when there is no submit button", () => {
     const form = mount(`<form id="f"><input name="a" /><button type="button">b</button></form>`);
     expect(findDefaultButton(form)).toBeNull();
