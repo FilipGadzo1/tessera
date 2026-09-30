@@ -15,7 +15,12 @@ import { cn } from "../../lib/cn";
 import { PanelLeftIcon } from "../../lib/icons";
 import { buttonVariants } from "../button/button-variants";
 import { Drawer, DrawerContent } from "../drawer";
-import { SidebarInstanceContext, type SidebarSide, useSidebarInternal } from "./sidebar-context";
+import {
+  physicalSide,
+  SidebarInstanceContext,
+  type SidebarSide,
+  useSidebarInternal,
+} from "./sidebar-context";
 import {
   sidebarColumnVariants,
   sidebarContainerVariants,
@@ -42,7 +47,11 @@ export type SidebarVariant = "sidebar" | "floating" | "inset";
 export type SidebarCollapsible = "offcanvas" | "icon" | "none";
 
 export interface SidebarProps extends ComponentProps<"aside"> {
-  /** The edge the sidebar sits on; the mobile Drawer slides in from it. @default "left" */
+  /**
+   * The edge the sidebar sits on in a left-to-right layout; the mobile Drawer slides in from it.
+   * It follows the writing direction: under `dir="rtl"`, `left` (the inline start) renders on the
+   * right, with its rail, off-canvas slide and Drawer mirrored. @default "left"
+   */
   side?: SidebarSide;
   /**
    * `sidebar`: a bordered column. `floating`: a card inset from the edges. `inset`: transparent
@@ -74,9 +83,10 @@ export function Sidebar({
   ref,
   ...props
 }: SidebarProps) {
-  const { state, isMobile, openMobile, setOpenMobile, sidebarId, setSidebarId, setStatic } =
+  const { state, isMobile, openMobile, setOpenMobile, sidebarId, setSidebarId, setStatic, rtl } =
     useSidebarInternal();
   const [railHost, setRailHost] = useState<HTMLDivElement | null>(null);
+  const edge = physicalSide(side, rtl);
 
   useEffect(() => {
     setSidebarId(id);
@@ -89,7 +99,7 @@ export function Sidebar({
   }, [collapsible, setStatic]);
 
   const content = (
-    <SidebarInstanceContext.Provider value={{ side, collapsible, railHost }}>
+    <SidebarInstanceContext.Provider value={{ side, edge, collapsible, railHost }}>
       {children}
     </SidebarInstanceContext.Provider>
   );
@@ -115,7 +125,8 @@ export function Sidebar({
 
   if (isMobile) {
     return (
-      <Drawer side={side} open={openMobile} onOpenChange={setOpenMobile}>
+      // The Drawer's `side` is physical: the edge the column would render on.
+      <Drawer side={edge} open={openMobile} onOpenChange={setOpenMobile}>
         <DrawerContent id={sidebarId} aria-label={ariaLabel} className={sidebarMobileClasses}>
           <div
             {...props}
@@ -137,12 +148,14 @@ export function Sidebar({
   const collapsed = state === "collapsed";
   // The rail's host: a zero-width, non-inert flex item on the column's inner edge (after a left
   // column, before a right one, which is `order-last` like the column), so the rail neither
-  // covers the panel's content nor goes inert with a collapsed off-canvas column.
+  // covers the panel's content nor goes inert with a collapsed off-canvas column. `data-edge` is
+  // the physical edge, for the rail's resize cursors.
   const railHostElement = (
     <div
       ref={setRailHost}
       data-slot="sidebar-rail-host"
       data-side={side}
+      data-edge={edge}
       data-state={state}
       className={sidebarRailHostClasses}
     />

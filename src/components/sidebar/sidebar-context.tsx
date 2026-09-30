@@ -9,25 +9,39 @@ import {
   useContext,
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { cn } from "../../lib/cn";
 import { useControllableState } from "../../lib/use-controllable-state";
 import { sidebarWrapperClasses } from "./sidebar-variants";
 
+/**
+ * The sidebar's edge in a left-to-right layout. It follows the writing direction, as the column
+ * does (an in-flow flex item): `left` is the inline start, so under `dir="rtl"` it is the right.
+ */
 export type SidebarSide = "left" | "right";
 
+/** The physical edge `side` renders on: flipped when the resolved direction is right-to-left. */
+export function physicalSide(side: SidebarSide, rtl: boolean): SidebarSide {
+  if (!rtl) return side;
+  return side === "left" ? "right" : "left";
+}
+
 /**
- * @internal The enclosing Sidebar's `side` (menu tooltips open away from it), `collapsible` (the
- * rail renders nothing when it is `"none"`) and the element the rail renders into: a zero-width
- * sibling on the column's edge, outside the clipped (and, collapsed off-canvas, inert) `aside`.
+ * @internal The enclosing Sidebar's `side`, the physical `edge` it renders on (menu tooltips open
+ * away from it), `collapsible` (the rail renders nothing when it is `"none"`) and the element the
+ * rail renders into: a zero-width sibling on the column's edge, outside the clipped (and,
+ * collapsed off-canvas, inert) `aside`.
  */
 export const SidebarInstanceContext = createContext<{
   side: SidebarSide;
+  edge: SidebarSide;
   collapsible: "offcanvas" | "icon" | "none";
   railHost: HTMLElement | null;
-}>({ side: "left", collapsible: "offcanvas", railHost: null });
+}>({ side: "left", edge: "left", collapsible: "offcanvas", railHost: null });
 
 /** Tailwind's `md` breakpoint: the desktop sidebar from here up, the mobile Drawer below it. */
 const DESKTOP_QUERY = "(min-width: 48rem)";
@@ -54,6 +68,11 @@ interface SidebarInternalValue {
   /** A `collapsible="none"` Sidebar registers here: there is nothing to toggle. */
   isStatic: boolean;
   setStatic: (isStatic: boolean) => void;
+  /**
+   * The provider row's resolved writing direction is right-to-left (read from the computed style,
+   * as Calendar does, so a `dir` on any ancestor counts).
+   */
+  rtl: boolean;
 }
 
 const SidebarContext = createContext<(SidebarContextValue & SidebarInternalValue) | null>(null);
@@ -75,6 +94,7 @@ export function useSidebar(): SidebarContextValue {
     setSidebarId: _setId,
     isStatic: _isStatic,
     setStatic: _setStatic,
+    rtl: _rtl,
     ...value
   } = useSidebarContext();
   return value;
@@ -129,6 +149,7 @@ export function SidebarProvider({
   className,
   style,
   children,
+  ref,
   ...props
 }: SidebarProviderProps) {
   const isMobile = !useMediaQuery(DESKTOP_QUERY, { defaultMatches: true });
@@ -138,6 +159,24 @@ export function SidebarProvider({
   const [customId, setSidebarId] = useState<string | undefined>(undefined);
   const sidebarId = customId ?? generatedId;
   const [isStatic, setStatic] = useState(false);
+
+  // The resolved direction, re-read after every render (it only re-renders on a change). The
+  // desktop column and rail follow it through CSS alone; the mobile Drawer (portalled out of the
+  // row) and the menu tooltips need the physical edge.
+  const [rtl, setRtl] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  useLayoutEffect(() => {
+    const element = wrapperRef.current;
+    if (element) setRtl(getComputedStyle(element).direction === "rtl");
+  });
+  const setWrapperRef = useCallback(
+    (element: HTMLDivElement | null) => {
+      wrapperRef.current = element;
+      if (typeof ref === "function") ref(element);
+      else if (ref) ref.current = element;
+    },
+    [ref],
+  );
 
   const setOpen = useCallback(
     (next: boolean) => {
@@ -184,14 +223,16 @@ export function SidebarProvider({
       setSidebarId,
       isStatic,
       setStatic,
+      rtl,
     }),
-    [open, setOpen, openMobile, isMobile, toggleSidebar, sidebarId, isStatic],
+    [open, setOpen, openMobile, isMobile, toggleSidebar, sidebarId, isStatic, rtl],
   );
 
   return (
     <SidebarContext.Provider value={value}>
       <div
         {...props}
+        ref={setWrapperRef}
         data-slot="sidebar-wrapper"
         style={
           {

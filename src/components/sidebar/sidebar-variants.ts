@@ -52,8 +52,11 @@ export const sidebarContainerVariants = cva(
   [
     "sticky top-0 flex h-svh max-h-full w-(--sidebar-width) shrink-0 flex-col",
     "group-data-[collapsible=icon]/sidebar:w-(--sidebar-icon-extent)",
-    "group-data-[collapsible=offcanvas]/sidebar:group-data-[side=left]/sidebar:-translate-x-full",
-    "group-data-[collapsible=offcanvas]/sidebar:group-data-[side=right]/sidebar:translate-x-full",
+    // Towards the column's outer edge: the start for `left`, the end for `right` (mirrored in RTL).
+    "group-data-[collapsible=offcanvas]/sidebar:group-data-[side=left]/sidebar:ltr:-translate-x-full",
+    "group-data-[collapsible=offcanvas]/sidebar:group-data-[side=left]/sidebar:rtl:translate-x-full",
+    "group-data-[collapsible=offcanvas]/sidebar:group-data-[side=right]/sidebar:ltr:translate-x-full",
+    "group-data-[collapsible=offcanvas]/sidebar:group-data-[side=right]/sidebar:rtl:-translate-x-full",
     `transition-[width,translate] ${widthMotion}`,
   ],
   {
@@ -112,15 +115,19 @@ export const sidebarRailHostClasses =
 
 /**
  * The rail: an 8px pointer-only hit area just outside the column's inner edge (over the page's
- * edge, not the sidebar's buttons or scrollbar). A 2px line on the edge shows on hover.
+ * edge, not the sidebar's buttons or scrollbar). A 2px line on the edge shows on hover. Placed
+ * with logical insets from the host, so it extends towards the page in either direction: a
+ * `left` column's host is after it (the rail starts there), a `right` one's before it (the rail
+ * ends there). The resize cursors point along the physical edge (`data-edge`).
  */
 export const sidebarRailClasses = cn(
   "absolute inset-y-0 flex w-2 cursor-pointer",
   "after:absolute after:inset-y-0 after:w-0.5 after:transition-[background-color] after:duration-150 motion-reduce:after:transition-none hover:after:bg-border forced-colors:hover:after:bg-[Highlight]",
-  "group-data-[side=left]/sidebar-rail:left-0 group-data-[side=left]/sidebar-rail:after:left-0 group-data-[side=left]/sidebar-rail:cursor-w-resize",
-  "group-data-[side=right]/sidebar-rail:right-0 group-data-[side=right]/sidebar-rail:after:right-0 group-data-[side=right]/sidebar-rail:cursor-e-resize",
-  "group-data-[side=left]/sidebar-rail:group-data-[state=collapsed]/sidebar-rail:cursor-e-resize",
-  "group-data-[side=right]/sidebar-rail:group-data-[state=collapsed]/sidebar-rail:cursor-w-resize",
+  "group-data-[side=left]/sidebar-rail:start-0 group-data-[side=left]/sidebar-rail:after:start-0",
+  "group-data-[side=right]/sidebar-rail:end-0 group-data-[side=right]/sidebar-rail:after:end-0",
+  "group-data-[edge=left]/sidebar-rail:cursor-w-resize group-data-[edge=right]/sidebar-rail:cursor-e-resize",
+  "group-data-[edge=left]/sidebar-rail:group-data-[state=collapsed]/sidebar-rail:cursor-e-resize",
+  "group-data-[edge=right]/sidebar-rail:group-data-[state=collapsed]/sidebar-rail:cursor-w-resize",
 );
 
 /** Hidden while collapsed to icons. */

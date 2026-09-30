@@ -526,8 +526,10 @@ source files automatically (build output + `"use client"` directive checks).
   sticky to the viewport, with `side` left/right, `variant` sidebar (bordered) / floating (a card) / inset (the
   page becomes a card) and `collapsible` offcanvas (slides out and is `inert`) / icon (a 3rem column of icons;
   menu buttons show their `tooltip`, labels stay in the accessible name) / none (static at every width; the
-  trigger and shortcut do nothing, so leave the trigger out). `side` is physical, as in shadcn: it is not
-  mirrored under `dir="rtl"`. Below `md` the same children open in a `Drawer` from `side`, named "Sidebar".
+  trigger and shortcut do nothing, so leave the trigger out). `side` names the edge in a left-to-right
+  layout and follows the writing direction: under `dir="rtl"`, `left` (the inline start) renders on the
+  right, and its rail, off-canvas slide, icon-mode tooltips and mobile Drawer mirror with it. Below `md`
+  the same children open in a `Drawer` from the column's edge, named "Sidebar".
   `SidebarTrigger` is a ghost icon button with `aria-expanded` / `aria-controls`; `SidebarRail` is a
   pointer-only 8px strip just outside the column's edge (over the page, never over the sidebar's buttons or
   scrollbar) that toggles, and reopens a collapsed off-canvas sidebar.

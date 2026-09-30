@@ -14,6 +14,7 @@ import {
   pressShortcut,
   rail,
   Shell,
+  type ShellProps,
   setupSidebarTests,
   trigger,
 } from "./sidebar.test-fixtures";
@@ -405,6 +406,99 @@ describe("rail", () => {
     const box = content.getBoundingClientRect();
     const hit = document.elementFromPoint(box.right - 1, box.bottom - 4);
     expect(hit && content.contains(hit)).toBe(true);
+  });
+});
+
+describe("RTL (`side` follows the writing direction: left is the start)", () => {
+  const Rtl = (props: ShellProps) => (
+    <div dir="rtl">
+      <Shell {...props} />
+    </div>
+  );
+  const main = () => document.querySelector<HTMLElement>("main") as HTMLElement;
+
+  it("the column sits at the start (right) for side=left, at the end (left) for side=right; the rail lies just outside its inner edge", async () => {
+    for (const side of ["left", "right"] as const) {
+      const screen = await render(<Rtl sidebar={{ side }} />);
+      const asideBox = (aside() as HTMLElement).getBoundingClientRect();
+      const railBox = (rail() as HTMLElement).getBoundingClientRect();
+      const mainBox = main().getBoundingClientRect();
+      if (side === "left") {
+        expect(asideBox.left, side).toBeGreaterThanOrEqual(mainBox.right);
+        expect(railBox.right, side).toBe(asideBox.left);
+      } else {
+        expect(asideBox.right, side).toBeLessThanOrEqual(mainBox.left);
+        expect(railBox.left, side).toBe(asideBox.right);
+      }
+      await screen.unmount();
+    }
+  });
+
+  it.each([
+    ["expanded", true],
+    ["icon", false],
+  ] as const)("the rail does not cover the menu buttons' inner end (%s)", async (_mode, open) => {
+    await render(<Rtl provider={{ defaultOpen: open }} sidebar={{ collapsible: "icon" }} />);
+    await expect.poll(() => inner()?.clientWidth).toBe(open ? 255 : 48);
+    const button = page.getByRole("button", { name: "Ada Lovelace" }).element();
+    const box = button.getBoundingClientRect();
+    const hit = document.elementFromPoint(box.left + 1, box.top + box.height / 2);
+    expect(hit && button.contains(hit)).toBe(true);
+  });
+
+  it("the rail does not cover the content's scrollbar area (the inner edge, left in RTL)", async () => {
+    await render(<Rtl />);
+    const content = document.querySelector<HTMLElement>(
+      "[data-slot=sidebar-content]",
+    ) as HTMLElement;
+    const box = content.getBoundingClientRect();
+    const hit = document.elementFromPoint(box.left + 1, box.bottom - 4);
+    expect(hit && content.contains(hit)).toBe(true);
+  });
+
+  it("clicking the rail toggles; collapsed off-canvas the panel slides out past the outer (right) edge", async () => {
+    await render(<Rtl />);
+    await userEvent.click(rail() as HTMLElement);
+    await expect.poll(() => aside()?.getAttribute("data-state")).toBe("collapsed");
+    await expect.poll(() => aside()?.getBoundingClientRect().width).toBe(0);
+    const container = inner()?.parentElement as HTMLElement;
+    await expect
+      .poll(() => container.getBoundingClientRect().left)
+      .toBeGreaterThanOrEqual((aside() as HTMLElement).getBoundingClientRect().right);
+    await userEvent.click(rail() as HTMLElement);
+    await expect.poll(() => aside()?.getAttribute("data-state")).toBe("expanded");
+  });
+
+  it("icon-mode tooltips open away from the column (to the left of a side=left column)", async () => {
+    await render(<Rtl provider={{ defaultOpen: false }} sidebar={{ collapsible: "icon" }} />);
+    const button = page.getByRole("button", { name: "Settings" });
+    await userEvent.hover(button);
+    const tooltip = page.getByRole("tooltip", { name: "Settings" });
+    await expect.element(tooltip).toBeVisible();
+    expect(tooltip.element().getBoundingClientRect().right).toBeLessThanOrEqual(
+      button.element().getBoundingClientRect().left,
+    );
+  });
+
+  describe("mobile", () => {
+    beforeEach(async () => {
+      await page.viewport(390, 800);
+    });
+
+    it.each([
+      ["left", "right"],
+      ["right", "left"],
+    ] as const)("side=%s opens the Drawer from the column's own side (%s)", async (side, edge) => {
+      await render(<Rtl sidebar={{ side }} />);
+      await userEvent.click(trigger());
+      const drawer = page.getByRole("dialog", { name: "Sidebar" });
+      await expect.element(drawer).toBeVisible();
+      const popup = drawer.element() as HTMLElement;
+      await waitForPopupSettled(popup);
+      const box = popup.getBoundingClientRect();
+      if (edge === "right") expect(Math.round(box.right)).toBe(390);
+      else expect(Math.round(box.left)).toBe(0);
+    });
   });
 });
 

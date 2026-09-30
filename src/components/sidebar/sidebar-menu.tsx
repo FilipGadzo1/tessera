@@ -75,7 +75,8 @@ export function SidebarMenuButton({
   ...props
 }: SidebarMenuButtonProps) {
   const { state, isMobile } = useSidebar();
-  const { side } = useContext(SidebarInstanceContext);
+  // The physical edge the column renders on (mirrored in RTL): the tooltip opens away from it.
+  const { edge } = useContext(SidebarInstanceContext);
   const classes = cn(sidebarMenuButtonVariants({ size }), className);
   const shared = {
     ...props,
@@ -103,7 +104,7 @@ export function SidebarMenuButton({
   return (
     <Tooltip disabled={state !== "collapsed" || isMobile}>
       <TooltipTrigger render={element} />
-      <TooltipContent side={side === "right" ? "left" : "right"} align="center" {...content} />
+      <TooltipContent side={edge === "right" ? "left" : "right"} align="center" {...content} />
     </Tooltip>
   );
 }
