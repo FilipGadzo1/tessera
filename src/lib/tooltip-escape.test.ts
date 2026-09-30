@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { registerOpenTooltip, yieldEscapeToTooltip } from "./tooltip-escape";
+import { claimEscape, registerOpenTooltip, yieldEscapeToTooltip } from "./tooltip-escape";
 
 function details(event: Event, reason = "escape-key") {
   let canceled = false;
@@ -64,6 +64,24 @@ describe("yieldEscapeToTooltip", () => {
     const next = escapeKeydown();
     document.body.dispatchEvent(next);
     expect(yieldEscapeToTooltip(false, details(next))).toBe(false);
+  });
+
+  it("cancels an Escape close claimed by an inner widget, and allows propagation", () => {
+    const event = escapeKeydown();
+    claimEscape(event);
+    const d = details(event);
+    expect(yieldEscapeToTooltip(false, d)).toBe(true);
+    expect(d.isCanceled).toBe(true);
+    expect(d.isPropagationAllowed).toBe(true);
+    // Only that event: another Escape closes normally.
+    expect(yieldEscapeToTooltip(false, details(escapeKeydown()))).toBe(false);
+  });
+
+  it("a claimed event only affects Escape closes", () => {
+    const event = escapeKeydown();
+    claimEscape(event);
+    expect(yieldEscapeToTooltip(false, details(event, "outside-press"))).toBe(false);
+    expect(yieldEscapeToTooltip(true, details(event))).toBe(false);
   });
 
   it("forgets the recorded Escape once it has finished dispatching", async () => {

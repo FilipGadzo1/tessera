@@ -19,6 +19,7 @@ import { cn } from "../../lib/cn";
 import { SearchIcon } from "../../lib/icons";
 import { mergeClassName } from "../../lib/merge-class-name";
 import { menuItemBase } from "../../lib/overlay-classes";
+import { claimEscape } from "../../lib/tooltip-escape";
 import { useControllableState } from "../../lib/use-controllable-state";
 import {
   comboboxEmptyBase,
@@ -191,20 +192,13 @@ export interface CommandInputProps extends Omit<BaseAutocomplete.Input.Props, "v
   wrapperClassName?: string;
 }
 
-/*
- * The Escape keydowns that cleared a query. Nothing stops them (the `tooltip-escape.ts` contract:
- * an app's own listeners still receive Escape); `CommandDialog` instead cancels its Escape close
- * for an event recorded here, as `yieldEscapeToTooltip` does for tooltips. A WeakSet, so a
- * recorded event is released with it.
- */
-const queryClearingEscapes = new WeakSet<Event>();
-
 /**
  * The search row: a leading search icon and the input (`role="combobox"`, named by the Command's
  * `label`), above a hairline. The row shows the focus ring, inset, with the container's rounded
- * top corners. Escape (with or without modifiers) clears a non-empty query; the event still
- * propagates, and an enclosing `CommandDialog` stays open until the next Escape. Home/End move the
- * highlight to the first/last item, not the caret (Base UI's inline list navigation).
+ * top corners. Escape (with or without modifiers) clears a filtering query and claims the event
+ * (`claimEscape`), so an enclosing Tessera overlay (CommandDialog, Dialog, Popover, Drawer, …)
+ * stays open until the next Escape; the event still propagates. Home/End move the highlight to the
+ * first/last item, not the caret (Base UI's inline list navigation).
  */
 export function CommandInput({
   wrapperClassName,
@@ -217,10 +211,12 @@ export function CommandInput({
   const handleKeyDown: CommandInputProps["onKeyDown"] = (event) => {
     onKeyDown?.(event);
     if (event.defaultPrevented || event.nativeEvent.isComposing) return;
-    if (event.key === "Escape" && query !== "") {
-      queryClearingEscapes.add(event.nativeEvent);
-      setQuery("");
-    }
+    if (event.key !== "Escape" || query === "") return;
+    // "Filtering" means a non-empty trimmed query, as for the items and `CommandSeparator`: only
+    // then does Escape consume itself. A whitespace-only query filters nothing; it is cleared too,
+    // but the Escape also closes an enclosing overlay.
+    if (query.trim() !== "") claimEscape(event.nativeEvent);
+    setQuery("");
   };
   return (
     <div
@@ -402,6 +398,7 @@ export type CommandSeparatorProps = BaseAutocomplete.Separator.Props;
  */
 export function CommandSeparator({ className, ...props }: CommandSeparatorProps) {
   const { query } = useCommandContext("CommandSeparator");
+  // Hidden while filtering: a non-empty trimmed query, the same rule as the items and Escape.
   if (query.trim() !== "") return null;
   return (
     <BaseAutocomplete.Separator
@@ -587,22 +584,9 @@ export function CommandDialog({
   }, [shortcut]);
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(next, eventDetails) => {
-        // The Escape that cleared the query only clears it (see `queryClearingEscapes`).
-        if (
-          !next &&
-          eventDetails.reason === "escape-key" &&
-          queryClearingEscapes.has(eventDetails.event)
-        ) {
-          eventDetails.cancel();
-          eventDetails.allowPropagation();
-          return;
-        }
-        setOpen(next);
-      }}
-    >
+    // Tessera's Dialog wraps `onOpenChange` in `useLayeredEscape`, which cancels the Escape close
+    // that `CommandInput` claimed while clearing the query.
+    <Dialog open={open} onOpenChange={(next) => setOpen(next)}>
       <DialogContent
         ref={popupRef}
         showCloseButton={false}
@@ -612,9 +596,9 @@ export function CommandDialog({
         className={cn("gap-0 overflow-hidden p-0 sm:max-w-lg", contentClassName)}
       >
         <DialogTitle className="sr-only">{title}</DialogTitle>
-        {description != null && (
+        {description ? (
           <DialogDescription className="sr-only">{description}</DialogDescription>
-        )}
+        ) : null}
         <CommandRunContext.Provider value={() => setOpen(false)}>
           {/*
            * The Command takes the popup's own radius: at least the radius of the popup's padding

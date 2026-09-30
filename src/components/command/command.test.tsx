@@ -5,6 +5,8 @@ import { render } from "vitest-browser-react";
 import { emulateForcedColors, resetEmulatedMedia, systemColor } from "../../../test/emulation";
 import { auditOpenOverlay, waitForPopupSettled } from "../../../test/overlay";
 import { Button } from "../button";
+import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from "../drawer";
+import { Popover, PopoverContent, PopoverTrigger } from "../popover";
 import {
   Command,
   CommandDialog,
@@ -436,6 +438,49 @@ describe("Command", () => {
   });
 });
 
+describe("Command inside an overlay", () => {
+  it.each(["Popover", "Drawer"] as const)(
+    "in a %s, the first Escape clears the query and keeps it open, the second closes it",
+    async (kind) => {
+      const trigger = `Open ${kind.toLowerCase()}`;
+      await render(
+        kind === "Popover" ? (
+          <Popover>
+            <PopoverTrigger render={<Button variant="outline" />}>{trigger}</PopoverTrigger>
+            <PopoverContent>
+              <Palette />
+            </PopoverContent>
+          </Popover>
+        ) : (
+          <Drawer>
+            <DrawerTrigger render={<Button variant="outline" />}>{trigger}</DrawerTrigger>
+            <DrawerContent>
+              <DrawerTitle>Commands</DrawerTitle>
+              <Palette />
+            </DrawerContent>
+          </Drawer>
+        ),
+      );
+      await userEvent.click(page.getByRole("button", { name: trigger }));
+      const surface = () =>
+        document.querySelector<HTMLElement>(
+          kind === "Popover" ? "[data-slot=popover-content]" : "[data-slot=drawer-content]",
+        );
+      await expect.poll(() => surface() !== null).toBe(true);
+      await waitForPopupSettled(surface() as HTMLElement);
+      await userEvent.click(input());
+      await userEvent.keyboard("bil");
+      await expect.poll(() => input().value).toBe("bil");
+      await userEvent.keyboard("{Escape}");
+      await expect.poll(() => input().value).toBe("");
+      expect(surface()?.hasAttribute("data-ending-style")).toBe(false);
+      expect(surface()?.hasAttribute("data-closed")).toBe(false);
+      await userEvent.keyboard("{Escape}");
+      await expect.poll(surface).toBeNull();
+    },
+  );
+});
+
 describe("CommandDialog", () => {
   it("opens with the shortcut, names the dialog and focuses the input", async () => {
     await render(<DialogPalette />);
@@ -530,6 +575,13 @@ describe("CommandDialog", () => {
     await expect
       .element(page.getByRole("dialog", { name: "Command menu" }))
       .toHaveAccessibleDescription("Search for a command to run.");
+  });
+
+  it("renders no description for an empty description", async () => {
+    await render(<DialogPalette description="" />);
+    await openDialogByButton();
+    expect(document.querySelector("[data-slot=dialog-description]")).toBeNull();
+    expect(dialog().element().hasAttribute("aria-describedby")).toBe(false);
   });
 
   it("a custom shortcut opens it", async () => {
