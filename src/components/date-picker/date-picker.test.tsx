@@ -407,6 +407,40 @@ describe("DatePicker: popup", () => {
     await expect.poll(() => document.activeElement).toBe(triggerEl());
   });
 
+  it("Escape in the month view is claimed, not stopped: a document listener still receives it and the overlays stay open", async () => {
+    const escapes: Event[] = [];
+    const listener = (event: KeyboardEvent) => {
+      if (event.key === "Escape") escapes.push(event);
+    };
+    document.addEventListener("keydown", listener);
+    try {
+      await render(
+        <Dialog defaultOpen>
+          <DialogContent>
+            <DialogTitle>Schedule</DialogTitle>
+            <DatePicker aria-label="Publish on" locale="en-US" defaultValue={d(2026, 9, 10)} />
+          </DialogContent>
+        </Dialog>,
+      );
+      const outer = page.getByRole("dialog", { name: "Schedule" });
+      await expect.element(outer).toBeVisible();
+      await userEvent.click(triggerEl());
+      const calendar = page.getByRole("dialog", { name: "Choose date" });
+      await expect.element(calendar).toBeVisible();
+      await expect.poll(focusedDayLabel).toBe(fullDate(d(2026, 9, 10)));
+      await userEvent.click(page.getByRole("button", { name: "Choose month, September 2026" }));
+      await expect.element(page.getByRole("grid", { name: /^Months/ })).toBeVisible();
+      await userEvent.keyboard("{Escape}");
+      await expect.element(page.getByRole("grid", { name: "September 2026" })).toBeVisible();
+      expect(escapes).toHaveLength(1);
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      await expect.element(calendar).toBeVisible();
+      await expect.element(outer).toBeVisible();
+    } finally {
+      document.removeEventListener("keydown", listener);
+    }
+  });
+
   it("picks a far-away date through the year and month views, the popup staying put", async () => {
     const onValueChange = vi.fn();
     await render(<Picker onValueChange={onValueChange} />);

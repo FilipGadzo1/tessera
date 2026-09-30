@@ -30,6 +30,7 @@ import {
   type WeekDay,
 } from "../../lib/date";
 import { isRtl } from "../../lib/direction";
+import { claimEscape } from "../../lib/tooltip-escape";
 import {
   type CalendarDayState,
   calendarCaptionClasses,
@@ -381,10 +382,11 @@ export function CalendarBase({
   const onRootKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     onKeyDown?.(event);
     if (event.key !== "Escape" || view.kind === "day" || event.defaultPrevented) return;
-    // Escape steps back to the days; it must not reach a surrounding Popover (Base UI dismisses
-    // on a document keydown listener), so stop it here.
+    // Escape steps back to the days. It is claimed, not stopped (src/lib/tooltip-escape.ts): an
+    // enclosing Tessera overlay (the picker's Popover, a Dialog) cancels its Escape close for this
+    // event, and an app's own keydown listeners still receive it.
     event.preventDefault();
-    event.stopPropagation();
+    claimEscape(event.nativeEvent);
     closeView(tabStop);
   };
 

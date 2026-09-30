@@ -257,7 +257,7 @@ describe("Calendar views: month view", () => {
     expect(focusedLabel()).toBe("October 2026");
   });
 
-  it("Escape returns to the day view with focus on the day that had the Tab stop, and stops the event", async () => {
+  it("Escape returns to the day view with focus on the day that had the Tab stop, and claims (does not stop) the event", async () => {
     const screen = await render(<Calendar locale="en-US" defaultValue={d(2026, 9, 3)} />);
     await monthButton().click();
     await userEvent.keyboard("{ArrowRight}{ArrowRight}");
@@ -271,8 +271,8 @@ describe("Calendar views: month view", () => {
     } finally {
       document.removeEventListener("keydown", record);
     }
-    // Propagation stopped before the document (where Base UI's dismiss listens).
-    expect(seen).toEqual([]);
+    // It reaches the document, consumed (default prevented, and claimed for the Tessera overlays).
+    expect(seen).toEqual([true]);
     await expect.element(screen.getByRole("grid", { name: "September 2026" })).toBeVisible();
     expect(focusedLabel()).toBe(fullDate(d(2026, 9, 3)));
     // In the day view Escape is left alone.
@@ -282,7 +282,7 @@ describe("Calendar views: month view", () => {
     } finally {
       document.removeEventListener("keydown", record);
     }
-    expect(seen).toEqual([false]);
+    expect(seen).toEqual([true, false]);
   });
 
   it("the header year button goes on to the year view", async () => {
