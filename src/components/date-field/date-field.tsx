@@ -338,6 +338,14 @@ export function DateField({
     }
   };
 
+  // Enter's form submit, after the render that reports a held year (the Form reads the registered
+  // value, and the custom validity is set in a layout effect, both before this effect runs).
+  const [submitRequest, setSubmitRequest] = useState(0);
+  useEffect(() => {
+    if (submitRequest === 0) return;
+    rootRef.current?.closest("form")?.requestSubmit();
+  }, [submitRequest]);
+
   const segmentElements = () => [
     ...(rootRef.current?.querySelectorAll<HTMLElement>(segmentSelector) ?? []),
   ];
@@ -409,26 +417,22 @@ export function DateField({
         return;
       case "Delete":
         return clear(type);
+      case "Enter":
+        // Submits the enclosing form, as Enter in a text input does (read-only returned above).
+        // A year still being typed is reported first; the submit waits for that render.
+        if (heldRef.current) commit(segments);
+        setSubmitRequest((count) => count + 1);
+        return;
     }
     const digit = parseDigit(key, intl.digits);
     if (digit !== null) typeInto(type, index, digit);
     else if (literalKeys.has(key)) focusSegment(index + 1);
   };
 
-  // Mobile keyboards send "Unidentified" keydowns and deliver the text through `beforeinput`
-  // instead; handle that too, and never let it edit the DOM React renders.
-  const beforeInputRef = useRef<(event: InputEvent) => void>(() => {});
-  beforeInputRef.current = (event: InputEvent) => {
-    event.preventDefault();
-    const target = (event.target as HTMLElement).closest<HTMLElement>(segmentSelector);
-    if (!editable || !target) return;
+  /** Types the first character of `data` into `target`'s segment (a digit, or a separator). */
+  const typeText = (target: HTMLElement, data: string) => {
     const type = target.dataset.type as DateSegmentType;
     const index = segmentTypes.indexOf(type);
-    if (event.inputType.startsWith("delete")) {
-      clear(type);
-      return;
-    }
-    const data = event.data ?? "";
     // One character per event in practice; the first one wins (focus may move after it).
     const char = [...data][0];
     if (char === undefined) return;
@@ -436,12 +440,61 @@ export function DateField({
     if (digit !== null) typeInto(type, index, digit);
     else if (literalKeys.has(char)) focusSegment(index + 1);
   };
+  // An IME composition (e.g. full-width digits from a Japanese IME) edits the DOM through
+  // `beforeinput` events that cannot be cancelled. As React Aria's date segments do, they are
+  // ignored while composing; on `compositionend` the segment's text is put back to what React
+  // rendered (React owns that text node), then the committed text is typed.
+  const compositionRef = useRef<{ node: Node | null; text: string | null } | null>(null);
+  const nativeHandlersRef = useRef({
+    beforeinput: (_event: InputEvent) => {},
+    compositionstart: (_event: CompositionEvent) => {},
+    compositionend: (_event: CompositionEvent) => {},
+  });
+  nativeHandlersRef.current = {
+    // Mobile keyboards send "Unidentified" keydowns and deliver the text through `beforeinput`
+    // instead; handle that too, and never let it edit the DOM React renders.
+    beforeinput: (event) => {
+      if (event.isComposing || event.inputType.includes("Composition")) return;
+      event.preventDefault();
+      const target = (event.target as HTMLElement).closest<HTMLElement>(segmentSelector);
+      if (!editable || !target) return;
+      if (event.inputType.startsWith("delete")) {
+        clear(target.dataset.type as DateSegmentType);
+        return;
+      }
+      typeText(target, event.data ?? "");
+    },
+    compositionstart: (event) => {
+      const target = (event.target as HTMLElement).closest<HTMLElement>(segmentSelector);
+      const node = target?.firstChild ?? null;
+      compositionRef.current = { node, text: node?.nodeValue ?? null };
+    },
+    compositionend: (event) => {
+      const target = (event.target as HTMLElement).closest<HTMLElement>(segmentSelector);
+      const saved = compositionRef.current;
+      compositionRef.current = null;
+      if (!target) return;
+      if (saved?.node) {
+        saved.node.nodeValue = saved.text;
+        target.replaceChildren(saved.node);
+      }
+      if (editable) typeText(target, event.data);
+    },
+  };
   useEffect(() => {
     const element = rootRef.current;
     if (!element) return;
-    const listener = (event: InputEvent) => beforeInputRef.current(event);
-    element.addEventListener("beforeinput", listener);
-    return () => element.removeEventListener("beforeinput", listener);
+    const onBeforeInput = (event: InputEvent) => nativeHandlersRef.current.beforeinput(event);
+    const onStart = (event: CompositionEvent) => nativeHandlersRef.current.compositionstart(event);
+    const onEnd = (event: CompositionEvent) => nativeHandlersRef.current.compositionend(event);
+    element.addEventListener("beforeinput", onBeforeInput);
+    element.addEventListener("compositionstart", onStart);
+    element.addEventListener("compositionend", onEnd);
+    return () => {
+      element.removeEventListener("beforeinput", onBeforeInput);
+      element.removeEventListener("compositionstart", onStart);
+      element.removeEventListener("compositionend", onEnd);
+    };
   }, []);
 
   // A FieldLabel has no `for` (the group isn't labelable): clicking it focuses the first empty

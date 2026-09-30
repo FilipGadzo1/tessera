@@ -1,7 +1,7 @@
 import axe from "axe-core";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { cdp, page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { emulateForcedColors, systemColor } from "../../../test/emulation";
 import { Field, FieldDescription, FieldLabel } from "../field";
@@ -303,6 +303,65 @@ describe("DateField: typing", () => {
     // Letters never reach the DOM.
     expect(input("insertText", "x").defaultPrevented).toBe(true);
     expect(seg("day").textContent).toBe("dd");
+  });
+
+  it("types full-width digits from a composing IME (real CDP composition) and keeps the rendered text", async () => {
+    const onValueChange = vi.fn();
+    await render(<Basic defaultValue={d(2026, 9, 25)} onValueChange={onValueChange} />);
+    await userEvent.click(seg("month"));
+    // A Japanese IME in full-width mode: "４" is composed (underlined), then committed.
+    await cdp().send("Input.imeSetComposition", {
+      text: "４",
+      selectionStart: 1,
+      selectionEnd: 1,
+    });
+    await cdp().send("Input.insertText", { text: "４" });
+    await expect.poll(focusedType).toBe("day");
+    expect(onValueChange).toHaveBeenLastCalledWith(d(2026, 4, 25));
+    // The composition's DOM edit is undone: the segments show only what React rendered.
+    expect(texts()).toEqual(["04", "25", "2026"]);
+    await userEvent.keyboard("{ArrowUp}");
+    expect(texts()).toEqual(["04", "26", "2026"]);
+    // A composed letter changes nothing, and leaves no text behind.
+    await cdp().send("Input.imeSetComposition", {
+      text: "あ",
+      selectionStart: 1,
+      selectionEnd: 1,
+    });
+    await cdp().send("Input.insertText", { text: "あ" });
+    await expect.poll(() => texts()).toEqual(["04", "26", "2026"]);
+    expect(focusedType()).toBe("day");
+    expect(onValueChange).toHaveBeenLastCalledWith(d(2026, 4, 26));
+  });
+
+  it("Enter submits the enclosing form (a year still being typed is reported first); read-only does not", async () => {
+    const submitted: (string | null)[] = [];
+    await render(
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          submitted.push(new FormData(event.currentTarget).get("due") as string | null);
+        }}
+      >
+        <Basic name="due" />
+        <DateField aria-label="Locked" locale="en-US" readOnly defaultValue={d(2026, 1, 1)} />
+      </form>,
+    );
+    await userEvent.click(seg("month"));
+    await type("09012026");
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(() => submitted).toEqual(["2026-09-01"]);
+    // A held year ("20" of "20xx") is committed before the submit reads the value.
+    await userEvent.keyboard("{Backspace}");
+    await type("20");
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(() => submitted).toEqual(["2026-09-01", "0020-09-01"]);
+    // Read-only: Enter does nothing (the next submit is the editable field's).
+    await userEvent.click(page.getByRole("spinbutton", { name: /^month Locked/ }));
+    await userEvent.keyboard("{Enter}");
+    await userEvent.click(seg("day"));
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(() => submitted.length).toBe(3);
   });
 
   it("ignores letters", async () => {

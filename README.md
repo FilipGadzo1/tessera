@@ -469,7 +469,9 @@ source files automatically (build output + `"use client"` directive checks).
   followed by the value ("Due date Sep 25, 2026"), the description describes it, and invalid /
   disabled apply. In a `Form` it validates like Select (Base UI's hidden-input recipe): `required`,
   Field `validate` (it gets the `Date`), a value outside `min` / `max` or on a disabled day
-  ("Enter a date on or after Sep 1, 2026."), `errors[name]`, and an invalid submit focuses the
+  ("Enter a date on or after Sep 1, 2026."; the date family's one rule: such a value is marked
+  invalid at once, in every mode and in DateField, while a missing or partial value waits for
+  validation), `errors[name]`, and an invalid submit focuses the
   trigger; `onFormSubmit` reports `YYYY-MM-DD` (`""` when empty). The custom validity also blocks a
   native `<form>` submit outside a Form. The trigger and popup are one blur boundary for
   `validationMode="onBlur"` (and Field `touched`): a blur is focus landing outside both, so
@@ -502,8 +504,9 @@ source files automatically (build output + `"use client"` directive checks).
   year is reported once its four digits are in or on blur), ↑/↓ step with wrap (an empty segment
   starts at today's), PageUp/PageDown step month 1 / day 7 / year 10, Home/End jump to the
   bounds, Backspace/Delete clear (Backspace on an empty segment goes back), ←/→ (flipped in RTL)
-  and Tab move, the separator key advances, and pasting a locale-formatted or ISO date fills every
-  segment. `value` / `defaultValue` / `onValueChange` (a `Date` once all segments form a valid
+  and Tab move, the separator key advances, Enter submits the enclosing form (not when read-only),
+  and pasting a locale-formatted or ISO date fills every segment. Full-width digits (a CJK IME's
+  ０–９) type like ASCII ones; an IME composition is ignored until it commits, then its text is typed. `value` / `defaultValue` / `onValueChange` (a `Date` once all segments form a valid
   day, `null` when a complete date is cleared; partial input never reports), `min` / `max` /
   `isDateDisabled` (outside them it is invalid, not blocked), `locale`, `disabled`, `readOnly`,
   `required`, `name` (submits `YYYY-MM-DD`), `size`, `labels` (segment names, "Empty", validation

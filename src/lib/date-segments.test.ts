@@ -187,6 +187,16 @@ describe("parseDigit", () => {
     expect(parseDigit("a", en)).toBeNull();
     expect(parseDigit("12", en)).toBeNull();
   });
+
+  it("accepts full-width digits (U+FF10–FF19, a CJK IME's output) in every locale", () => {
+    const en = getLocaleDigits("en-US");
+    const ja = getLocaleDigits("ja-JP");
+    expect(parseDigit("０", en)).toBe(0);
+    expect(parseDigit("７", en)).toBe(7);
+    expect(parseDigit("９", ja)).toBe(9);
+    expect(parseDigit("／", ja)).toBeNull();
+    expect(parseDateString("９/２５/２０２６", "en-US")).toEqual(d(2026, 9, 25));
+  });
 });
 
 describe("parseDateString", () => {

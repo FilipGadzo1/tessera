@@ -142,6 +142,11 @@ interface PickerShellProps extends PickerTriggerProps {
   /** Extra native inputs (DateRangePicker's named start / end). */
   hiddenInputs?: ReactNode;
   /**
+   * The value (an end, for a range) is outside `min` / `max` or on a disabled day: shown invalid at
+   * once, the date family's one rule (as DateField), not only after validation.
+   */
+  outOfRange: boolean;
+  /**
    * Renders the calendar: `close` asks to close the popup (focus returns to the trigger), `open`
    * is the effective open state (controlled or not).
    */
@@ -159,6 +164,7 @@ function PickerShell({
   dialogLabel,
   formControl: formControlOptions,
   hiddenInputs,
+  outOfRange,
   renderCalendar,
   disabled,
   required,
@@ -196,7 +202,7 @@ function PickerShell({
   };
 
   const isDisabled = !!disabled || field.state.disabled;
-  const invalid = field.state.valid === false;
+  const invalid = field.state.valid === false || outOfRange;
   const formControl = useDateFormControl({
     ...formControlOptions,
     required,
@@ -498,24 +504,26 @@ export function DatePicker({
     );
   }
 
+  const rangeMessage = dateValidationMessage(
+    value,
+    { min, max, isDateDisabled },
+    labels,
+    resolvedLocale,
+  );
   return (
     <PickerShell
       {...(props as PickerTriggerProps)}
       text={value ? formatter.format(value) : null}
       placeholder={placeholder}
       dialogLabel={labels?.dialog ?? "Choose date"}
+      outOfRange={rangeMessage !== ""}
       formControl={{
         value,
         inputValue: iso,
         formValue: iso,
         name: name ?? field.name,
         registrationName: name,
-        customValidity: dateValidationMessage(
-          value,
-          { min, max, isDateDisabled },
-          labels,
-          resolvedLocale,
-        ),
+        customValidity: rangeMessage,
       }}
       renderCalendar={(close) => (
         <Calendar
@@ -627,12 +635,15 @@ export function DateRangePicker({
   const startISO = start ? toISODate(start) : "";
   const endISO = end ? toISODate(end) : "";
   const bounds = { min, max, isDateDisabled };
-  // Only the ends are checked (a range may span disabled days); a lone start is incomplete.
+  // Only the ends are checked (a range may span disabled days); a lone start is incomplete (shown
+  // at validation time only, as DateField's partial input).
+  const rangeMessage =
+    dateValidationMessage(start, bounds, labels, resolvedLocale) ||
+    dateValidationMessage(end, bounds, labels, resolvedLocale);
   const customValidity =
     (start && !end) || (!start && end)
       ? (labels?.incomplete ?? "Choose both a start and an end date.")
-      : dateValidationMessage(start, bounds, labels, resolvedLocale) ||
-        dateValidationMessage(end, bounds, labels, resolvedLocale);
+      : rangeMessage;
 
   return (
     <PickerShell
@@ -640,6 +651,7 @@ export function DateRangePicker({
       text={text}
       placeholder={placeholder}
       dialogLabel={labels?.dialog ?? "Choose date range"}
+      outOfRange={rangeMessage !== ""}
       // One Field control (a Field registers one): the validating input holds the ISO interval
       // ("start/end", empty until both are set, so `required` needs both), `onFormSubmit` gets
       // `{ start, end }` under the Field's name, and the named inputs keep native FormData.

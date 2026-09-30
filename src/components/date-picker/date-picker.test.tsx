@@ -508,6 +508,52 @@ describe("DatePicker: forms and Field", () => {
     expect(data.get("due")).toBe("");
   });
 
+  it("the date family's one invalid rule: a value outside min / max or on a disabled day shows invalid at once, in every mode", async () => {
+    await render(
+      <div className="flex flex-col gap-2 p-16">
+        <DatePicker
+          aria-label="Button"
+          locale="en-US"
+          defaultValue={d(2026, 9, 25)}
+          max={d(2026, 9, 1)}
+        />
+        <DatePicker
+          aria-label="Disabled day"
+          locale="en-US"
+          defaultValue={d(2026, 9, 25)}
+          isDateDisabled={(date) => date.getDate() === 25}
+        />
+        <DatePicker aria-label="In range" locale="en-US" defaultValue={d(2026, 9, 25)} />
+        <DatePicker
+          editable
+          aria-label="Editable"
+          locale="en-US"
+          defaultValue={d(2026, 9, 25)}
+          max={d(2026, 9, 1)}
+        />
+        <DateRangePicker
+          aria-label="Range"
+          locale="en-US"
+          defaultValue={{ start: d(2026, 9, 2), end: d(2026, 9, 25) }}
+          max={d(2026, 9, 10)}
+        />
+      </div>,
+    );
+    const byName = (name: string) =>
+      document.querySelector(
+        `button[data-slot=date-picker-trigger][aria-label="${name}"]`,
+      ) as HTMLElement;
+    for (const name of ["Button", "Disabled day", "Range"]) {
+      const trigger = byName(name);
+      expect(trigger.getAttribute("aria-invalid"), name).toBe("true");
+      expect(trigger.hasAttribute("data-invalid"), name).toBe(true);
+    }
+    expect(byName("In range").hasAttribute("aria-invalid")).toBe(false);
+    expect(byName("In range").hasAttribute("data-invalid")).toBe(false);
+    const group = page.getByRole("group", { name: "Editable" }).element();
+    expect(group.hasAttribute("data-invalid")).toBe(true);
+  });
+
   it("in Field: the label (plus the value) names the trigger, the description describes it, invalid shows the danger border", async () => {
     const screen = await render(
       <div className="p-16">

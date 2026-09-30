@@ -112,6 +112,15 @@ describe("DashboardPage example", () => {
       .toHaveTextContent("Filtered: From 2026-09-01 · Period 2026-09-01 – 2026-09-30");
   });
 
+  it("Enter in the typed date submits the filter Form", async () => {
+    await render(<DashboardPage />);
+    await userEvent.click(segment("month") as HTMLElement);
+    await type("09012026");
+    await expect.poll(() => segment("year")?.textContent).toBe("2026");
+    await userEvent.keyboard("{Enter}");
+    await expect.element(page.getByRole("status")).toHaveTextContent("Filtered: From 2026-09-01");
+  });
+
   it("the editable DatePicker's calendar opens and passes axe", async () => {
     await render(<DashboardPage />);
     await userEvent.click(page.getByRole("button", { name: "Choose date", exact: true }));

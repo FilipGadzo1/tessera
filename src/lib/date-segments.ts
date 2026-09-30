@@ -142,12 +142,17 @@ export function getLocaleDigits(locale?: string): string[] {
   return Array.from({ length: 10 }, (_, digit) => format.format(digit));
 }
 
+/** Full-width digit zero (U+FF10); a CJK IME in full-width mode types U+FF10–FF19. */
+const fullWidthZero = 0xff10;
+
 /**
- * The digit `key` stands for: an ASCII digit, or one of `digits` (the locale's, from
- * `getLocaleDigits`, passed in so a keystroke doesn't build a formatter); `null` otherwise.
+ * The digit `key` stands for: an ASCII digit, a full-width digit (U+FF10–FF19, in every locale),
+ * or one of `digits` (the locale's, from `getLocaleDigits`, passed in so a keystroke doesn't build
+ * a formatter); `null` otherwise.
  */
 export function parseDigit(key: string, digits: readonly string[]): number | null {
   if (/^[0-9]$/.test(key)) return Number(key);
+  if (/^[０-９]$/.test(key)) return key.charCodeAt(0) - fullWidthZero;
   const index = digits.indexOf(key);
   return index === -1 ? null : index;
 }
@@ -162,8 +167,8 @@ export function parseDateString(text: string, locale?: string): Date | null {
   if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return parseISODate(trimmed);
   const digits = getLocaleDigits(locale);
   const ascii = trimmed.replace(/./gu, (char) => {
-    const index = digits.indexOf(char);
-    return index === -1 ? char : String(index);
+    const digit = parseDigit(char, digits);
+    return digit === null ? char : String(digit);
   });
   const groups = ascii.match(/\d+/g);
   if (groups?.length !== 3) return null;
