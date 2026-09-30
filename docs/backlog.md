@@ -221,7 +221,11 @@ phase; items fixed by a later commit are left out).
   `validate`, `errors`, `onFormSubmit` values, focus-first-invalid, FormData) are the guard. Before bumping Base UI,
   re-read `SelectRoot.js` / `useRegisterFieldControl` and run those tests against the new version; the range is pinned
   to `~1.8.0` because of this (a minor that moved any subpath would break every import from Tessera, since
-  `src/index.ts` re-exports the date controls).
+  `src/index.ts` re-exports the date controls). Two more pins on the same upgrade (Phase H): the Sidebar's
+  `@base-ui/react/unstable-use-media-query` (`sidebar-context.tsx`; `unstable_`, so it can change or go in any
+  release), and `useFocusScope`'s reliance on Base UI's `data-base-ui-focus-guard` attribute and its guards
+  sending Shift+Tab from a non-modal popup back to the trigger (`date-form-control.tsx`; the form.test.tsx
+  Shift+Tab / outside-click tests are the guard).
 - Editor example (Task 6): `ContextMenu` marks the rest of the page inert while open (Base UI's
   `data-base-ui-inert` on the background), so a test that picks a Format submenu item and then
   checks the toolbar's mirrored `ToggleGroup` state must close the context menu first — the
@@ -288,7 +292,25 @@ phase; items fixed by a later commit are left out).
   validity on their hidden input (outside `min` / `max`, an `isDateDisabled` day, partial input, a range with one
   end). That blocks a plain `<form>` submit too, not only a Base UI `Form`: before Phase H a picker with such a
   value submitted anyway. A caller that wants the old behaviour adds `noValidate` to its `<form>`.
-- Manual testing: DateField: do a manual NVDA/VoiceOver pass and a real mobile numeric-keyboard check.
+- Manual testing: DateField: do a manual NVDA/VoiceOver pass, a real mobile numeric-keyboard check and a
+  real IME check (Japanese full-width digits; Safari and Android composition are only covered by CDP in Chromium).
+- Label override (Task 2): the label-override test drives 4 forms in one test; the DateField fragment renders its
+  hidden input as a sibling of the group (as Select does), so a `className` / `ref` never reaches it.
+- Blur without focus return (Task 3): where Base UI does not return focus on close (no `focus({ preventScroll })`
+  support, some Android browsers), popup→nowhere stays "in transit" under `useFocusScope`, so the Field's blur
+  (touched, `onBlur` validation) is only reported once focus next lands outside the control.
+- Ref callbacks (Task 3): the merged ref setters ignore a React 19 ref-callback cleanup return (DateField,
+  DatePicker's trigger, `SidebarProvider`; also `combobox.tsx` ~416 and `tooltip.tsx` ~202). A shared
+  `mergeRefs` in `src/lib` should call the cleanup.
+- RTL geometry (Task 3): no tests pin the DateField first segment's `-ms-0.5` or the editable picker's
+  `pe-10` / `end-1` icon button under `dir="rtl"` (logical classes, checked visually only).
+- Sidebar (Task 4): the rail takes 8px of the page's edge next to the column (clicks there toggle); the
+  content-scrollbar `elementFromPoint` tests use a fixture too short to scroll, so they pin the edge, not a
+  real scrollbar; `useSidebar()` reports `state: "collapsed"` for a `collapsible="none"` Sidebar under
+  `defaultOpen={false}` although it renders expanded; the provider keeps one `isStatic` flag, so with two
+  Sidebars (one `collapsible="none"`) the trigger and shortcut do nothing for the other.
+- Dashboard tests (Task 5): the keyboard flow still clicks in places (the segments, the Period trigger and
+  the days) rather than tabbing everywhere.
 - Dashboard example (Task 5): the nav only changes the heading, breadcrumb and `aria-current`; every
   view shows the same content. The sidebar open state is not persisted (`onOpenChange` is where a
   real app would). The date filter only echoes the applied values; it does not filter the table.
