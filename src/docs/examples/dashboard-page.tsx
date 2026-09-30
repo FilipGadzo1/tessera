@@ -24,7 +24,6 @@ import {
   BreadcrumbSeparator,
 } from "../../components/breadcrumb";
 import { Button } from "../../components/button";
-import type { DateRange } from "../../components/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/card";
 import { DatePicker, DateRangePicker } from "../../components/date-picker";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "../../components/dialog";
@@ -119,16 +118,19 @@ const orders: { id: string; customer: string; date: string; status: Status; tota
   { id: "#1038", customer: "Eva Novak", date: "2026-09-18", status: "Paid", total: "€87.20" },
 ];
 
-/** What the filter Form reported through `onFormSubmit`, keyed by Field name. */
-interface Applied {
+/**
+ * What the filter Form reports through `onFormSubmit`, keyed by Field name: DatePicker's
+ * `YYYY-MM-DD` (`""` when empty) and DateRangePicker's `{ start, end }` of the same.
+ */
+type Applied = {
   from: string;
-  period: DateRange | { start: string; end: string };
-}
+  period: { start: string; end: string };
+};
 
 function summary(applied: Applied) {
   const parts: string[] = [];
   if (applied.from) parts.push(`From ${applied.from}`);
-  const { start, end } = applied.period as { start: string; end: string };
+  const { start, end } = applied.period;
   if (start && end) parts.push(`Period ${start} – ${end}`);
   return parts.length ? `Filtered: ${parts.join(" · ")}` : "No filters applied";
 }
@@ -145,9 +147,8 @@ function WorkspaceSwitcher({
       <SidebarMenuItem>
         <Menu>
           <MenuTrigger
-            render={
-              <SidebarMenuButton size="lg" tooltip={workspace} aria-label="Switch workspace" />
-            }
+            // No aria-label: the name is the visible text ("Acme Inc. Workspace"), WCAG 2.5.3.
+            render={<SidebarMenuButton size="lg" tooltip={workspace} />}
           >
             <span
               aria-hidden="true"
@@ -219,7 +220,15 @@ function AppSidebar({
                       <SidebarMenuSub>
                         {["All products", "Inventory"].map((name) => (
                           <SidebarMenuSubItem key={name}>
-                            <SidebarMenuSubButton href="#products">{name}</SidebarMenuSubButton>
+                            <SidebarMenuSubButton
+                              href="#products"
+                              onClick={(event) => {
+                                event.preventDefault();
+                                onNavigate("products");
+                              }}
+                            >
+                              {name}
+                            </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
                         ))}
                       </SidebarMenuSub>
@@ -236,9 +245,7 @@ function AppSidebar({
         <SidebarMenu>
           <SidebarMenuItem>
             <Menu>
-              <MenuTrigger
-                render={<SidebarMenuButton size="lg" tooltip="Ada Lovelace" aria-label="Account" />}
-              >
+              <MenuTrigger render={<SidebarMenuButton size="lg" tooltip="Ada Lovelace" />}>
                 <Avatar size="sm">
                   <AvatarFallback>AL</AvatarFallback>
                 </Avatar>
@@ -327,7 +334,7 @@ function Stats() {
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           <p className="text-2xl font-semibold">€48,200</p>
-          <Progress value={64} aria-label="Revenue goal">
+          <Progress value={64}>
             <ProgressLabel>Monthly goal</ProgressLabel>
             <ProgressValue />
           </Progress>
@@ -381,10 +388,10 @@ function Stats() {
 
 function FilterRow({ onApply }: { onApply: (applied: Applied) => void }) {
   return (
-    <Form<Record<string, unknown>>
+    <Form<Applied>
       aria-label="Filter orders"
       className="flex flex-wrap items-end gap-4"
-      onFormSubmit={(values) => onApply(values as unknown as Applied)}
+      onFormSubmit={onApply}
     >
       <Field name="from">
         <FieldLabel>From</FieldLabel>

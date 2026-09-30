@@ -66,16 +66,42 @@ describe("DashboardPage example", () => {
     await expect
       .element(page.getByRole("heading", { level: 1, name: "Orders" }))
       .toBeInTheDocument();
-    await expect.element(page.getByText("Orders", { exact: true }).first()).toBeVisible();
+    const breadcrumb = page.getByRole("navigation", { name: "Breadcrumb" });
+    await expect.element(breadcrumb.getByRole("link", { name: "Acme Inc." })).toBeVisible();
+    await expect
+      .poll(() => breadcrumb.element().querySelector("[aria-current=page]")?.textContent)
+      .toBe("Orders");
+  });
+
+  it("a sub-item link navigates too (to its parent page)", async () => {
+    await render(<DashboardPage />);
+    await userEvent.click(link("Inventory"));
+    await expect
+      .element(page.getByRole("heading", { level: 1, name: "Products" }))
+      .toBeInTheDocument();
+    await expect.element(link("Products")).toHaveAttribute("aria-current", "page");
+  });
+
+  it("the workspace and account menu triggers are named by their visible text (WCAG 2.5.3)", async () => {
+    await render(<DashboardPage />);
+    await expect
+      .element(page.getByRole("button", { name: "Acme Inc. Workspace", exact: true }))
+      .toBeInTheDocument();
+    await expect
+      .element(page.getByRole("button", { name: "AL Ada Lovelace ada@acme.test", exact: true }))
+      .toBeInTheDocument();
   });
 
   it("the workspace Menu switches the workspace", async () => {
     await render(<DashboardPage />);
-    await userEvent.click(page.getByRole("button", { name: "Switch workspace" }));
+    await userEvent.click(page.getByRole("button", { name: "Acme Inc. Workspace" }));
     const item = page.getByRole("menuitem", { name: "Globex" });
     await expect.element(item).toBeVisible();
     await userEvent.click(item);
     await expect.element(page.getByRole("link", { name: "Globex" })).toBeVisible();
+    await expect
+      .element(page.getByRole("button", { name: "Globex Workspace", exact: true }))
+      .toBeInTheDocument();
   });
 
   it("the command palette opens from Search and runs a command", async () => {
@@ -148,7 +174,8 @@ describe("DashboardPage example", () => {
     it("the trigger opens the Drawer and Escape returns focus to it", async () => {
       await page.viewport(390, 800);
       await render(<DashboardPage />);
-      expect(aside()).toBeNull();
+      // The first render assumes desktop; the client switches to the Drawer after mounting.
+      await expect.poll(aside).toBeNull();
       const button = trigger().element() as HTMLElement;
       await userEvent.click(trigger());
       const drawer = page.getByRole("dialog", { name: "Sidebar" });
