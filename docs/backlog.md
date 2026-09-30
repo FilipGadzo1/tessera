@@ -251,9 +251,9 @@ phase; items fixed by a later commit are left out).
     Button-composed trigger; the CheckboxGroup Tab test lacks the 2px assertion; a disabled group's click is
     not asserted.
   - T3: the cursor test only reads the computed cursor (not the class).
-  - T4: the palette header ring is clipped at the top corners; the forced-colors item ring colour is not
-    asserted; no axe run on the open command palette; a fragile `querySelector('button')`; `AsyncMovies`
-    has `.catch(() => {})`.
+  - T4: the forced-colors item ring colour is not asserted; a fragile `querySelector('button')`;
+    `AsyncMovies` has `.catch(() => {})`. (The clipped palette header ring and the missing axe run on the
+    open palette were resolved by `Command` in Phase I Task 2.)
   - T5: the tooltip-layering test does not assert the tooltip was shown; vertical Menubar arrow keys are untested.
   - T6: links written directly in a nested vertical `NavigationMenuList` get the panel style; the bar-link
     active underline is not asserted in forced colors.
@@ -312,6 +312,10 @@ phase; items fixed by a later commit are left out).
   the drawer is open is not reflected until it is reopened, like the Sidebar direction note above.
 - Dialog / AlertDialog: the close button is still physical (`right-4`), as Drawer's was before Phase I
   Task 0 made it `end-4`.
+- Command (Phase I Task 2): the Dashboard example's palette is still the Phase G Autocomplete recipe
+  (Escape closes it even with text typed); moving it to `CommandDialog` is left for a docs pass. Items
+  filter by hiding the non-matching ones (not rendered), so Base UI's input carries `data-list-empty`
+  (it has no `items` to count); nothing styles it.
 - Dashboard tests (Task 5): the keyboard flow still clicks in places (the segments, the Period trigger and
   the days) rather than tabbing everywhere.
 - Dashboard example (Task 5): the nav only changes the heading, breadcrumb and `aria-current`; every

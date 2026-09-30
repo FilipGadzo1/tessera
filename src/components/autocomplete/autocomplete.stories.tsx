@@ -1,8 +1,16 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useEffect, useState } from "react";
-import { SearchIcon } from "../../lib/icons";
 import { Button } from "../button";
-import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "../dialog";
+import {
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandGroupLabel,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from "../command";
 import { Field, FieldDescription, FieldError, FieldLabel } from "../field";
 import { Input } from "../input";
 import {
@@ -305,27 +313,21 @@ export const Sizes: Story = {
   ),
 };
 
-interface Command {
-  value: string;
-  label: string;
-  hint: string;
-}
-
-const commands: { value: string; items: Command[] }[] = [
+const commands = [
   {
-    value: "Suggestions",
+    group: "Suggestions",
     items: [
-      { value: "new-order", label: "Create a new order", hint: "Orders" },
-      { value: "invite", label: "Invite a teammate", hint: "Team" },
-      { value: "export", label: "Export orders as CSV", hint: "Orders" },
+      { label: "Create a new order", hint: "Orders" },
+      { label: "Invite a teammate", hint: "Team" },
+      { label: "Export orders as CSV", hint: "Orders" },
     ],
   },
   {
-    value: "Settings",
+    group: "Settings",
     items: [
-      { value: "theme", label: "Switch theme", hint: "Appearance" },
-      { value: "profile", label: "Edit profile", hint: "Account" },
-      { value: "billing", label: "Open billing", hint: "Account" },
+      { label: "Switch theme", hint: "Appearance" },
+      { label: "Edit profile", hint: "Account" },
+      { label: "Open billing", hint: "Account" },
     ],
   },
 ];
@@ -336,52 +338,27 @@ function PaletteDemo() {
 
   return (
     <div className="flex flex-col items-start gap-3">
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger render={<Button variant="outline" />}>Open command palette</DialogTrigger>
-        <DialogContent showCloseButton={false} className="gap-0 overflow-hidden p-0">
-          <DialogTitle className="sr-only">Command palette</DialogTitle>
-          <DialogDescription className="sr-only">
-            Type to filter commands, use the arrow keys to move and Enter to run one.
-          </DialogDescription>
-          <Autocomplete open inline items={commands} autoHighlight="always" keepHighlight>
-            {/* The header row carries the focus ring, so the search icon sits inside it. */}
-            <div className="flex items-center gap-2 border-b border-border ps-3 outline-none focus-within:outline-1 focus-within:outline-solid focus-within:outline-ring focus-within:-outline-offset-1 forced-colors:focus-within:outline-[Highlight]">
-              <SearchIcon className="size-4 shrink-0 text-muted-foreground" />
-              <AutocompleteInput
-                aria-label="Search commands"
-                placeholder="Search for a command…"
-                groupClassName="h-12 flex-1 border-0 bg-transparent px-0 shadow-none focus-within:outline-none forced-colors:focus-within:outline-none"
-              />
-            </div>
-            <div className="max-h-72 overflow-y-auto p-1">
-              <AutocompleteEmpty className="py-10">No results found.</AutocompleteEmpty>
-              <AutocompleteList>
-                {(group: (typeof commands)[number], index: number) => (
-                  <AutocompleteGroup key={group.value} items={group.items}>
-                    {index > 0 && <AutocompleteSeparator />}
-                    <AutocompleteGroupLabel>{group.value}</AutocompleteGroupLabel>
-                    <AutocompleteCollection>
-                      {(command: Command) => (
-                        <AutocompleteItem
-                          key={command.value}
-                          value={command}
-                          onClick={() => {
-                            setRan(command.label);
-                            setOpen(false);
-                          }}
-                        >
-                          <span className="flex-1">{command.label}</span>
-                          <span className="text-xs text-muted-foreground">{command.hint}</span>
-                        </AutocompleteItem>
-                      )}
-                    </AutocompleteCollection>
-                  </AutocompleteGroup>
-                )}
-              </AutocompleteList>
-            </div>
-          </Autocomplete>
-        </DialogContent>
-      </Dialog>
+      <Button variant="outline" onClick={() => setOpen(true)}>
+        Open command palette
+      </Button>
+      <CommandDialog open={open} onOpenChange={setOpen}>
+        <CommandInput placeholder="Search for a command…" />
+        <CommandEmpty />
+        <CommandList>
+          {commands.map(({ group, items }, index) => (
+            <CommandGroup key={group}>
+              {index > 0 && <CommandSeparator />}
+              <CommandGroupLabel>{group}</CommandGroupLabel>
+              {items.map(({ label, hint }) => (
+                <CommandItem key={label} value={label} onSelect={() => setRan(label)}>
+                  <span className="flex-1">{label}</span>
+                  <span className="text-xs text-muted-foreground">{hint}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          ))}
+        </CommandList>
+      </CommandDialog>
       <p className="text-sm text-muted-foreground" aria-live="polite">
         {ran ? `Ran: ${ran}` : "No command run yet."}
       </p>
@@ -390,9 +367,10 @@ function PaletteDemo() {
 }
 
 /**
- * A command palette: the Autocomplete is `inline` and `open` inside a Dialog, so its list is
- * always visible below the input instead of in a popup. The items filter as you type and run an
- * action (`onClick`, also fired by Enter on the highlighted item) instead of filling the input.
+ * A command palette is now its own component: use `Command` / `CommandDialog`
+ * (Components/Command), built on this Autocomplete in inline mode. This story renders a
+ * `CommandDialog`: the items filter as you type, Enter runs the highlighted one and closes the
+ * dialog, and Escape clears the query before it closes.
  */
 export const CommandPalette: Story = {
   render: () => <PaletteDemo />,

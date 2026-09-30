@@ -661,11 +661,13 @@ describe("Autocomplete", () => {
   });
 
   describe("layering", () => {
-    it("works as a command palette in a Dialog: filters, runs the item and closes", async () => {
+    // The CommandPalette story now renders a CommandDialog (built on Autocomplete); the Command
+    // suite covers it in depth, these keep the story working.
+    it("the command palette story (CommandDialog) filters, runs the item and closes", async () => {
       await render(paletteStory());
       await userEvent.click(page.getByRole("button", { name: "Open command palette" }));
       await expect.element(page.getByRole("dialog")).toBeVisible();
-      const field = page.getByRole("combobox", { name: "Search commands" });
+      const field = page.getByRole("combobox", { name: "Command menu" });
       await expect.element(field).toHaveFocus();
       // Inline + open: the list is always there, inside the dialog, no popup of its own.
       await expect.element(listbox()).toBeVisible();
@@ -684,16 +686,19 @@ describe("Autocomplete", () => {
       await userEvent.click(page.getByRole("button", { name: "Open command palette" }));
       await expect.element(page.getByRole("dialog")).toBeVisible();
       await userEvent.keyboard("zzzz");
-      await expect.element(page.getByText("No results found.")).toBeVisible();
+      await expect.element(page.getByText("No results.")).toBeVisible();
       expect(optionNames()).toEqual([]);
     });
 
-    it("Escape in the palette closes the dialog, even with text typed", async () => {
+    it("Escape in the palette clears the typed text first, then closes the dialog", async () => {
       await render(paletteStory());
       await userEvent.click(page.getByRole("button", { name: "Open command palette" }));
       await expect.element(page.getByRole("dialog")).toBeVisible();
       await userEvent.keyboard("bill");
-      await expect.poll(() => input("Search commands").value).toBe("bill");
+      await expect.poll(() => input("Command menu").value).toBe("bill");
+      await userEvent.keyboard("{Escape}");
+      await expect.poll(() => input("Command menu").value).toBe("");
+      await expect.element(page.getByRole("dialog")).toBeVisible();
       await userEvent.keyboard("{Escape}");
       await expect.element(page.getByRole("dialog")).not.toBeInTheDocument();
       await expect

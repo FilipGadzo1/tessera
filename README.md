@@ -340,9 +340,24 @@ source files automatically (build output + `"use client"` directive checks).
   or check mark. `value` / `onValueChange` are the input text; `name` submits it. `mode` `both` / `inline` fills the
   highlighted suggestion into the input while arrowing, `filter={null}` + `AutocompleteStatus` is async search, groups use
   `AutocompleteGroup` + `AutocompleteCollection`. `AutocompleteInput` takes `size`, `showClear` and `showTrigger` (both off
-  by default; both are pointer-only, out of the Tab order). For a command palette put `<Autocomplete open inline>` in a
-  `Dialog`, render `AutocompleteList` without `AutocompleteContent`, and run the action from each item's `onClick`. Works
-  inside a `Field`. Client component)
+  by default; both are pointer-only, out of the Tab order). For a command palette use `Command` / `CommandDialog`
+  (below), built on it. Works inside a `Field`. Client component)
+- [x] Command, CommandInput, CommandList, CommandItem, CommandShortcut, CommandGroup, CommandGroupLabel,
+  CommandSeparator, CommandEmpty, CommandLoading, CommandDialog (a command palette on Base UI `Autocomplete` in inline
+  mode: a search row over an always-visible list of actions. Compose
+  `<Command><CommandInput /><CommandEmpty /><CommandList><CommandGroup><CommandGroupLabel>…</CommandGroupLabel><CommandItem onSelect={…}>…</CommandItem></CommandGroup></CommandList></Command>`.
+  Typing filters on each item's text (its `value`, else its text content without the `CommandShortcut`) and its
+  `keywords`, with Base UI's locale-aware "contains" (replace it with `filter(value, query, keywords)`); groups with no
+  match hide, separators step aside while filtering, and `CommandEmpty` ("No results.", pass children to localise) is
+  a polite live region. The first match is highlighted; ↑/↓ move (`loop` wraps, off by default), Home/End jump to the
+  ends, Enter or a click runs `onSelect`, Escape clears the query. A `disabled` item stays reachable but does not run.
+  `value` / `defaultValue` / `onValueChange` are the query; `label` (default "Command menu") names the input and the
+  list. `CommandLoading` is a status row for async results. `CommandDialog` puts it in a Dialog (no padding, 32rem
+  wide, a visually hidden title, the input focused on open): `open` / `defaultOpen` / `onOpenChange`, and `shortcut`
+  (default `"mod+k"`, ⌘K on Apple platforms and Ctrl+K elsewhere; `false` turns it off) opens it from anywhere but a
+  text field. Running an item closes it unless `onSelect` calls `event.preventDefault()`; Escape clears the query,
+  then closes; focus returns where it was. In forced colors the highlighted item is Highlight / HighlightText. Client
+  component)
 - [x] Menubar, MenubarTrigger (Base UI `Menubar`: a `role="menubar"` bar of menus. Compose
   `<Menubar><Menu><MenubarTrigger>File</MenubarTrigger><MenuContent>…</MenuContent></Menu>…</Menubar>`: `Menu` needs no
   extra prop, Base UI detects the bar, and the content and items are the ordinary Menu parts (`MenuItem`,

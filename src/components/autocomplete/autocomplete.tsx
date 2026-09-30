@@ -164,8 +164,8 @@ export interface AutocompleteContentProps extends BaseAutocomplete.Popup.Props {
 /**
  * The suggestions popup: portalled, below the input and at least as wide, on the popover surface,
  * at most 20rem tall (scrolls). Put an `AutocompleteEmpty`, optionally an `AutocompleteStatus`,
- * and an `AutocompleteList` inside. (For an always-open command palette, set `inline` and `open`
- * on the root and render `AutocompleteList` directly instead.)
+ * and an `AutocompleteList` inside. (For a command palette, use `Command` / `CommandDialog`, built
+ * on this Autocomplete in inline mode.)
  */
 export function AutocompleteContent({
   side = "bottom",
@@ -219,8 +219,8 @@ export type AutocompleteItemProps = BaseAutocomplete.Item.Props;
 
 /**
  * One suggestion (`role="option"`). Pass the item's `value`. Choosing it fills the input; there is
- * no selected state, so no check mark. In a command palette, give it an `onClick` that runs the
- * action. A `disabled` item stays reachable by the arrow keys but cannot be chosen.
+ * no selected state, so no check mark. (Command palette items that run actions are `CommandItem`s.)
+ * A `disabled` item stays reachable by the arrow keys but cannot be chosen.
  */
 export function AutocompleteItem({ className, ...props }: AutocompleteItemProps) {
   return (

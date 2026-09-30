@@ -138,6 +138,19 @@
 
 Update the Autocomplete command-palette story to point at Command.
 
+- *Amended in Task 2*: what was built.
+  - Filtering is Command's, not Base UI's: the root is `Autocomplete.Root` with `open inline filter={null}` and no `items` (a composable item API has no item array to hand it). Each `CommandItem` matches itself (`filter(value, query, keywords)`; `value` defaults to its text content without the `CommandShortcut`) and is not rendered when it does not match, so Base UI's list navigation only sees the matches. The default filter is Base UI's `Autocomplete.useFilter().contains` over the text and each keyword; the query is trimmed and an empty query matches everything.
+  - `CommandEmpty` is Tessera's own polite live region (`role="status"`, `aria-atomic`, always mounted, text only while no mounted item matches): Base UI's Empty needs `items`. The items report their match to a small store on the root; the empty text is held back until the root's first layout effect, so it never flashes on mount. `CommandLoading` is Base UI's Status with "Loading…" by default. Empty and Loading sit beside `CommandList`, since a listbox may own only options and groups.
+  - `label` names the input and the listbox (a plain `div` root cannot carry `aria-label`).
+  - `loop` defaults to `false` and maps to Base UI's `loopFocus`; `autoHighlight="always"` + `keepHighlight` keep the first match highlighted. Home/End are Base UI's own inline list navigation (the inline input is not treated as a typeable popup reference), verified by the tests; no extra code.
+  - Escape: `CommandInput` clears a non-empty query and stops the event, so the Dialog (whose `onOpenChange` is wrapped by `useLayeredEscape`) closes only on the next Escape.
+  - `CommandSeparator` is not rendered while a query filters (no stray line beside a hidden group); groups hide with `not-has-[[role=option]]:hidden`.
+  - `onSelect` receives a `CommandSelectEvent` (`nativeEvent`, `preventDefault()`, `defaultPrevented`); a disabled item stays reachable (as in Autocomplete) but does not run.
+  - Header ring: the search row is `rounded-t-[inherit]` with the inset ring, so it takes the Command's radius. In `CommandDialog` the Command is `rounded-[calc(var(--radius-xl)-1px)]`, the popup's inner (padding-box) radius, so the ring follows the popup's clipped corners. The tests assert both radii.
+  - `CommandDialog` also takes `title` (default "Command menu") and `contentClassName`; `initialFocus` targets the input. The shortcut listener is on `document`; it ignores repeats, a `defaultPrevented` event, and targets that take text (text-like inputs, textareas, contenteditable); it only opens (the input is focused while open, so a second press is ignored as editable). `mod` is ⌘ on Apple platforms (by `userAgentData.platform`, else `navigator.platform`), Ctrl elsewhere.
+  - In forced colors the highlighted item adds `bg-[Highlight] text-[HighlightText] forced-color-adjust-none`, and a `CommandShortcut` inside it turns HighlightText.
+  - The Autocomplete `CommandPalette` story now renders a `CommandDialog`; its three tests follow the new Escape sequence and names.
+
 ## 3. Tree (APG treeview)
 
 **Parts:**
