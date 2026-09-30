@@ -96,13 +96,18 @@ const ParentItemContext = createContext<ParentItem | null>(null);
 
 const isTreeItem = (element: Element) => element.getAttribute("role") === "treeitem";
 
-/** Sets `aria-posinset` / `aria-setsize` on a list's treeitem children from their DOM order. */
+/**
+ * Sets `aria-posinset` / `aria-setsize` on a list's treeitem children from their DOM order. Only
+ * changed values are written, so a commit that moves nothing causes no attribute mutations.
+ */
 function syncPositions(list: Element) {
   const items = Array.from(list.children).filter(isTreeItem);
   const setsize = String(items.length);
   items.forEach((item, index) => {
-    item.setAttribute("aria-posinset", String(index + 1));
-    item.setAttribute("aria-setsize", setsize);
+    const posinset = String(index + 1);
+    if (item.getAttribute("aria-posinset") !== posinset)
+      item.setAttribute("aria-posinset", posinset);
+    if (item.getAttribute("aria-setsize") !== setsize) item.setAttribute("aria-setsize", setsize);
   });
 }
 
@@ -180,6 +185,10 @@ export interface TreeProps extends ComponentProps<"ul"> {
  * Home/End, typeahead, `*` expands the siblings, Enter runs `onAction`, Space toggles the
  * selection (multiple: Shift+↑/↓ and Shift+Home/End extend it from the anchor, Ctrl/⌘+A selects
  * every visible item). RTL flips ←/→.
+ *
+ * `aria-posinset` / `aria-setsize` are re-counted from the DOM on every tree commit. A wrapper
+ * component that reorders its items internally without the tree re-rendering keeps stale
+ * positions until the next tree commit.
  */
 export function Tree({
   selectionMode = "none",

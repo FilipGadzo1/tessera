@@ -202,6 +202,25 @@ describe("Tree", () => {
       expect(item("folder").getAttribute("aria-expanded")).toBe("true");
     });
 
+    it("a re-render that moves no item writes no position attributes", async () => {
+      const screen = await render(<Files defaultExpandedValues={["src"]} className="w-60" />);
+      await expect.poll(() => positionOf(item("index.ts"))).toEqual([2, 2, 2]);
+      const writes: string[] = [];
+      const observer = new MutationObserver((records) => {
+        for (const record of records) writes.push(record.attributeName ?? "");
+      });
+      observer.observe(tree(), {
+        subtree: true,
+        attributeFilter: ["aria-posinset", "aria-setsize"],
+      });
+      await screen.rerender(<Files defaultExpandedValues={["src"]} className="w-64" />);
+      await expect.poll(() => tree().classList.contains("w-64")).toBe(true);
+      for (const record of observer.takeRecords()) writes.push(record.attributeName ?? "");
+      observer.disconnect();
+      expect(writes).toEqual([]);
+      expect(positionOf(item("index.ts"))).toEqual([2, 2, 2]);
+    });
+
     it("renders a tab stop and positions in server HTML", async () => {
       const html = renderToString(<Files defaultExpandedValues={["src"]} />);
       const container = document.createElement("div");

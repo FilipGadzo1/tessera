@@ -599,7 +599,9 @@ source files automatically (build output + `"use client"` directive checks).
   a `TreeItem`'s children are its `TreeItemContent` row (a direct child, or inside a fragment) and its child
   items: everything else renders in its group, so `TreeItem`s, recursive or wrapper components and fragments
   of items all work, and it is an expandable parent when a child treeitem actually renders. `aria-posinset` /
-  `aria-setsize` are counted from the rendered items. `value` is required and unique across the tree.
+  `aria-setsize` are counted from the rendered items on every tree commit (only changed values are written); a
+  wrapper that reorders its items internally without the tree re-rendering keeps stale positions until the
+  next tree commit. `value` is required and unique across the tree.
   Collapsed children stay mounted in a hidden group. ↑/↓ move through the visible items, → expands
   then enters, ← collapses then goes to the parent (RTL flips them), Home/End, typeahead (500ms buffer, on
   `label` or the row text), `*` expands the siblings, Enter or a double-click runs `onAction(value)`. One Tab
