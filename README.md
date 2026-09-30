@@ -471,7 +471,10 @@ source files automatically (build output + `"use client"` directive checks).
   Field `validate` (it gets the `Date`), a value outside `min` / `max` or on a disabled day
   ("Enter a date on or after Sep 1, 2026."), `errors[name]`, and an invalid submit focuses the
   trigger; `onFormSubmit` reports `YYYY-MM-DD` (`""` when empty). The custom validity also blocks a
-  native `<form>` submit outside a Form. `DateRangePicker`
+  native `<form>` submit outside a Form. The trigger and popup are one blur boundary for
+  `validationMode="onBlur"` (and Field `touched`): a blur is focus landing outside both, so
+  Shift+Tab out of the calendar or an outside click (focus returns to the trigger) is not one, and
+  Tab past the calendar is; every date control follows this rule. `DateRangePicker`
   shows two months (`numberOfMonths`), stays open after the start and closes after the end, reverts
   an unfinished pick on Escape or an outside click, reports only complete ranges, shows the range
   via `formatRange` ("Sep 1 – 12, 2026") and submits `startName` / `endName`. In a `Form` it is one

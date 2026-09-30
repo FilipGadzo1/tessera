@@ -11,7 +11,6 @@ import { useFieldRootContext } from "@base-ui/react/internals/field-root-context
 import { useLabelableContext, useLabelableId } from "@base-ui/react/internals/labelable-provider";
 import {
   type ComponentProps,
-  type FocusEvent,
   type ReactNode,
   type Ref,
   useCallback,
@@ -39,8 +38,8 @@ import {
   type DateFormControlOptions,
   type DateValidationLabels,
   dateValidationMessage,
-  focusLeaves,
   useDateFormControl,
+  useFocusScope,
 } from "./date-form-control";
 
 /**
@@ -204,10 +203,12 @@ function PickerShell({
     disabled: isDisabled,
     controlRef: triggerRef,
   });
-  // The Field's focus leaves the picker when it leaves both the trigger and the popup.
-  const onBlurOut = (event: FocusEvent) => {
-    if (focusLeaves(event, triggerRef.current, popupRef.current)) formControl.onBlur();
-  };
+  // The trigger and the popup are one control for the Field's focus / blur.
+  useFocusScope(
+    () => [triggerRef.current, popupRef.current],
+    formControl.onFocus,
+    formControl.onBlur,
+  );
 
   // The name is the label followed by the value ("Due date Sep 25, 2026"): on its own, a
   // <label for> or aria-label would replace the button's content — the value — as its name.
@@ -225,14 +226,6 @@ function PickerShell({
       <PopoverTrigger
         {...props}
         ref={setTriggerRef}
-        onFocus={(event) => {
-          props.onFocus?.(event);
-          formControl.onFocus();
-        }}
-        onBlur={(event) => {
-          props.onBlur?.(event);
-          onBlurOut(event);
-        }}
         id={id}
         type="button"
         disabled={isDisabled}
@@ -259,7 +252,6 @@ function PickerShell({
       {hiddenInputs}
       <PopoverContent
         ref={popupRef}
-        onBlur={onBlurOut}
         container={container}
         align="start"
         sideOffset={6}

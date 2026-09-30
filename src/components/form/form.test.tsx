@@ -660,6 +660,94 @@ describe("date controls in a Form: specifics", () => {
     await expect.element(overflow).toBeVisible();
   });
 
+  it.each([
+    ["button", false],
+    ["editable", true],
+  ] as const)(
+    "validationMode onBlur (%s DatePicker): Shift+Tab out of the calendar returns to the trigger without a blur; Tab past it blurs",
+    async (_mode, editable) => {
+      await render(
+        <Form aria-label="Trip" validationMode="onBlur">
+          <Field name="back">
+            <FieldLabel>Back</FieldLabel>
+            {/* Invalid once validated: a partial typed date, or a day after `max`. (A required empty
+              value isn't: Base UI reports `valueMissing` only once the value has changed.) */}
+            {editable ? (
+              <DatePicker editable locale="en-US" required />
+            ) : (
+              <DatePicker locale="en-US" defaultValue={FILLED} max={d(2026, 9, 1)} />
+            )}
+            <FieldError />
+          </Field>
+          <Input aria-label="After" />
+        </Form>,
+      );
+      const fieldRoot = document.querySelector("[data-slot=field]") as HTMLElement;
+      const error = () => document.querySelector("[data-slot=field-error]");
+      const inPopup = () => !!pickerPopup()?.contains(document.activeElement);
+      if (editable) {
+        await userEvent.click(firstSegment());
+        await userEvent.keyboard("0");
+        await userEvent.keyboard("3");
+      }
+      await openPicker();
+      expect(inPopup()).toBe(true);
+      // Shift+Tab from the first tabbable lands on Base UI's focus guard (outside the popup), which
+      // sends focus back to the trigger: never a blur.
+      for (let step = 0; step < 5 && inPopup(); step++)
+        await userEvent.keyboard("{Shift>}{Tab}{/Shift}");
+      await expect.poll(() => document.activeElement).toBe(pickerTrigger());
+      expect(fieldRoot.hasAttribute("data-touched")).toBe(false);
+      expect(error()).toBeNull();
+      // The popup stays open (focus is on its trigger); close it, then reopen from the keyboard.
+      await userEvent.keyboard("{Escape}");
+      await expect.poll(pickerPopup).toBeNull();
+      expect(fieldRoot.hasAttribute("data-touched")).toBe(false);
+      // Tab forward out of the popup goes past the control (through the other guard): a blur.
+      await userEvent.keyboard("{Enter}");
+      await expect.poll(inPopup).toBe(true);
+      for (let step = 0; step < 5 && inPopup(); step++) await userEvent.tab();
+      await expect.poll(() => document.activeElement).toBe(page.getByRole("textbox").element());
+      await expect.poll(() => fieldRoot.hasAttribute("data-touched")).toBe(true);
+      await expect.poll(error).not.toBeNull();
+    },
+  );
+
+  it.each([
+    ["button", false],
+    ["editable", true],
+  ] as const)(
+    "validationMode onBlur (%s DatePicker): an outside click closing the calendar is not a blur (focus returns); focusing elsewhere is",
+    async (_mode, editable) => {
+      await render(
+        <Form aria-label="Trip" validationMode="onBlur">
+          {/* Above the picker: the popup opens below it. Not focusable, so focus drops to nowhere. */}
+          <p data-testid="outside">Outside</p>
+          <Field name="back">
+            <FieldLabel>Back</FieldLabel>
+            <DatePicker
+              editable={editable}
+              locale="en-US"
+              defaultValue={FILLED}
+              max={d(2026, 9, 1)}
+            />
+            <FieldError />
+          </Field>
+          <Input aria-label="After" />
+        </Form>,
+      );
+      const fieldRoot = document.querySelector("[data-slot=field]") as HTMLElement;
+      await openPicker();
+      await userEvent.click(page.getByTestId("outside"));
+      await expect.poll(pickerPopup).toBeNull();
+      await expect.poll(() => document.activeElement).toBe(pickerTrigger());
+      expect(fieldRoot.hasAttribute("data-touched")).toBe(false);
+      await userEvent.click(page.getByRole("textbox", { name: "After" }));
+      await expect.poll(() => fieldRoot.hasAttribute("data-touched")).toBe(true);
+      await expect.element(page.getByText("Enter a date on or before Sep 1, 2026.")).toBeVisible();
+    },
+  );
+
   it("the hidden control forwards its own focus to the visible control", async () => {
     await render(
       <DateForm>

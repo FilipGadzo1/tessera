@@ -18,10 +18,10 @@ import { useFieldRootContext } from "@base-ui/react/internals/field-root-context
 import { useFormContext } from "@base-ui/react/internals/form-context";
 import {
   type CSSProperties,
-  type FocusEvent,
   type ReactNode,
   type RefObject,
   useCallback,
+  useEffect,
   useId,
   useLayoutEffect,
   useRef,
@@ -232,8 +232,66 @@ export function useDateFormControl({
   };
 }
 
-/** Whether focus moving to `event.relatedTarget` leaves every one of `containers`. */
-export function focusLeaves(event: FocusEvent, ...containers: (Element | null | undefined)[]) {
-  const next = event.relatedTarget as Node | null;
-  return !containers.some((container) => container && next && container.contains(next));
+/** The attribute Base UI's `FocusGuard` carries (`utils/FocusGuard.js`). */
+const focusGuardAttribute = "data-base-ui-focus-guard";
+
+function isFocusGuard(node: EventTarget | null) {
+  return node instanceof Element && node.hasAttribute(focusGuardAttribute);
+}
+
+/**
+ * Tracks focus entering and leaving a control made of several elements, for the Field's focused /
+ * touched state and `onBlur` validation (the one blur rule of the date controls). `scope()` lists
+ * them; the first is the main one (the trigger, or the field with its icon button), a later one
+ * the popup. Watched on the document, since the popup is portalled.
+ *
+ * - Focus entering any of them from outside is a focus; moving between them is neither.
+ * - Focus landing outside all of them is a blur.
+ * - Focus in transit is not decided until it lands: passing through one of Base UI's focus guards
+ *   (a non-modal popup renders them outside the popup element; Shift+Tab from its first tabbable
+ *   lands on one, which sends focus back to the trigger), or dropping to nowhere from the popup
+ *   (an outside click or Escape closes it and Base UI returns focus to the trigger). It is a blur
+ *   only if it then lands outside, e.g. Tab from the popup's last tabbable, which the other guard
+ *   sends on past the trigger. Focus dropping to nowhere from the main element (a click on the
+ *   page background) is a blur at once, as for a native input.
+ */
+export function useFocusScope(
+  scope: () => (Element | null | undefined)[],
+  onFocus: () => void,
+  onBlur: () => void,
+) {
+  const latestRef = useRef({ scope, onFocus, onBlur });
+  latestRef.current = { scope, onFocus, onBlur };
+  useEffect(() => {
+    let inside = false;
+    const elements = () => latestRef.current.scope();
+    const within = (node: EventTarget | null) =>
+      node instanceof Node && elements().some((element) => !!element && element.contains(node));
+    const leave = () => {
+      inside = false;
+      latestRef.current.onBlur();
+    };
+    const onFocusIn = (event: globalThis.FocusEvent) => {
+      if (within(event.target)) {
+        if (inside) return;
+        inside = true;
+        latestRef.current.onFocus();
+      } else if (inside && !isFocusGuard(event.target)) {
+        leave();
+      }
+    };
+    const onFocusOut = (event: globalThis.FocusEvent) => {
+      if (!inside || !within(event.target)) return;
+      const next = event.relatedTarget;
+      if (within(next) || isFocusGuard(next)) return;
+      if (next === null && !elements()[0]?.contains(event.target as Node)) return;
+      leave();
+    };
+    document.addEventListener("focusin", onFocusIn);
+    document.addEventListener("focusout", onFocusOut);
+    return () => {
+      document.removeEventListener("focusin", onFocusIn);
+      document.removeEventListener("focusout", onFocusOut);
+    };
+  }, []);
 }

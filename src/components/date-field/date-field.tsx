@@ -42,8 +42,8 @@ import { useControllableState } from "../../lib/use-controllable-state";
 import {
   type DateValidationLabels,
   dateValidationMessage,
-  focusLeaves,
   useDateFormControl,
+  useFocusScope,
 } from "../date-picker/date-form-control";
 import { textFieldSizes } from "../input/input-variants";
 
@@ -108,8 +108,7 @@ export interface DateFieldProps
    * @internal For `DatePicker editable`. The elements that together form the control (the field
    * plus its icon button and popup): the Field's focused / touched state and `onBlur` validation
    * follow focus entering and leaving them as a whole, not the segments' group alone. The first
-   * is the main element (the field and its button); focus leaving a later one (the popup) to
-   * nowhere is not counted, as the popup closing hands focus back to the trigger.
+   * is the main element (the field and its button), a later one the popup (see `useFocusScope`).
    */
   focusScope?: () => (Element | null)[];
 }
@@ -302,40 +301,9 @@ export function DateField({
     controlRef: firstSegmentRef,
   });
 
-  // With a `focusScope`, the boundary is that scope (watched on the document: it spans a portalled
-  // popup), not the group.
-  const scopeHandlersRef = useRef({ focusScope, formControl });
-  scopeHandlersRef.current = { focusScope, formControl };
-  const hasScope = !!focusScope;
-  useEffect(() => {
-    if (!hasScope) return;
-    const within = (node: EventTarget | null) =>
-      !!node &&
-      (scopeHandlersRef.current.focusScope?.() ?? []).some((element) =>
-        element?.contains(node as Node),
-      );
-    const onFocusIn = (event: globalThis.FocusEvent) => {
-      if (within(event.target) && !within(event.relatedTarget)) {
-        scopeHandlersRef.current.formControl.onFocus();
-      }
-    };
-    const onFocusOut = (event: globalThis.FocusEvent) => {
-      // Focus dropping to nowhere from a later scope element (the popup closing on Escape or a
-      // pick) is not focus leaving: Base UI returns focus to the trigger next. A real departure
-      // names the element focus goes to.
-      const [main] = scopeHandlersRef.current.focusScope?.() ?? [];
-      if (!event.relatedTarget && !main?.contains(event.target as Node)) return;
-      if (within(event.target) && !within(event.relatedTarget)) {
-        scopeHandlersRef.current.formControl.onBlur();
-      }
-    };
-    document.addEventListener("focusin", onFocusIn);
-    document.addEventListener("focusout", onFocusOut);
-    return () => {
-      document.removeEventListener("focusin", onFocusIn);
-      document.removeEventListener("focusout", onFocusOut);
-    };
-  }, [hasScope]);
+  // The boundary is the group, or the `focusScope` (the editable DatePicker's field, button and
+  // popup), under the date controls' one blur rule.
+  useFocusScope(() => focusScope?.() ?? [rootRef.current], formControl.onFocus, formControl.onBlur);
 
   const ariaLabelledBy =
     props["aria-labelledby"] ?? (props["aria-label"] ? undefined : fieldLabelId);
@@ -525,14 +493,6 @@ export function DateField({
         data-disabled={disabled ? "" : undefined}
         data-readonly={readOnly ? "" : undefined}
         className={cn(rootBase, textFieldSizes[size ?? "md"], className)}
-        onFocus={(event) => {
-          props.onFocus?.(event);
-          if (!hasScope && focusLeaves(event, event.currentTarget)) formControl.onFocus();
-        }}
-        onBlur={(event) => {
-          props.onBlur?.(event);
-          if (!hasScope && focusLeaves(event, event.currentTarget)) formControl.onBlur();
-        }}
         onMouseDown={(event) => {
           props.onMouseDown?.(event);
           if (disabled || event.defaultPrevented) return;
