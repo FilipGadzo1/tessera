@@ -1,7 +1,7 @@
 # Tessera backlog
 
 Open follow-ups from the foundation, Phase A (2026-09-23), Phase B, Phase C, Phase D (2026-09-24),
-Phase E (2026-09-25), Phase F and Phase G (2026-09-26) reviews.
+Phase E (2026-09-25), Phase F and Phase G (2026-09-26) and Phase H (2026-09-30) reviews.
 None block current use.
 
 ## Components
@@ -295,6 +295,12 @@ phase; items fixed by a later commit are left out).
   validity on their hidden input (outside `min` / `max`, an `isDateDisabled` day, partial input, a range with one
   end). That blocks a plain `<form>` submit too, not only a Base UI `Form`: before Phase H a picker with such a
   value submitted anyway. A caller that wants the old behaviour adds `noValidate` to its `<form>`.
+- Manual testing: DateField: do a manual NVDA/VoiceOver pass and a real mobile numeric-keyboard check.
+- Dashboard example (Task 5): the nav only changes the heading, breadcrumb and `aria-current`; every
+  view shows the same content. The sidebar open state is not persisted (`onOpenChange` is where a
+  real app would). The date filter only echoes the applied values; it does not filter the table.
+  The axe test for the open DatePicker calendar hides `main` (the popup covers table text, which axe
+  leaves undecided), as the Checkout tests do.
 
 ## Next components
 Follow the phases in the design-system spec §6
@@ -303,6 +309,7 @@ Textarea, Checkbox, Switch, RadioGroup — use the `field*` / `switch-track` tok
 Phase D navigation and feedback, Phase E data entry and display, Phase F dates/toolbars/surfaces
 (Calendar, DatePicker, DateRangePicker, ToggleGroup, Toolbar, ScrollArea, Meter,
 HoverCard/PreviewCard, ContextMenu). Phases B–G are done (G: Collapsible, CheckboxGroup, Form, OTPField,
-Autocomplete, Menubar, NavigationMenu). Next, Phase H (Phase G spec §4): DateField (typed date segments) and
-a Sidebar / app shell, plus candidates: a first-class Command palette (if the Autocomplete story's recipe
-proves worth extracting), Carousel, Tree.
+Autocomplete, Menubar, NavigationMenu); Phase H is done (DateField, editable DatePicker, date form
+participation, Sidebar, Dashboard example). Next, Phase I (Phase H spec §6): candidates are DateRangeField,
+a first-class Command palette (if the Autocomplete story's recipe proves worth extracting), Carousel, Tree,
+and data-grid pieces (column visibility, pagination state).

@@ -87,6 +87,15 @@ for most of them on one page: a NavigationMenu header, a Form with a phone check
 Autocomplete, delivery options (CheckboxGroup), a Collapsible promo code that the fake server can
 reject through `errors`, and an order summary.
 
+## Dates and the app shell
+
+DateField (typed date segments), an `editable` DatePicker (type the date or pick it), form
+participation for every date control (DatePicker submits `YYYY-MM-DD`, DateRangePicker
+`{ start, end }`, under the Field `name`) and the Sidebar family (SidebarProvider with Ctrl/⌘+B,
+icon-collapsible, a Drawer on phones). See **Examples / Dashboard**: a Sidebar with a workspace Menu
+and account Menu, a top bar with a Breadcrumb and a command palette, stat Cards with Progress and
+Meter, a filter Form with date controls, and a Table.
+
 ## Stack
 
 React 19 · Base UI · Tailwind CSS v4 · cva + tailwind-merge · tsdown · Vitest browser mode ·

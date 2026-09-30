@@ -538,7 +538,8 @@ Phase A (foundation), Phase B (forms), Phase C (overlays), Phase D (navigation a
 Phase E (data entry and display), Phase F (dates, toolbars and surfaces — Meter, ScrollArea,
 Toggle/ToggleGroup, Toolbar, PreviewCard, ContextMenu, Calendar, RangeCalendar, DatePicker and
 DateRangePicker) and Phase G (forms and navigation — Collapsible, CheckboxGroup, Form, OTPField,
-Autocomplete, Menubar and NavigationMenu) are complete.
+Autocomplete, Menubar and NavigationMenu) and Phase H (DateField, editable DatePicker, form participation
+for the date controls, and the Sidebar app shell) are complete.
 
 Composition: when a part is rendered through another (`<Fieldset render={<RadioGroup className=…/>}>`),
 the outer part's own classes win over conflicting classes on the render element (Base UI merges the
@@ -606,9 +607,18 @@ promo code. A fake server rejects the code `EXPIRED` after a short delay and the
 Form's `errors`, under the promo Field, until the field is edited or the panel is closed. An order-summary Card
 holds a `Collapsible` list of items.
 
+The Storybook story **Tessera/Examples/Dashboard** (`src/docs/examples/dashboard-page.tsx`) composes
+the Phase H app shell with earlier components: an icon-collapsible `Sidebar` (Ctrl/⌘+B; a Drawer below
+`md`) with a workspace-switcher `Menu`, a nav whose current page has `aria-current`, and an account
+`Menu` on an `Avatar`; an inset top bar with `SidebarTrigger`, `Breadcrumb` and a Search button that
+opens the `Autocomplete` command palette in a `Dialog`; `Card`s with `Progress` and `Meter`; a filter
+`Form` (an editable `DatePicker` and a `DateRangePicker`; Apply shows what `onFormSubmit` reported
+under the Field names) and a `Table` of recent orders.
+
 ## Roadmap
 
-Next, Phase H: DateField (typed date segments) and a Sidebar / app shell, plus candidates: a first-class
-Command palette (the Autocomplete story is a 40-line recipe today), Carousel, Tree.
+Phase H is complete. Next, Phase I; candidates: DateRangeField, a first-class Command palette (the
+Autocomplete story is a 40-line recipe today), Carousel, Tree, and data-grid pieces (column
+visibility, pagination state).
 
 Later: visual regression · React Compiler on output · publish to npm (`@tessera/ui` is free).

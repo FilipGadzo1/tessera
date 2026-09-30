@@ -220,4 +220,5 @@ Server-safe, pure and unit-tested. Its helpers:
   - An inset with a top bar (SidebarTrigger, Breadcrumb, a search Autocomplete / command palette trigger).
   - A content grid of Cards with Meter/Progress stats and a Table of recent orders.
   - A filter row with an editable DatePicker (date range: DateRangePicker) inside a Form, proving §3.
+- *Amended in Task 5*: the filter row has both an editable DatePicker "From" (`YYYY-MM-DD`) and a DateRangePicker "Period" (`{ start, end }`); Apply shows the `onFormSubmit` values as a "Filtered: …" Badge. The nav changes only the heading, breadcrumb and `aria-current`. `dashboard-page.tsx` is ~500 lines after Biome (local sub-components), over the ~400 target.
 - README: the component list and Phase H completion. Roadmap next: Phase I (candidates: DateRangeField, Command palette component, Carousel, Tree, Data grid pieces: column visibility / pagination state). Backlog updated.
