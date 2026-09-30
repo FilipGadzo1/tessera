@@ -31,7 +31,7 @@ import {
   type RangeCalendarProps,
 } from "../calendar";
 import type { CalendarLabels } from "../calendar/calendar-base";
-import { DateField, type DateFieldLabels, type DateFieldProps } from "../date-field/date-field";
+import { DateField, type DateFieldLabels } from "../date-field/date-field";
 import { Popover, PopoverContent, type PopoverContentProps, PopoverTrigger } from "../popover";
 import { type SelectTriggerVariantProps, selectDefaults, selectTriggerVariants } from "../select";
 import {
