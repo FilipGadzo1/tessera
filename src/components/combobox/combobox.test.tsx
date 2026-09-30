@@ -1251,7 +1251,7 @@ describe("Combobox", () => {
       },
     );
 
-    const storyNames = [
+    const storyNames: readonly string[] = [
       "Default",
       "ObjectsWithLabels",
       "Groups",
@@ -1259,11 +1259,18 @@ describe("Combobox", () => {
       "AsyncWithStatus",
       "InField",
       "Sizes",
-    ] as const;
-    it.each(storyNames)(
+    ];
+    // Iterated, not indexed by name (Biome's noDynamicNamespaceImportAccess), as sidebar.test.tsx does.
+    const storyEntries = Object.entries(stories).filter(([name]) => storyNames.includes(name));
+
+    it("audits every listed story", () => {
+      expect(storyEntries.map(([name]) => name).sort()).toEqual([...storyNames].sort());
+    });
+
+    it.each(storyEntries)(
       "story %s: every combobox input is named, no axe violations",
-      async (name) => {
-        const story = stories[name] as { render?: unknown; args?: object };
+      async (_name, entry) => {
+        const story = entry as { render?: unknown; args?: object };
         const renderStory = (story.render ?? stories.default.render) as unknown as (
           args: object,
         ) => ReactElement;
