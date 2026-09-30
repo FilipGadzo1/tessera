@@ -106,6 +106,24 @@ describe("DateRangePicker: editable", () => {
     expect(rect.right).toBeLessThan(seg("end", "year").getBoundingClientRect().left);
   });
 
+  it("in a container narrower than it, the field grows: the border wraps the segments and the button", async () => {
+    await render(
+      <div className="w-40 p-16">
+        <DateRangePicker
+          editable
+          aria-label="Stay"
+          locale="en-US"
+          size="lg"
+          defaultValue={range(d(2026, 9, 1), d(2026, 9, 12))}
+        />
+      </div>,
+    );
+    const box = field().getBoundingClientRect();
+    const rect = iconButton().getBoundingClientRect();
+    expect(rect.right).toBeLessThanOrEqual(box.right);
+    expect(rect.left).toBeGreaterThan(seg("end", "year").getBoundingClientRect().right);
+  });
+
   it("is not editable by default: the button trigger", async () => {
     await render(<DateRangePicker aria-label="Stay" locale="en-US" />);
     expect(document.querySelector("[data-slot=date-range-field]")).toBeNull();
@@ -168,6 +186,53 @@ describe("DateRangePicker: editable", () => {
     expect(onValueChange).toHaveBeenCalledTimes(1);
     expect(onValueChange).toHaveBeenLastCalledWith(range(d(2026, 9, 8), d(2026, 9, 10)));
     await expect.poll(() => document.activeElement).toBe(iconButton());
+  });
+
+  it("a typed start plus one click picks the end (an earlier click swaps)", async () => {
+    const onValueChange = vi.fn();
+    await render(<Editable onValueChange={onValueChange} />);
+    await userEvent.click(seg("start", "month"));
+    await type("09082026");
+    expect(onValueChange).toHaveBeenLastCalledWith(range(d(2026, 9, 8), null));
+    await openCalendar();
+    await userEvent.click(dayButton(d(2026, 9, 12)));
+    await expect.element(dialog()).not.toBeInTheDocument();
+    expect(texts("start")).toEqual(["09", "08", "2026"]);
+    expect(texts("end")).toEqual(["09", "12", "2026"]);
+    expect(onValueChange).toHaveBeenLastCalledWith(range(d(2026, 9, 8), d(2026, 9, 12)));
+    await expect.poll(() => document.activeElement).toBe(iconButton());
+    // Only the start again, then an earlier day: the ends swap.
+    await userEvent.click(seg("end", "day"));
+    await userEvent.keyboard("{Backspace}");
+    expect(onValueChange).toHaveBeenLastCalledWith(range(d(2026, 9, 8), null));
+    await openCalendar();
+    await userEvent.click(dayButton(d(2026, 9, 3)));
+    await expect.element(dialog()).not.toBeInTheDocument();
+    expect(texts("start")).toEqual(["09", "03", "2026"]);
+    expect(texts("end")).toEqual(["09", "08", "2026"]);
+  });
+
+  it("a reversed typed range draws no band in the calendar; picking two days fills a valid range", async () => {
+    const onValueChange = vi.fn();
+    await render(
+      <Editable
+        defaultValue={range(d(2026, 9, 12), d(2026, 9, 1))}
+        onValueChange={onValueChange}
+      />,
+    );
+    expect(field().hasAttribute("data-invalid")).toBe(true);
+    const element = await openCalendar();
+    expect(element.querySelectorAll("[role=gridcell][aria-selected=true]")).toHaveLength(0);
+    expect(element.querySelectorAll("[data-selected], [data-range-middle]")).toHaveLength(0);
+    // The field still shows the typed (invalid) range.
+    expect(field().hasAttribute("data-invalid")).toBe(true);
+    await userEvent.click(dayButton(d(2026, 9, 4)));
+    await userEvent.click(dayButton(d(2026, 9, 9)));
+    await expect.element(dialog()).not.toBeInTheDocument();
+    expect(texts("start")).toEqual(["09", "04", "2026"]);
+    expect(texts("end")).toEqual(["09", "09", "2026"]);
+    expect(onValueChange).toHaveBeenLastCalledWith(range(d(2026, 9, 4), d(2026, 9, 9)));
+    expect(field().hasAttribute("data-invalid")).toBe(false);
   });
 
   it("picking replaces partially typed segments", async () => {

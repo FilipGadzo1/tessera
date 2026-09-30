@@ -11,7 +11,7 @@ import { useFieldRootContext } from "@base-ui/react/internals/field-root-context
 import { useLabelableContext, useLabelableId } from "@base-ui/react/internals/labelable-provider";
 import { type ComponentProps, type ReactNode, useId, useRef, useState } from "react";
 import { cn } from "../../lib/cn";
-import { resolveLocale, toISODate, type WeekDay } from "../../lib/date";
+import { compareDay, resolveLocale, toISODate, type WeekDay } from "../../lib/date";
 import { CalendarIcon } from "../../lib/icons";
 import { useControllableState } from "../../lib/use-controllable-state";
 import { useMergedRefs } from "../../lib/use-merged-refs";
@@ -293,6 +293,11 @@ interface EditableShellProps extends EditableElementProps, PickerOwnProps {
   renderField: (props: EditableFieldProps) => ReactNode;
   /** Renders the calendar: `close` closes the popup (focus returns to the icon button). */
   renderCalendar: (close: () => void, open: boolean) => ReactNode;
+  /**
+   * The field never shrinks below its content (DateRangeField's `min-w-max`): the anchor grows
+   * with it, so the icon button stays inside the field's border.
+   */
+  growToContent?: boolean;
 }
 
 /**
@@ -306,6 +311,7 @@ function EditableShell({
   dialogLabel,
   renderField,
   renderCalendar,
+  growToContent = false,
   disabled,
   readOnly,
   required,
@@ -331,7 +337,11 @@ function EditableShell({
 
   return (
     <Popover open={open} onOpenChange={(next) => setOpen(next)}>
-      <div ref={anchorRef} data-slot="date-picker-editable" className="relative w-full">
+      <div
+        ref={anchorRef}
+        data-slot="date-picker-editable"
+        className={cn("relative w-full", growToContent && "min-w-max")}
+      >
         {renderField({
           ...props,
           focusScope,
@@ -669,9 +679,15 @@ export function DateRangePicker({
       setValue(next);
       onValueChange?.(next);
     };
+    // A typed start alone stays the calendar's start, so one click picks the end (an earlier one
+    // swaps). A reversed typed range (invalid in the field) is no selection there: the calendar
+    // must not draw it as a valid-looking band.
+    const reversed = !!value.start && !!value.end && compareDay(value.end, value.start) < 0;
+    const calendarValue = reversed ? emptyRange : value;
     return (
       <EditableShell
         {...(props as EditableElementProps & PickerOwnProps)}
+        growToContent
         openLabel={labels?.openCalendar ?? "Choose date range"}
         dialogLabel={labels?.dialog ?? "Choose date range"}
         renderField={(fieldProps) => (
@@ -692,7 +708,7 @@ export function DateRangePicker({
           <RangePickerCalendar
             {...calendarProps}
             open={open}
-            value={value}
+            value={calendarValue}
             onCommit={(next) => {
               pick(next);
               close();

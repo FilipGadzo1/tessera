@@ -273,7 +273,9 @@ export function DateRangeField({
         data-invalid={invalid ? "" : undefined}
         data-disabled={disabled ? "" : undefined}
         data-readonly={readOnly ? "" : undefined}
-        className={cn(dateGroupBase, textFieldSizes[size ?? "md"], className)}
+        // `min-w-max` over the group's `min-w-0`: the halves can't shrink, so in a narrow container
+        // the group grows past it rather than painting its segments past its own border.
+        className={cn(dateGroupBase, "min-w-max", textFieldSizes[size ?? "md"], className)}
         onMouseDown={(event) => {
           props.onMouseDown?.(event);
           handleGroupMouseDown(event, disabled);

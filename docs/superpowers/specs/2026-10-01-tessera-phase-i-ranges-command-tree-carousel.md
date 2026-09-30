@@ -97,7 +97,8 @@
   - `DateRangePickerProps = DateRangePickerButtonProps | DateRangePickerEditableProps`, both exported. The editable variant forwards `startName` / `endName` to the DateRangeField (the picker still has no `name`).
   - Editable `onValueChange` follows DateRangeField's contract (a typed half reports the pair, so an end can be `null`); the button picker still reports only complete ranges.
   - Defaults: the icon button and the popup are "Choose date range". `DatePickerLabels` gains `start` / `end` / `rangeReversed` for the editable range picker; its `incomplete` there defaults to "Enter a complete date range.".
-  - Width: two en-US dates plus the icon button need about 22rem at `lg`; the field does not shrink below its content (as DateField), so the stories and tests give it that room.
+  - Width: two en-US dates plus the icon button need about 22rem at `lg`. The DateRangeField group is `min-w-max` (over the group's `min-w-0`) and the editable shell's anchor grows with it (`growToContent`), so in a narrower container the control grows past the container instead of painting its segments past its own border.
+  - *Fix round 1*: with only the start typed (`{ start, end: null }`), the calendar gets that start, so one click picks the end (an earlier day swaps, per RangeCalendar) and fills both halves. A reversed typed range (end < start, invalid in the field) is passed to the calendar as `emptyRange`: no valid-looking band, and two picks fill both halves with a valid range.
 
 ## 2. Command
 

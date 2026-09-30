@@ -727,6 +727,20 @@ describe("DateRangeField: states", () => {
   });
 });
 
+describe("DateRangeField: width", () => {
+  it("in a container narrower than its content, the border still wraps every segment", async () => {
+    await render(
+      <div className="w-40">
+        <Basic size="lg" defaultValue={range(d(2026, 9, 1), d(2026, 9, 12))} />
+      </div>,
+    );
+    const box = root().getBoundingClientRect();
+    const last = seg("end", "year").getBoundingClientRect();
+    expect(box.right).toBeGreaterThanOrEqual(last.right);
+    expect(root().scrollWidth).toBeLessThanOrEqual(root().clientWidth);
+  });
+});
+
 describe("DateRangeField: focus and forced colors", () => {
   it("a focused segment in either half rings the whole group", async () => {
     await render(<Basic />);

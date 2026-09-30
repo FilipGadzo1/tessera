@@ -502,12 +502,17 @@ source files automatically (build output + `"use client"` directive checks).
   `DateRangePicker editable` is the same with a DateRangeField (below) and the two-month
   RangeCalendar: the icon button is "Choose date range", a typed complete range shows selected in
   the calendar (which opens on the start's month), and picking both ends fills both halves, closes
-  and returns focus to the icon button (an unfinished pick reverts on Escape). The DateRangeField is
+  and returns focus to the icon button (an unfinished pick reverts on Escape); with only the start
+  typed, one click picks the end (an earlier day swaps them). A reversed typed range stays invalid
+  in the field and shows no selection in the calendar. The DateRangeField is
   the one Field / Form control and takes `startName` / `endName`; `onValueChange` then follows
-  DateRangeField's contract (it also reports a typed half, so an end can be `null`), and
+  DateRangeField's contract (it also reports a typed half, so an end can be `null`): code written
+  for the button mode, which only ever reports complete ranges, must guard `start && end` before
+  using the range once it switches to `editable`, and
   `labels.start` / `labels.end` / `labels.rangeReversed` reach it. `DateRangePickerProps` is a
-  union of `DateRangePickerButtonProps` and `DateRangePickerEditableProps`, as DatePicker's. Give it
-  about 22rem for two dates and the button. No clear button:
+  union of `DateRangePickerButtonProps` and `DateRangePickerEditableProps`, as DatePicker's. It
+  never shrinks below its content (about 22rem at `lg` for two dates and the button): in a
+  narrower container it grows past it rather than overflowing its own border. No clear button:
   render a Button beside it. Pass `locale` explicitly when server-rendering; an inline Calendar's
   today marker is computed on the client. Client component)
 - [x] DateField (a typed, segmented date input on React Aria's date-field pattern: a `group` of
