@@ -1,9 +1,11 @@
 "use client";
 
 import {
+  Children,
   type ComponentProps,
   createContext,
   type FocusEvent,
+  isValidElement,
   type KeyboardEvent,
   type MouseEvent,
   type PointerEvent,
@@ -16,6 +18,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { flushSync } from "react-dom";
 import { cn } from "../../lib/cn";
 import { isRtl } from "../../lib/direction";
 import { toggleFocusClasses } from "../../lib/focus-classes";
@@ -44,6 +47,8 @@ import { buttonVariants } from "../button/button-variants";
  *   target arrives or the scroll ends (`scrollend`, e.g. a user interrupting it).
  * - `perView` is measured (content size ÷ first item size), so CSS basis classes, responsive ones
  *   included, work as well as the `slidesPerView` prop.
+ * - An index the observer reports comes from the user's own scrolling, so committing it never
+ *   scrolls (`observed`): a late commit (a slow controlled parent) must not pull the content back.
  */
 
 /** The share of a slide inside the content that makes it "visible" (APG-style ≥ 60%). */
@@ -95,7 +100,7 @@ interface CarouselContextValue {
   /** The user's rotation choice (the rotation control's state). */
   rotating: boolean;
   setRotating: (rotating: boolean) => void;
-  /** Rotation is on and not paused (hover, focus, hidden tab). */
+  /** Rotation is on and not paused (hover, pointer focus inside, hidden tab). */
   running: boolean;
 }
 
@@ -125,7 +130,8 @@ function firstVisible(content: HTMLElement, items: HTMLElement[], vertical: bool
  * Scrolls `content` so `item`'s start edge meets the content's start edge. Relative to the current
  * position, so it works mid-scroll, in RTL (Chromium's scrollLeft runs from 0 to negative, and
  * moving by a delta is direction-agnostic) and vertically. No `behavior`: the CSS
- * `scroll-behavior` decides (smooth, or instant under reduced motion).
+ * `scroll-behavior` decides (smooth, or instant under reduced motion). Always calls `scrollTo`,
+ * even for no distance, so it also stops a running smooth scroll. Returns the distance.
  */
 function scrollToItem(
   content: HTMLElement,
@@ -135,17 +141,18 @@ function scrollToItem(
 ) {
   const box = content.getBoundingClientRect();
   const rect = item.getBoundingClientRect();
+  let distance: number;
   if (vertical) {
-    content.scrollTo({ top: content.scrollTop + rect.top - box.top - content.clientTop, behavior });
+    distance = rect.top - box.top - content.clientTop;
+    content.scrollTo({ top: content.scrollTop + distance, behavior });
   } else if (isRtl(content)) {
-    const innerRight = box.left + content.clientLeft + content.clientWidth;
-    content.scrollTo({ left: content.scrollLeft + rect.right - innerRight, behavior });
+    distance = rect.right - (box.left + content.clientLeft + content.clientWidth);
+    content.scrollTo({ left: content.scrollLeft + distance, behavior });
   } else {
-    content.scrollTo({
-      left: content.scrollLeft + rect.left - box.left - content.clientLeft,
-      behavior,
-    });
+    distance = rect.left - box.left - content.clientLeft;
+    content.scrollTo({ left: content.scrollLeft + distance, behavior });
   }
+  return distance;
 }
 
 function inDocumentOrder(elements: Iterable<HTMLElement>) {
@@ -168,9 +175,11 @@ export interface CarouselProps extends ComponentProps<"section"> {
   defaultIndex?: number;
   onIndexChange?: (index: number) => void;
   /**
-   * Automatic rotation: `true` or `{ interval }` (ms, default 5000). Off by default. Pauses on
-   * hover, focus inside and a hidden tab; not started under `prefers-reduced-motion` (the
-   * `CarouselPlayPause` control still starts it).
+   * Automatic rotation: `true` or `{ interval }` (ms, default 5000). Off by default. Keyboard
+   * focus anywhere in the carousel stops it until the user presses `CarouselPlayPause` (APG).
+   * Hover, pointer focus inside and a hidden tab pause it. Not started under
+   * `prefers-reduced-motion`, and stopped if that turns on (the control still starts it).
+   * Rotation needs more than one view of slides.
    */
   autoplay?: boolean | CarouselAutoplay;
   /**
@@ -186,6 +195,10 @@ export interface CarouselProps extends ComponentProps<"section"> {
  * The carousel root: a `section` with `aria-roledescription="carousel"`. Give it an `aria-label`.
  * Compose `CarouselContent` > `CarouselItem`s with `CarouselPrevious`, `CarouselNext`,
  * `CarouselDots` and (with `autoplay`) `CarouselPlayPause`.
+ *
+ * A controlled `index` whose parent rejects a user scroll (does not commit the reported index)
+ * scrolls back to `index` once the scroll ends. Server HTML guesses each slide's position from
+ * CarouselContent's element children (one item per child); the mounted DOM order replaces it.
  */
 export function Carousel({
   orientation = "horizontal",
@@ -199,6 +212,8 @@ export function Carousel({
   className,
   onPointerEnter,
   onPointerLeave,
+  onPointerDown,
+  onPointerUp,
   onFocus,
   onBlur,
   ...props
@@ -233,8 +248,22 @@ export function Carousel({
   const maxIndex = Math.max(0, count - perView);
   const index = count ? Math.min(Math.max(rawIndex, 0), maxIndex) : rawIndex;
 
+  /**
+   * Indexes the observer reported from the user's own scrolling. When one of them commits (at once,
+   * or later through a slow controlled parent) the content is already there or has moved on, so
+   * it must not be scrolled to — that would yank the user's scroll back.
+   */
+  const observed = useRef(new Set<number>());
+  /** A programmatic move (buttons, dots, keys, autoplay): the index change scrolls. */
   const goTo = (target: number) => {
+    observed.current.clear();
     if (target !== index) setIndex(target);
+  };
+  /** The observer's (or a settled scroll's) visible slide: the index change does not scroll. */
+  const report = (visible: number) => {
+    if (visible === index) return;
+    observed.current.add(visible);
+    setIndex(visible);
   };
   const canPrevious = loop || index > 0;
   const canNext = loop || index < maxIndex;
@@ -247,11 +276,16 @@ export function Carousel({
     else if (wrap) goTo(0);
   };
 
-  // The latest index and setter for the observer and timer callbacks.
-  const latest = useRef({ index, goTo, next });
+  // The latest index and setters for the observer and timer callbacks.
+  const latest = useRef({ index, report, next });
   useLayoutEffect(() => {
-    latest.current = { index, goTo, next };
+    latest.current = { index, report, next };
   });
+
+  // An index clamped by fewer slides or more slides per view is a change: report it.
+  useEffect(() => {
+    if (count && rawIndex !== index) setIndex(index);
+  }, [count, index, rawIndex, setIndex]);
 
   // Measure how many slides fit in one view.
   useLayoutEffect(() => {
@@ -281,13 +315,18 @@ export function Carousel({
     if (!content || !item) return;
     const first = !scrolled.current;
     scrolled.current = true;
+    // Reported by the observer: the user's scroll put (or is taking) the content there.
+    if (observed.current.delete(index)) return;
     // Already in view — unless an earlier programmatic scroll is still carrying the content away.
     if (pending.current === null && firstVisible(content, items, vertical) === index) return;
     pending.current = index;
-    scrollToItem(content, item, vertical, first ? "instant" : undefined);
+    const distance = scrollToItem(content, item, vertical, first ? "instant" : undefined);
+    // Already there (a retarget back to where the content is): no scroll, so no `scrollend`.
+    if (Math.abs(distance) < 1) pending.current = null;
   }, [index, items, vertical]);
 
-  // Track the visible slide: an IntersectionObserver while scrolling, geometry once it ends.
+  // Track the visible slide. The IntersectionObserver says when slides cross 60%; the slide is
+  // then read from the geometry, so a late delivery cannot report a slide the user has left.
   useEffect(() => {
     const content = contentRef.current;
     if (!content || !items.length) return;
@@ -297,24 +336,37 @@ export function Carousel({
         if (visible !== pending.current) return;
         pending.current = null;
       }
-      latest.current.goTo(visible);
+      latest.current.report(visible);
     };
-    const ratios = new Map<Element, number>();
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) ratios.set(entry.target, entry.intersectionRatio);
-        sync(items.findIndex((item) => (ratios.get(item) ?? 0) >= VISIBLE - VISIBLE_EPSILON));
-      },
-      { root: content, threshold: [0, VISIBLE, 1] },
-    );
+    const observer = new IntersectionObserver(() => sync(firstVisible(content, items, vertical)), {
+      root: content,
+      threshold: [0, VISIBLE, 1],
+    });
     for (const item of items) observer.observe(item);
+    let frame = 0;
     const onScrollEnd = () => {
       pending.current = null;
-      sync(firstVisible(content, items, vertical));
+      observed.current.clear();
+      const visible = firstVisible(content, items, vertical);
+      // Committed now (uncontrolled, or a parent that sets state in the callback), so the check
+      // below never reads an index that is merely not rendered yet.
+      flushSync(() => sync(visible));
+      // A controlled parent that rejected the report keeps its index: once it has had a frame to
+      // commit, scroll back to that index — unless the user has scrolled on since.
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const { index: settled } = latest.current;
+        const item = items[settled];
+        if (pending.current !== null || !item || settled === visible) return;
+        if (firstVisible(content, items, vertical) !== visible) return;
+        pending.current = settled;
+        scrollToItem(content, item, vertical);
+      });
     };
     content.addEventListener("scrollend", onScrollEnd);
     return () => {
       observer.disconnect();
+      cancelAnimationFrame(frame);
       content.removeEventListener("scrollend", onScrollEnd);
     };
   }, [items, vertical]);
@@ -323,8 +375,16 @@ export function Carousel({
   const autoplayOn = autoplay !== false;
   const interval = (typeof autoplay === "object" && autoplay.interval) || DEFAULT_INTERVAL;
   const [rotating, setRotating] = useState(autoplayOn);
+  // Not started under reduced motion, and stopped if it turns on later (the user can restart it).
   useLayoutEffect(() => {
-    setRotating(autoplayOn && !window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setRotating(autoplayOn && !query.matches);
+    if (!autoplayOn) return;
+    const onChange = () => {
+      if (query.matches) setRotating(false);
+    };
+    query.addEventListener("change", onChange);
+    return () => query.removeEventListener("change", onChange);
   }, [autoplayOn]);
   const [hovered, setHovered] = useState(false);
   const [focusWithin, setFocusWithin] = useState(false);
@@ -336,12 +396,23 @@ export function Carousel({
     document.addEventListener("visibilitychange", update);
     return () => document.removeEventListener("visibilitychange", update);
   }, [autoplayOn]);
-  const running = autoplayOn && rotating && !hovered && !focusWithin && !hidden && count > 1;
-  // biome-ignore lint/correctness/useExhaustiveDependencies: each index change restarts the step.
+  const running = autoplayOn && rotating && !hovered && !focusWithin && !hidden && maxIndex > 0;
+  // Each step bumps `step`, so the next one is scheduled even when a controlled parent rejects the
+  // index change; an index change from anywhere else restarts the interval too.
+  const [step, setStep] = useState(0);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `index` and `step` restart the interval.
   useEffect(() => {
     if (!running) return;
-    return carouselTimer.schedule(() => latest.current.next(true), interval);
-  }, [running, interval, index]);
+    return carouselTimer.schedule(() => {
+      latest.current.next(true);
+      setStep((value) => value + 1);
+    }, interval);
+  }, [running, interval, index, step]);
+
+  // APG: keyboard focus anywhere in the carousel stops rotation until the user restarts it with
+  // the rotation control. A pointer that focuses something only pauses it while focus stays inside
+  // (hover pauses it anyway). `pointerFocus` marks a focus that a pointer press just caused.
+  const pointerFocus = useRef(false);
 
   return (
     <CarouselContext
@@ -368,7 +439,7 @@ export function Carousel({
         running,
       }}
     >
-      {/* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useAriaPropsSupportedByRole: a labelled section is a region (which takes aria-roledescription, APG); hover and focus-within only pause autoplay. */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useAriaPropsSupportedByRole: a labelled section is a region (which takes aria-roledescription, APG); the pointer and focus handlers only drive autoplay. */}
       <section
         aria-roledescription="carousel"
         {...props}
@@ -383,14 +454,34 @@ export function Carousel({
           onPointerLeave?.(event);
           setHovered(false);
         }}
+        onPointerDown={(event: PointerEvent<HTMLElement>) => {
+          onPointerDown?.(event);
+          pointerFocus.current = true;
+        }}
+        onPointerUp={(event: PointerEvent<HTMLElement>) => {
+          onPointerUp?.(event);
+          pointerFocus.current = false;
+        }}
         onFocus={(event: FocusEvent<HTMLElement>) => {
           onFocus?.(event);
-          // Focus on the rotation control itself does not pause rotation (APG).
-          setFocusWithin(!(event.target as Element).closest("[data-slot=carousel-play-pause]"));
+          const target = event.target as Element;
+          const keyboard = !pointerFocus.current || target.matches(":focus-visible");
+          pointerFocus.current = false;
+          if (keyboard) {
+            if (autoplayOn) setRotating(false);
+          } else {
+            // A pointer on the rotation control is not a pause: the click decides.
+            setFocusWithin(!target.closest("[data-slot=carousel-play-pause]"));
+          }
         }}
         onBlur={(event: FocusEvent<HTMLElement>) => {
           onBlur?.(event);
-          if (!event.currentTarget.contains(event.relatedTarget as Node | null))
+          const section = event.currentTarget;
+          // The window losing focus (alt-tab) keeps the active element: focus has not left.
+          if (
+            !section.contains(event.relatedTarget as Node | null) &&
+            !section.contains(document.activeElement)
+          )
             setFocusWithin(false);
         }}
       />
@@ -408,20 +499,39 @@ const contentBase = [
 export type CarouselContentProps = ComponentProps<"div">;
 
 /**
- * The scroll-snap container of the slides. Focusable: ←/→ (↑/↓ when vertical; RTL flips ←/→)
- * move the slides. `aria-live="polite"`, `off` while autoplay is rotating (APG).
+ * A render-time guess at an item's position, from CarouselContent's element children (one item
+ * per child), so server HTML already has the slide labels and `inert`. The registered DOM order
+ * replaces it after mount (wrappers rendering several items, fragments of items).
  */
-export function CarouselContent({ className, onKeyDown, ref, ...props }: CarouselContentProps) {
+const ItemGuessContext = createContext<{ position: number; count: number } | null>(null);
+
+/**
+ * The scroll-snap container of the slides: a `role="group"` named "Slides" (`aria-label`
+ * localises it). Focusable: ←/→ (↑/↓ when vertical; RTL flips ←/→) move the slides.
+ * `aria-live="polite"`, `off` while autoplay is rotating (APG).
+ */
+export function CarouselContent({
+  className,
+  onKeyDown,
+  ref,
+  children,
+  "aria-label": ariaLabel = "Slides",
+  ...props
+}: CarouselContentProps) {
   const carousel = useCarousel("CarouselContent");
   const mergedRef = useMergedRefs(ref, carousel.contentRef);
   const vertical = carousel.orientation === "vertical";
+  const count = Children.toArray(children).filter(isValidElement).length;
+  let position = 0;
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: the scroll container takes the APG ←/→ keys.
+    // biome-ignore lint/a11y/useSemanticElements: the scroll container is a named div group (a <fieldset> brings UA styles).
     <div
       // biome-ignore lint/a11y/noNoninteractiveTabindex: a focusable scroll container, so keyboard users can scroll it (axe scrollable-region-focusable).
       tabIndex={0}
       {...props}
       ref={mergedRef}
+      role="group"
+      aria-label={ariaLabel}
       id={carousel.contentId}
       aria-live={carousel.running ? "off" : "polite"}
       data-orientation={carousel.orientation}
@@ -446,7 +556,14 @@ export function CarouselContent({ className, onKeyDown, ref, ...props }: Carouse
           carousel.next();
         }
       }}
-    />
+    >
+      {Children.map(children, (child) => {
+        if (!isValidElement(child)) return child;
+        const guess = { position, count };
+        position += 1;
+        return <ItemGuessContext value={guess}>{child}</ItemGuessContext>;
+      })}
+    </div>
   );
 }
 
@@ -464,11 +581,24 @@ export function CarouselItem({
   ...props
 }: CarouselItemProps) {
   const carousel = useCarousel("CarouselItem");
+  const guess = use(ItemGuessContext);
   const [element, setElement] = useState<HTMLDivElement | null>(null);
   const mergedRef = useMergedRefs<HTMLDivElement>(ref, setElement, carousel.register);
-  const position = element ? carousel.items.indexOf(element) : -1;
+  const registered = element ? carousel.items.indexOf(element) : -1;
+  // The registered DOM position once mounted; before that (server HTML), the render-time guess.
+  const position = registered >= 0 ? registered : (guess?.position ?? -1);
+  const count = registered >= 0 ? carousel.count : (guess?.count ?? 0);
   const offscreen =
     position >= 0 && (position < carousel.index || position >= carousel.index + carousel.perView);
+
+  // A slide leaving the view becomes inert; focus inside it would drop to the body, so move it to
+  // the content (the focus event then stops rotation, as any keyboard-style focus does).
+  const { contentRef } = carousel;
+  useLayoutEffect(() => {
+    if (offscreen && element?.contains(document.activeElement))
+      contentRef.current?.focus({ preventScroll: true });
+  }, [offscreen, element, contentRef]);
+
   return (
     // biome-ignore lint/a11y/useSemanticElements: the APG slide is a div group; a <fieldset> brings UA borders, padding and min-width.
     <div
@@ -477,7 +607,7 @@ export function CarouselItem({
       role="group"
       aria-roledescription="slide"
       aria-label={
-        ariaLabel ?? (position >= 0 ? carousel.slideLabel(position + 1, carousel.count) : undefined)
+        ariaLabel ?? (position >= 0 ? carousel.slideLabel(position + 1, count) : undefined)
       }
       inert={offscreen || undefined}
       data-slot="carousel-item"
@@ -658,7 +788,8 @@ export interface CarouselPlayPauseProps extends ComponentProps<"button"> {
 
 /**
  * The rotation control (APG): renders only with `autoplay`. Put it first in the carousel so it is
- * the first Tab stop. Focus on it does not pause rotation.
+ * the first Tab stop. Keyboard focus reaching it stops rotation, like any keyboard focus in the
+ * carousel; activating it starts rotation, which then runs while focus stays on it.
  */
 export function CarouselPlayPause({
   className,

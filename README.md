@@ -619,15 +619,23 @@ source files automatically (build output + `"use client"` directive checks).
   labelled "3 of 8" (`slideLabel` localises it). Touch, trackpad and wheel scrolling are the browser's; an
   IntersectionObserver tracks the leading slide (≥ 60% visible) as `index` / `defaultIndex` / `onIndexChange`
   (0-based). Previous/Next (outline icon buttons, "Previous slide" / "Next slide") are `aria-disabled` at the
-  ends but stay focusable; `loop` makes them jump from the first to the last slide and back. Focus the content
-  and ←/→ move the slides (↑/↓ with `orientation="vertical"`; RTL flips ←/→). Slides out of view are `inert`.
+  ends but stay focusable; `loop` makes them jump from the first to the last slide and back. The content is a
+  focusable `role="group"` named "Slides" (`aria-label` localises it): focus it and ←/→ move the slides (↑/↓
+  with `orientation="vertical"`; RTL flips ←/→). Slides out of view are `inert`; if one holds focus as it
+  leaves, focus moves to the content. Only programmatic moves scroll: an index reported from the user's own
+  scrolling never scrolls back, a controlled parent that rejects a user scroll gets the content scrolled back
+  to its `index` when the scroll ends, and an index clamped by fewer slides is reported via `onIndexChange`.
+  Before mount (server HTML) each slide's label and `inert` come from its position among CarouselContent's
+  element children (one item per child); the mounted DOM order replaces that guess. Slides draw their own
+  bounds in forced colors (tinted backgrounds are dropped there), e.g. `forced-colors:border`.
   `slidesPerView={n}` sets the items' basis (CSS basis classes work too — the slides per view are measured);
   the index is then the leading slide, the last index is the last full view, and there is one dot per reachable
   position. `CarouselDots` are "Go to slide N" buttons with `aria-current` on the current one (Highlight in
   forced colors). `autoplay` (off by default; `true` or `{ interval }`, 5000ms) rotates and wraps, sets the
-  content's `aria-live` to `off` while rotating (`polite` otherwise), pauses on hover, on focus inside and
-  while the tab is hidden, and does not start under reduced motion; `CarouselPlayPause` ("Stop / Start slide
-  rotation", localisable) toggles it. Scrolling is smooth, instant under reduced motion. Client component)
+  content's `aria-live` to `off` while rotating (`polite` otherwise), and needs more than one view of slides.
+  Keyboard focus anywhere in the carousel stops it until the user activates `CarouselPlayPause` ("Stop / Start
+  slide rotation", localisable; APG); hover, pointer focus inside and a hidden tab pause it; it does not start
+  under reduced motion and stops if reduced motion turns on. Scrolling is smooth, instant under reduced motion. Client component)
 
 Phase A (foundation), Phase B (forms), Phase C (overlays), Phase D (navigation and feedback),
 Phase E (data entry and display), Phase F (dates, toolbars and surfaces — Meter, ScrollArea,

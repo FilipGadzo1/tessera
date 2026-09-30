@@ -32,7 +32,8 @@ function Slide({ index, className }: { index: number; className?: string }) {
   const slide = slides[index % slides.length] ?? slides[0];
   return (
     <div
-      className={`flex h-full flex-col items-center justify-center gap-3 rounded-lg ${slide.tone} ${className ?? ""}`}
+      // Forced colors drop the tinted background, so the slide draws its own bounds there.
+      className={`flex h-full flex-col items-center justify-center gap-3 rounded-lg forced-colors:border forced-colors:border-[CanvasText] ${slide.tone} ${className ?? ""}`}
     >
       <svg
         aria-hidden="true"
@@ -132,10 +133,10 @@ export const Vertical: Story = {
 };
 
 /**
- * `autoplay`: rotates every 5 seconds (`{ interval }` to change it). It pauses while hovered or
- * focused and while the tab is hidden, and does not start under reduced motion; the rotation
- * control stops and starts it. The controls come first, so the rotation control is the first Tab
- * stop (APG).
+ * `autoplay`: rotates every 5 seconds (`{ interval }` to change it). Keyboard focus anywhere in the
+ * carousel stops it until the rotation control is pressed (APG); hover and a hidden tab pause it,
+ * and it does not start under reduced motion. The controls come first, so the rotation control is
+ * the first Tab stop.
  */
 export const AutoplayWithPause: Story = {
   args: { "aria-label": "Shapes, rotating", autoplay: { interval: 5000 } },

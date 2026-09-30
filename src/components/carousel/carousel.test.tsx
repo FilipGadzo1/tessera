@@ -1,5 +1,6 @@
 import axe from "axe-core";
 import { type ReactElement, useState } from "react";
+import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
@@ -113,9 +114,48 @@ async function press(key: string) {
   await userEvent.keyboard(key);
 }
 
+/** One rendered frame: lets effects and a scheduled re-render settle (not a timed wait). */
+function nextFrame() {
+  return new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+}
+
+/** Resolves on the content's next `scrollend`. */
+function scrollEnd() {
+  return new Promise((resolve) => content().addEventListener("scrollend", resolve, { once: true }));
+}
+
+/**
+ * Replaces IntersectionObserver with one the test drives: `report()` calls the carousel's latest
+ * observer callback, as a late (stale) delivery would. Restored in `afterEach`.
+ */
+function holdObserver() {
+  const callbacks: IntersectionObserverCallback[] = [];
+  class HeldObserver {
+    constructor(callback: IntersectionObserverCallback) {
+      callbacks.push(callback);
+    }
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+    takeRecords() {
+      return [];
+    }
+  }
+  vi.stubGlobal("IntersectionObserver", HeldObserver);
+  return {
+    /** Delivers entries claiming slide `n` (1-based) is fully visible. */
+    report(n: number) {
+      const callback = callbacks.at(-1);
+      const entry = { target: slide(n), intersectionRatio: 1, isIntersecting: true };
+      callback?.([entry as unknown as IntersectionObserverEntry], {} as IntersectionObserver);
+    },
+  };
+}
+
 afterEach(() => {
   document.documentElement.classList.remove("dark");
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 describe("Carousel", () => {
@@ -129,6 +169,8 @@ describe("Carousel", () => {
       const scroller = content();
       expect(scroller.getAttribute("aria-live")).toBe("polite");
       expect(scroller.id).not.toBe("");
+      // Focusable, so it has a role and a name.
+      expect(scroller).toBe(page.getByRole("group", { name: "Slides", exact: true }).element());
       await expect
         .poll(() => slides().map((s) => s.getAttribute("aria-label")))
         .toEqual(["1 of 5", "2 of 5", "3 of 5", "4 of 5", "5 of 5"]);
@@ -162,7 +204,7 @@ describe("Carousel", () => {
     it("localises every label", async () => {
       await render(
         <Carousel aria-label="Photos" slideLabel={(n, total) => `Folie ${n} von ${total}`}>
-          <CarouselContent className="w-80">
+          <CarouselContent className="w-80" aria-label="Folien">
             <CarouselItem>A</CarouselItem>
             <CarouselItem>B</CarouselItem>
           </CarouselContent>
@@ -176,6 +218,9 @@ describe("Carousel", () => {
       expect(button("Nächste Folie")).toBeTruthy();
       expect(button("Gehe zu Folie 2")).toBeTruthy();
       expect(page.getByRole("group", { name: "Folie wählen" }).element()).toBeTruthy();
+      expect(page.getByRole("group", { name: "Folien", exact: true }).element().dataset.slot).toBe(
+        "carousel-content",
+      );
     });
   });
 
@@ -274,7 +319,113 @@ describe("Carousel", () => {
     });
   });
 
+  describe("observer feedback", () => {
+    it("a stale observer report does not scroll the content back", async () => {
+      const observer = holdObserver();
+      await render(<Slides />);
+      await expect.poll(() => slide(1).getAttribute("aria-label")).toBe("1 of 5");
+      const ended = scrollEnd();
+      content().scrollTo({ left: 960, behavior: "instant" });
+      await ended;
+      await expect.poll(current).toBe(4);
+      const scrollTo = vi.spyOn(content(), "scrollTo");
+      // Delivered late: computed while the user was passing slide 3.
+      observer.report(3);
+      await nextFrame();
+      expect(scrollTo).not.toHaveBeenCalled();
+      expect(content().scrollLeft).toBe(960);
+      expect(current()).toBe(4);
+    });
+
+    it("a controlled parent committing a reported index after the user scrolled on does not pull the content back", async () => {
+      let moveOn = true;
+      function Slow() {
+        const [index, setIndex] = useState(0);
+        return (
+          <Slides
+            index={index}
+            onIndexChange={(next) => {
+              // The user keeps scrolling before the parent commits the first report.
+              if (moveOn) {
+                moveOn = false;
+                content().scrollLeft = 960;
+              }
+              queueMicrotask(() => setIndex(next));
+            }}
+          />
+        );
+      }
+      await render(<Slow />);
+      await expect.poll(() => slide(1).getAttribute("aria-label")).toBe("1 of 5");
+      // Instant scrollLeft assignments, standing in for the user's scrolling.
+      content().style.scrollBehavior = "auto";
+      const scrollTo = vi.spyOn(content(), "scrollTo");
+      content().scrollLeft = 640;
+      await expect.poll(current).toBe(4);
+      await nextFrame();
+      await nextFrame();
+      expect(scrollTo).not.toHaveBeenCalled();
+      expect(content().scrollLeft).toBe(960);
+      expect(current()).toBe(4);
+    });
+
+    it("a retarget that lands where the content already is clears the pending move", async () => {
+      const observer = holdObserver();
+      const onIndexChange = vi.fn();
+      const screen = await render(<Slides index={0} onIndexChange={onIndexChange} />);
+      await expect.poll(() => slide(1).getAttribute("aria-label")).toBe("1 of 5");
+      content().style.scrollBehavior = "auto";
+      // A programmatic move whose scroll has not started yet…
+      const hold = vi.spyOn(content(), "scrollTo").mockImplementation(() => {});
+      await screen.rerender(<Slides index={2} onIndexChange={onIndexChange} />);
+      expect(hold).toHaveBeenCalled();
+      hold.mockRestore();
+      // …turned back to where the content is: no scroll, so no scrollend will clear it.
+      await screen.rerender(<Slides index={0} onIndexChange={onIndexChange} />);
+      // The user now scrolls; the observer's report is honoured, not held for the old target.
+      content().scrollLeft = 640;
+      observer.report(3);
+      expect(onIndexChange).toHaveBeenLastCalledWith(2);
+    });
+  });
+
   describe("controlled index", () => {
+    it("a parent that rejects a user scroll snaps the content back to its index", async () => {
+      await render(<Slides index={1} onIndexChange={() => {}} />);
+      await expect.poll(inView).toEqual([2]);
+      content().scrollTo({ left: 960, behavior: "instant" });
+      await expect.poll(inView).toEqual([2]);
+      expect(current()).toBe(2);
+    });
+
+    it("reports an index clamped by the slide count or the slides per view", async () => {
+      const onIndexChange = vi.fn();
+      const screen = await render(<Slides defaultIndex={4} onIndexChange={onIndexChange} />);
+      await expect.poll(current).toBe(5);
+      expect(onIndexChange).not.toHaveBeenCalled();
+      await screen.rerender(<Slides count={3} defaultIndex={4} onIndexChange={onIndexChange} />);
+      await expect.poll(() => onIndexChange.mock.lastCall).toEqual([2]);
+      await expect.poll(current).toBe(3);
+    });
+
+    it("reports an index clamped by the slides per view", async () => {
+      const onIndexChange = vi.fn();
+      await render(
+        <Slides count={5} defaultIndex={4} slidesPerView={2} onIndexChange={onIndexChange} />,
+      );
+      await expect.poll(() => onIndexChange.mock.lastCall).toEqual([3]);
+      await expect.poll(inView).toEqual([4, 5]);
+    });
+
+    it("follows a slide-count change while mounted", async () => {
+      const screen = await render(<Slides count={3} />);
+      await expect.poll(() => slide(1).getAttribute("aria-label")).toBe("1 of 3");
+      await screen.rerender(<Slides count={4} />);
+      await expect.poll(() => slide(1).getAttribute("aria-label")).toBe("1 of 4");
+      expect(slide(4).getAttribute("aria-label")).toBe("4 of 4");
+      expect(dots()).toHaveLength(4);
+    });
+
     it("follows the index prop and reports changes without moving itself", async () => {
       const onIndexChange = vi.fn();
       const screen = await render(<Slides index={1} onIndexChange={onIndexChange} />);
@@ -440,6 +591,29 @@ describe("Carousel", () => {
       await userEvent.tab();
       expect(document.activeElement).toBe(prev());
     });
+
+    it("focus in a slide that goes out of view moves to the content, not the body", async () => {
+      const screen = await render(<Slides index={0} />);
+      await expect.poll(live).toEqual([1]);
+      const link = slide(1).querySelector("a") as HTMLElement;
+      link.focus();
+      await screen.rerender(<Slides index={2} />);
+      await expect.poll(live).toEqual([3]);
+      await expect.poll(() => document.activeElement).toBe(content());
+    });
+
+    it("server HTML already labels the slides and makes the off-screen ones inert", async () => {
+      const html = renderToString(<Slides count={3} defaultIndex={1} />);
+      const host = document.createElement("div");
+      host.innerHTML = html;
+      const items = Array.from(host.querySelectorAll("[data-slot=carousel-item]"));
+      expect(items.map((item) => item.getAttribute("aria-label"))).toEqual([
+        "1 of 3",
+        "2 of 3",
+        "3 of 3",
+      ]);
+      expect(items.map((item) => item.hasAttribute("inert"))).toEqual([true, false, true]);
+    });
   });
 
   describe("autoplay", () => {
@@ -466,21 +640,44 @@ describe("Carousel", () => {
       await expect.poll(timer.intervals).toEqual([2000]);
     });
 
-    it("the play/pause toggle stops and starts rotation", async () => {
+    it("keyboard focus on the rotation control stops rotation; pressing it starts and stops it", async () => {
       const timer = holdTimer();
       await render(<Slides autoplay />);
       await expect.poll(timer.active).toBe(1);
       const toggle = button("Stop slide rotation");
       toggle.focus();
-      await press("{Enter}");
+      // APG: keyboard focus anywhere in the carousel, the control included, stops rotation.
       await expect.poll(() => toggle.getAttribute("aria-label")).toBe("Start slide rotation");
       expect(timer.active()).toBe(0);
       expect(content().getAttribute("aria-live")).toBe("polite");
       await press("{Enter}");
       await expect.poll(() => toggle.getAttribute("aria-label")).toBe("Stop slide rotation");
-      // Focus on the rotation control itself does not pause.
+      // Started by the user with focus on the control: it runs.
       await expect.poll(timer.active).toBe(1);
       expect(content().getAttribute("aria-live")).toBe("off");
+      await press("{Enter}");
+      await expect.poll(() => toggle.getAttribute("aria-label")).toBe("Start slide rotation");
+      expect(timer.active()).toBe(0);
+    });
+
+    it("a pointer click on the rotation control toggles it", async () => {
+      const timer = holdTimer();
+      await render(
+        <>
+          <Slides autoplay />
+          <button type="button">outside</button>
+        </>,
+      );
+      await expect.poll(timer.active).toBe(1);
+      const toggle = button("Stop slide rotation");
+      await userEvent.click(toggle);
+      await expect.poll(() => toggle.getAttribute("aria-label")).toBe("Start slide rotation");
+      await userEvent.click(toggle);
+      await expect.poll(() => toggle.getAttribute("aria-label")).toBe("Stop slide rotation");
+      // Paused while the pointer is over it; runs once the pointer leaves.
+      expect(timer.active()).toBe(0);
+      await userEvent.hover(page.getByRole("button", { name: "outside" }).element());
+      await expect.poll(timer.active).toBe(1);
     });
 
     it("pauses while hovered", async () => {
@@ -495,7 +692,7 @@ describe("Carousel", () => {
       await expect.poll(timer.active).toBe(1);
     });
 
-    it("pauses while focus is inside", async () => {
+    it("keyboard focus stops rotation, and it stays stopped after focus leaves", async () => {
       const timer = holdTimer();
       await render(
         <>
@@ -506,9 +703,99 @@ describe("Carousel", () => {
       await expect.poll(timer.active).toBe(1);
       await userEvent.tab();
       expect(document.activeElement).toBe(content());
-      await expect.poll(timer.active).toBe(0);
-      (page.getByRole("button", { name: "outside" }).element() as HTMLElement).focus();
+      await expect.poll(() => button("Start slide rotation")).toBeTruthy();
+      expect(timer.active()).toBe(0);
+      const outside = page.getByRole("button", { name: "outside" }).element() as HTMLElement;
+      outside.focus();
+      await nextFrame();
+      expect(timer.active()).toBe(0);
+      expect(button("Start slide rotation")).toBeTruthy();
+      // Only the rotation control restarts it.
+      await userEvent.click(button("Start slide rotation"));
+      await userEvent.hover(outside);
       await expect.poll(timer.active).toBe(1);
+    });
+
+    it("a window blur (alt-tab) with keyboard focus in a slide does not restart rotation", async () => {
+      const timer = holdTimer();
+      await render(<Slides autoplay />);
+      await expect.poll(timer.active).toBe(1);
+      await userEvent.tab();
+      await userEvent.tab();
+      const link = slide(1).querySelector("a") as HTMLElement;
+      expect(document.activeElement).toBe(link);
+      await expect.poll(() => button("Start slide rotation")).toBeTruthy();
+      // The window losing focus: focusout with no relatedTarget, the element stays active.
+      link.dispatchEvent(new FocusEvent("focusout", { bubbles: true, relatedTarget: null }));
+      link.dispatchEvent(new FocusEvent("blur", { relatedTarget: null }));
+      await nextFrame();
+      expect(timer.active()).toBe(0);
+      expect(button("Start slide rotation")).toBeTruthy();
+      expect(document.activeElement).toBe(link);
+      expect(slide(1).inert).toBe(false);
+    });
+
+    it("pointer focus in a slide pauses while it stays there, even across a window blur", async () => {
+      const timer = holdTimer();
+      await render(
+        <>
+          <Slides autoplay />
+          <button type="button">outside</button>
+        </>,
+      );
+      await expect.poll(timer.active).toBe(1);
+      const link = slide(1).querySelector("a") as HTMLElement;
+      await userEvent.click(link);
+      expect(document.activeElement).toBe(link);
+      // A pointer focus is a pause, not a stop.
+      expect(button("Stop slide rotation")).toBeTruthy();
+      const outside = page.getByRole("button", { name: "outside" }).element() as HTMLElement;
+      await userEvent.hover(outside);
+      await nextFrame();
+      expect(timer.active()).toBe(0);
+      link.dispatchEvent(new FocusEvent("focusout", { bubbles: true, relatedTarget: null }));
+      await nextFrame();
+      expect(timer.active()).toBe(0);
+      outside.focus();
+      await expect.poll(timer.active).toBe(1);
+    });
+
+    it("stops rotation when prefers-reduced-motion turns on", async () => {
+      const timer = holdTimer();
+      await render(<Slides autoplay />);
+      await expect.poll(timer.active).toBe(1);
+      await emulateReducedMotion(true);
+      await expect.poll(() => button("Start slide rotation")).toBeTruthy();
+      expect(timer.active()).toBe(0);
+    });
+
+    it("does not rotate when every slide fits in one view", async () => {
+      const timer = holdTimer();
+      await render(<Slides count={2} slidesPerView={2} autoplay />);
+      await expect.poll(() => slide(2).getAttribute("aria-label")).toBe("2 of 2");
+      await nextFrame();
+      expect(timer.active()).toBe(0);
+    });
+
+    it("keeps rotating when a controlled parent rejects a step", async () => {
+      const timer = holdTimer();
+      const onIndexChange = vi.fn();
+      await render(<Slides autoplay index={0} onIndexChange={onIndexChange} />);
+      await expect.poll(timer.active).toBe(1);
+      timer.fire();
+      expect(onIndexChange).toHaveBeenLastCalledWith(1);
+      await expect.poll(timer.active).toBe(1);
+      expect(current()).toBe(1);
+    });
+
+    it("cancels the timer on unmount and reschedules on an interval change", async () => {
+      const timer = holdTimer();
+      const screen = await render(<Slides autoplay />);
+      await expect.poll(timer.intervals).toEqual([5000]);
+      await screen.rerender(<Slides autoplay={{ interval: 2000 }} />);
+      await expect.poll(timer.intervals).toEqual([2000]);
+      screen.unmount();
+      expect(timer.active()).toBe(0);
     });
 
     it("pauses while the document is hidden", async () => {
