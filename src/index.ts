@@ -612,5 +612,16 @@ export {
   TooltipTrigger,
   type TooltipTriggerProps,
 } from "./components/tooltip";
+export {
+  Tree,
+  TreeItem,
+  TreeItemContent,
+  type TreeItemContentProps,
+  TreeItemIcon,
+  type TreeItemIconProps,
+  type TreeItemProps,
+  type TreeProps,
+  type TreeSelectionMode,
+} from "./components/tree";
 export { cn } from "./lib/cn";
 export { type ToneColor, toneColors } from "./lib/tone";

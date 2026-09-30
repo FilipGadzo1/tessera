@@ -594,6 +594,20 @@ source files automatically (build output + `"use client"` directive checks).
   width animates over 200ms, instantly under reduced motion. The first render assumes desktop (server-safe);
   a phone switches to the Drawer after mounting. `useSidebar()` returns `{ state, open, setOpen, openMobile,
   setOpenMobile, isMobile, toggleSidebar }`. Client component)
+- [x] Tree, TreeItem, TreeItemContent, TreeItemIcon (a hand-built WAI-ARIA APG treeview — Base UI has no
+  tree. Compose `<Tree aria-label="Files"><TreeItem value="src/"><TreeItemContent><TreeItemIcon>…</TreeItemIcon>src</TreeItemContent><TreeItem value="src/index.ts">…</TreeItem></TreeItem></Tree>`:
+  a `TreeItem`'s children are its `TreeItemContent` row and its child items (any other element, so a
+  recursive component rendering a `TreeItem` works), which make it an expandable parent. `value` is required
+  and unique across the tree. Collapsed children are not mounted. ↑/↓ move through the visible items, → expands
+  then enters, ← collapses then goes to the parent (RTL flips them), Home/End, typeahead (500ms buffer, on
+  `label` or the row text), `*` expands the siblings, Enter or a double-click runs `onAction(value)`. One Tab
+  stop (roving tabindex: the last focused item, else the first visible selected, else the first). `selectionMode`
+  `none` (default) / `single` / `multiple` with `selectedValues` / `defaultSelectedValues` /
+  `onSelectedValuesChange`: a click or Space selects (multiple: toggles), Enter also selects in single mode,
+  Shift+↑/↓ extend from the last toggled item and Ctrl/⌘+A selects every visible item. `expandedValues` /
+  `defaultExpandedValues` / `onExpandedValuesChange`; the chevron toggles on click. A `disabled` item stays
+  focusable but is not selected or actioned (a disabled parent still expands). Rows indent by
+  `--tree-level`; selected rows are primary-soft, Highlight / HighlightText in forced colors. Client component)
 
 Phase A (foundation), Phase B (forms), Phase C (overlays), Phase D (navigation and feedback),
 Phase E (data entry and display), Phase F (dates, toolbars and surfaces — Meter, ScrollArea,

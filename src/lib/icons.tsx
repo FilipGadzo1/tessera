@@ -76,6 +76,25 @@ export function CloseIcon(props: ComponentProps<"svg">) {
   );
 }
 
+/** A document with a folded corner: a file in a Tree. */
+export function FileIcon(props: ComponentProps<"svg">) {
+  return (
+    <StrokeIcon {...props}>
+      <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+      <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+    </StrokeIcon>
+  );
+}
+
+/** A folder: a directory in a Tree. */
+export function FolderIcon(props: ComponentProps<"svg">) {
+  return (
+    <StrokeIcon {...props}>
+      <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
+    </StrokeIcon>
+  );
+}
+
 /** A panel with a left column: the Sidebar toggle. */
 export function PanelLeftIcon(props: ComponentProps<"svg">) {
   return (
