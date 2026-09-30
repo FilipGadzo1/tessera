@@ -460,7 +460,7 @@ source files automatically (build output + `"use client"` directive checks).
   Client component)
 - [x] DatePicker, DateRangePicker (a Select-styled trigger — same `size` scale and heights as
   Select and Input, a leading calendar icon — opening a Calendar in a Popover. DatePicker also has
-  an `editable` mode (below); DateRangePicker has none. Focus lands on the picked day (or today); picking closes and returns focus to the trigger, Escape
+  an `editable` mode (below), and so does DateRangePicker. Focus lands on the picked day (or today); picking closes and returns focus to the trigger, Escape
   or an outside click closes unchanged. `value` / `defaultValue` / `onValueChange`, `placeholder`,
   `format` (Intl options, default `{ dateStyle: "medium" }`), `locale`, `min` / `max`,
   `defaultMonth` (the month shown while nothing is picked, e.g. decades back for a birthday; a
@@ -498,7 +498,16 @@ source files automatically (build output + `"use client"` directive checks).
   `DatePickerEditableProps`, so they are typed per mode; a runtime `editable={flag}` type-checks only
   while the other props fit both modes, so with a typed `ref` or element handlers branch instead:
   `flag ? <DatePicker editable ref={divRef} … /> : <DatePicker ref={buttonRef} … />`), `readOnly` disables the icon button, and
-  the field, icon button and popup are one blur boundary for `validationMode="onBlur"`. No clear button:
+  the field, icon button and popup are one blur boundary for `validationMode="onBlur"`.
+  `DateRangePicker editable` is the same with a DateRangeField (below) and the two-month
+  RangeCalendar: the icon button is "Choose date range", a typed complete range shows selected in
+  the calendar (which opens on the start's month), and picking both ends fills both halves, closes
+  and returns focus to the icon button (an unfinished pick reverts on Escape). The DateRangeField is
+  the one Field / Form control and takes `startName` / `endName`; `onValueChange` then follows
+  DateRangeField's contract (it also reports a typed half, so an end can be `null`), and
+  `labels.start` / `labels.end` / `labels.rangeReversed` reach it. `DateRangePickerProps` is a
+  union of `DateRangePickerButtonProps` and `DateRangePickerEditableProps`, as DatePicker's. Give it
+  about 22rem for two dates and the button. No clear button:
   render a Button beside it. Pass `locale` explicitly when server-rendering; an inline Calendar's
   today marker is computed on the client. Client component)
 - [x] DateField (a typed, segmented date input on React Aria's date-field pattern: a `group` of

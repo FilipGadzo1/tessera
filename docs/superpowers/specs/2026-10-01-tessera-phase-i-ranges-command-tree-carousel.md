@@ -92,6 +92,12 @@
 - A typed complete range updates the calendar.
 - Picking fills both halves, closes, and returns focus to the icon button.
 - The discriminated union extends to DateRangePickerProps.
+- *Amended in Task 1*: what was built.
+  - `EditableShell` is shared by both pickers: it renders the field through `renderField` (a DateField or a DateRangeField, handed the native props, `focusScope`, the Field-aware `disabled`, `required`, `size` and the `pe-10` class) and the calendar through `renderCalendar`. The range picker's calendar is the existing `RangePickerCalendar`, so an unfinished pick is a draft that reverts on Escape, and only a complete pick fills the halves.
+  - `DateRangePickerProps = DateRangePickerButtonProps | DateRangePickerEditableProps`, both exported. The editable variant forwards `startName` / `endName` to the DateRangeField (the picker still has no `name`).
+  - Editable `onValueChange` follows DateRangeField's contract (a typed half reports the pair, so an end can be `null`); the button picker still reports only complete ranges.
+  - Defaults: the icon button and the popup are "Choose date range". `DatePickerLabels` gains `start` / `end` / `rangeReversed` for the editable range picker; its `incomplete` there defaults to "Enter a complete date range.".
+  - Width: two en-US dates plus the icon button need about 22rem at `lg`; the field does not shrink below its content (as DateField), so the stories and tests give it that room.
 
 ## 2. Command
 

@@ -184,6 +184,8 @@ export {
   type DatePickerLabels,
   type DatePickerProps,
   DateRangePicker,
+  type DateRangePickerButtonProps,
+  type DateRangePickerEditableProps,
   type DateRangePickerProps,
 } from "./components/date-picker";
 export {

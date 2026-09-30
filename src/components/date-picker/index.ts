@@ -5,5 +5,7 @@ export {
   type DatePickerLabels,
   type DatePickerProps,
   DateRangePicker,
+  type DateRangePickerButtonProps,
+  type DateRangePickerEditableProps,
   type DateRangePickerProps,
 } from "./date-picker";

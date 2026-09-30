@@ -25,6 +25,8 @@ import {
 } from "../calendar";
 import type { CalendarLabels } from "../calendar/calendar-base";
 import { DateField, type DateFieldLabels } from "../date-field/date-field";
+import { DateRangeField, type DateRangeFieldLabels } from "../date-range-field/date-range-field";
+import type { textFieldSizes } from "../input/input-variants";
 import { Popover, PopoverContent, type PopoverContentProps, PopoverTrigger } from "../popover";
 import { type SelectTriggerVariantProps, selectDefaults, selectTriggerVariants } from "../select";
 import {
@@ -42,15 +44,20 @@ import {
 export interface DatePickerLabels
   extends CalendarLabels,
     DateValidationLabels,
-    Pick<DateFieldLabels, "day" | "month" | "year" | "empty"> {
+    Pick<DateFieldLabels, "day" | "month" | "year" | "empty">,
+    Pick<DateRangeFieldLabels, "start" | "end" | "rangeReversed"> {
   /** The popup dialog's accessible name. @default "Choose date" ("Choose date range" for DateRangePicker) */
   dialog?: string;
-  /** `editable`: the calendar icon button's accessible name. @default "Choose date" */
+  /**
+   * `editable`: the calendar icon button's accessible name.
+   * @default "Choose date" ("Choose date range" for DateRangePicker)
+   */
   openCalendar?: string;
   /**
-   * DateRangePicker: the validation message while only the start is set. `editable` DatePicker:
-   * while only some segments are filled.
-   * @default "Choose both a start and an end date." ("Enter a complete date." when `editable`)
+   * DateRangePicker: the validation message while only one end is set. `editable` DatePicker:
+   * while only some segments are filled. `editable` DateRangePicker: either.
+   * @default "Choose both a start and an end date." ("Enter a complete date." for an `editable`
+   * DatePicker, "Enter a complete date range." for an `editable` DateRangePicker)
    */
   incomplete?: string;
 }
@@ -112,8 +119,6 @@ interface PickerFields {
   /** Translated labels. */
   labels?: DatePickerLabels;
 }
-
-interface PickerSharedProps extends PickerTriggerProps, PickerFields {}
 
 const triggerExtras = "justify-start";
 const valueBase = "min-w-0 truncate";
@@ -268,37 +273,39 @@ type EditableElementProps = Omit<
   readOnly?: boolean;
 };
 
+/** What the editable shell hands its field: the native props plus the shell's wiring. */
+type EditableFieldProps = EditableElementProps & {
+  /** The field, its icon button and the popup: one boundary for the Field's focus / blur. */
+  focusScope: () => (Element | null)[];
+  /** Includes a disabled Field. */
+  disabled: boolean;
+  required?: boolean;
+  size?: keyof typeof textFieldSizes;
+  className: string;
+};
+
 interface EditableShellProps extends EditableElementProps, PickerOwnProps {
-  value: Date | null;
-  /** The day typed or picked (`null` when the user clears a complete date). */
-  onPick: (value: Date | null) => void;
-  name?: string;
-  locale?: string;
-  min?: Date | null;
-  max?: Date | null;
-  defaultMonth?: Date;
-  isDateDisabled?: (date: Date) => boolean;
-  weekStartsOn?: WeekDay;
-  labels?: DatePickerLabels;
+  /** The icon button's accessible name. */
+  openLabel: string;
+  /** The popup's accessible name. */
+  dialogLabel: string;
+  /** Renders the field (a DateField or a DateRangeField) with the props it is handed. */
+  renderField: (props: EditableFieldProps) => ReactNode;
+  /** Renders the calendar: `close` closes the popup (focus returns to the icon button). */
+  renderCalendar: (close: () => void, open: boolean) => ReactNode;
 }
 
 /**
- * The `editable` picker: a DateField plus a calendar icon button inside its border. The DateField
- * is the one Field / Form control (it registers, validates and renders the hidden input), so the
- * popover adds none. The popup anchors to the whole field; focus returns to the icon button (the
- * popover's trigger) after a pick or Escape.
+ * The `editable` pickers' shell: a DateField (or DateRangeField) plus a calendar icon button
+ * inside its border. The field is the one Field / Form control (it registers, validates and
+ * renders the hidden input), so the popover adds none. The popup anchors to the whole field; focus
+ * returns to the icon button (the popover's trigger) after a pick or Escape.
  */
 function EditableShell({
-  value,
-  onPick,
-  name,
-  locale,
-  min,
-  max,
-  defaultMonth,
-  isDateDisabled,
-  weekStartsOn,
-  labels,
+  openLabel,
+  dialogLabel,
+  renderField,
+  renderCalendar,
   disabled,
   readOnly,
   required,
@@ -325,27 +332,19 @@ function EditableShell({
   return (
     <Popover open={open} onOpenChange={(next) => setOpen(next)}>
       <div ref={anchorRef} data-slot="date-picker-editable" className="relative w-full">
-        <DateField
-          {...props}
-          focusScope={focusScope}
-          readOnly={readOnly}
-          value={value}
-          onValueChange={onPick}
-          name={name}
-          locale={locale}
-          min={min}
-          max={max}
-          isDateDisabled={isDateDisabled}
-          disabled={isDisabled}
-          required={required}
-          size={size ?? undefined}
-          labels={labels}
-          className={cn("pe-10", className)}
-        />
+        {renderField({
+          ...props,
+          focusScope,
+          readOnly,
+          disabled: isDisabled,
+          required,
+          size: size ?? undefined,
+          className: cn("pe-10", className),
+        })}
         <PopoverTrigger
           type="button"
           disabled={isDisabled || readOnly}
-          aria-label={labels?.openCalendar ?? "Choose date"}
+          aria-label={openLabel}
           data-slot="date-picker-trigger"
           className={buttonVariants({
             variant: "ghost",
@@ -364,7 +363,7 @@ function EditableShell({
         container={container}
         align="start"
         sideOffset={6}
-        aria-label={labels?.dialog ?? "Choose date"}
+        aria-label={dialogLabel}
         data-slot="date-picker-content"
         className={contentBase}
         initialFocus={() =>
@@ -373,20 +372,7 @@ function EditableShell({
           ) ?? true
         }
       >
-        <Calendar
-          value={value}
-          onValueChange={(date) => {
-            onPick(date);
-            setOpen(false);
-          }}
-          locale={locale}
-          min={min}
-          max={max}
-          defaultMonth={value ?? defaultMonth}
-          isDateDisabled={isDateDisabled}
-          weekStartsOn={weekStartsOn}
-          labels={labels}
-        />
+        {renderCalendar(() => setOpen(false), open)}
       </PopoverContent>
     </Popover>
   );
@@ -466,22 +452,44 @@ export function DatePicker({
   const iso = value ? toISODate(value) : "";
 
   if (editable) {
+    const pick = (date: Date | null) => {
+      setValue(date);
+      onValueChange?.(date);
+    };
     return (
       <EditableShell
         {...(props as EditableElementProps & PickerOwnProps)}
-        value={value}
-        onPick={(date) => {
-          setValue(date);
-          onValueChange?.(date);
-        }}
-        name={name}
-        locale={locale}
-        min={min}
-        max={max}
-        defaultMonth={defaultMonth}
-        isDateDisabled={isDateDisabled}
-        weekStartsOn={weekStartsOn}
-        labels={labels}
+        openLabel={labels?.openCalendar ?? "Choose date"}
+        dialogLabel={labels?.dialog ?? "Choose date"}
+        renderField={(fieldProps) => (
+          <DateField
+            {...fieldProps}
+            value={value}
+            onValueChange={pick}
+            name={name}
+            locale={locale}
+            min={min}
+            max={max}
+            isDateDisabled={isDateDisabled}
+            labels={labels}
+          />
+        )}
+        renderCalendar={(close) => (
+          <Calendar
+            value={value}
+            onValueChange={(date) => {
+              pick(date);
+              close();
+            }}
+            locale={locale}
+            min={min}
+            max={max}
+            defaultMonth={value ?? defaultMonth}
+            isDateDisabled={isDateDisabled}
+            weekStartsOn={weekStartsOn}
+            labels={labels}
+          />
+        )}
       />
     );
   }
@@ -528,12 +536,16 @@ export function DatePicker({
   );
 }
 
-export interface DateRangePickerProps extends PickerSharedProps {
+interface DateRangePickerOwnProps extends PickerOwnProps, PickerFields {
   /** The picked range, controlled. */
   value?: DateRange;
   /** The initially picked range. @default { start: null, end: null } */
   defaultValue?: DateRange;
-  /** Called only with a complete range (both ends set), when the end is picked. */
+  /**
+   * Called only with a complete range (both ends set), when the end is picked. `editable`: also
+   * with the pair whenever a typed half becomes a complete date or `null` (DateRangeField's
+   * contract), so an end may be `null` there.
+   */
   onValueChange?: (value: DateRange) => void;
   /** Submits the start as `YYYY-MM-DD` (empty when unset) through a hidden input. */
   startName?: string;
@@ -544,6 +556,34 @@ export interface DateRangePickerProps extends PickerSharedProps {
   /** @default "Pick a date range" */
   placeholder?: string;
 }
+
+/** Native props of the default, button-trigger `DateRangePicker` (those of the `<button>`). */
+export type DateRangePickerButtonProps = DateRangePickerOwnProps &
+  Omit<PickerTriggerProps, keyof DateRangePickerOwnProps> & {
+    /** @default false */
+    editable?: false;
+  };
+
+/** Native props of the `editable` `DateRangePicker` (those of the DateRangeField's group `<div>`). */
+export type DateRangePickerEditableProps = DateRangePickerOwnProps &
+  Omit<EditableElementProps, keyof DateRangePickerOwnProps> & {
+    /**
+     * Replaces the button trigger with a typed `DateRangeField` and a calendar icon button that
+     * opens the same two-month popup. A typed complete range updates the calendar; picking both
+     * ends fills both halves, closes it and returns focus to the icon button. It joins a Field and
+     * Form as the DateRangeField does (`startName` / `endName` go to it). `placeholder` and
+     * `format` are unused, and `ref`, `className`, `id` and the other native props go to the
+     * DateRangeField's group element. `readOnly` keeps the segments focusable and disables the
+     * icon button.
+     */
+    editable: true;
+  };
+
+/**
+ * `DateRangePicker`'s props: the button trigger's (default), or, with `editable`, the
+ * DateRangeField group's, so `ref` and the handlers are typed for the element they land on.
+ */
+export type DateRangePickerProps = DateRangePickerButtonProps | DateRangePickerEditableProps;
 
 interface RangePickerCalendarProps extends Omit<RangeCalendarProps, "value" | "onValueChange"> {
   open: boolean;
@@ -587,7 +627,8 @@ function RangePickerCalendar({ open, value, onCommit, ...props }: RangePickerCal
  * sets the start and keeps it open; the second sets the end, commits and closes. Escape or an
  * outside click with only the start chosen reverts to the previous range. The trigger shows the
  * range with `Intl.DateTimeFormat#formatRange` ("Sep 1 – 12, 2026"). A range may span disabled
- * days: only its two ends are checked.
+ * days: only its two ends are checked. With `editable`, a typed `DateRangeField` plus a calendar
+ * icon button replaces the trigger.
  */
 export function DateRangePicker({
   value: valueProp,
@@ -605,11 +646,62 @@ export function DateRangePicker({
   isDateDisabled,
   weekStartsOn,
   labels,
+  editable = false,
   ...props
 }: DateRangePickerProps) {
   const [value, setValue] = useControllableState(valueProp, defaultValue);
   const resolvedLocale = resolveLocale(locale);
   const formatter = new Intl.DateTimeFormat(resolvedLocale, format);
+
+  const calendarProps = {
+    numberOfMonths,
+    locale,
+    min,
+    max,
+    defaultMonth: value.start ?? defaultMonth,
+    isDateDisabled,
+    weekStartsOn,
+    labels,
+  };
+
+  if (editable) {
+    const pick = (next: DateRange) => {
+      setValue(next);
+      onValueChange?.(next);
+    };
+    return (
+      <EditableShell
+        {...(props as EditableElementProps & PickerOwnProps)}
+        openLabel={labels?.openCalendar ?? "Choose date range"}
+        dialogLabel={labels?.dialog ?? "Choose date range"}
+        renderField={(fieldProps) => (
+          <DateRangeField
+            {...fieldProps}
+            value={value}
+            onValueChange={pick}
+            startName={startName}
+            endName={endName}
+            locale={locale}
+            min={min}
+            max={max}
+            isDateDisabled={isDateDisabled}
+            labels={labels}
+          />
+        )}
+        renderCalendar={(close, open) => (
+          <RangePickerCalendar
+            {...calendarProps}
+            open={open}
+            value={value}
+            onCommit={(next) => {
+              pick(next);
+              close();
+            }}
+          />
+        )}
+      />
+    );
+  }
 
   const { start, end } = value;
   const text =
@@ -629,7 +721,7 @@ export function DateRangePicker({
 
   return (
     <PickerShell
-      {...props}
+      {...(props as PickerTriggerProps)}
       text={text}
       placeholder={placeholder}
       dialogLabel={labels?.dialog ?? "Choose date range"}
@@ -651,6 +743,7 @@ export function DateRangePicker({
       }
       renderCalendar={(close, open) => (
         <RangePickerCalendar
+          {...calendarProps}
           open={open}
           value={value}
           onCommit={(next) => {
@@ -658,14 +751,6 @@ export function DateRangePicker({
             onValueChange?.(next);
             close();
           }}
-          numberOfMonths={numberOfMonths}
-          locale={locale}
-          min={min}
-          max={max}
-          defaultMonth={start ?? defaultMonth}
-          isDateDisabled={isDateDisabled}
-          weekStartsOn={weekStartsOn}
-          labels={labels}
         />
       )}
     />

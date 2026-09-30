@@ -266,6 +266,41 @@ export const Range: Story = {
   ],
 };
 
+/**
+ * `editable` DateRangePicker: type the range into a DateRangeField (a complete start moves on
+ * into the end), or open the two-month calendar with the icon button. A typed range shows
+ * selected in the calendar; picking both ends fills both halves and returns focus to the button.
+ */
+export const EditableRange: Story = {
+  render: ({ locale, size, disabled }) => {
+    const [range, setRange] = useState<DateRange>({ start: null, end: null });
+    return (
+      <Field>
+        <FieldLabel>Stay</FieldLabel>
+        <DateRangePicker
+          editable
+          locale={locale}
+          size={size}
+          disabled={disabled}
+          value={range}
+          onValueChange={setRange}
+          startName="check-in"
+          endName="check-out"
+        />
+        <FieldDescription>Type it or pick it.</FieldDescription>
+      </Field>
+    );
+  },
+  decorators: [
+    (Story) => (
+      // Wide enough for two dates and the icon button at every size (wider than the meta's w-72).
+      <div className="w-[28rem]">
+        <Story />
+      </div>
+    ),
+  ],
+};
+
 /** Inside a modal Dialog: the calendar stacks above it, and Escape closes the calendar first. */
 export const InDialog: Story = {
   render: (args) => (
