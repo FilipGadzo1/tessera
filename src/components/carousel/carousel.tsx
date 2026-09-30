@@ -213,7 +213,8 @@ export function Carousel({
   onPointerEnter,
   onPointerLeave,
   onPointerDown,
-  onPointerUp,
+  onPointerCancel,
+  onClick,
   onFocus,
   onBlur,
   ...props
@@ -315,8 +316,10 @@ export function Carousel({
     if (!content || !item) return;
     const first = !scrolled.current;
     scrolled.current = true;
-    // Reported by the observer: the user's scroll put (or is taking) the content there.
-    if (observed.current.delete(index)) return;
+    // Reported by the observer: the user's scroll put (or is taking) the content there — unless a
+    // programmatic scroll (a snap-back to a parent's old index) is carrying the content away, in
+    // which case the committed index retargets it.
+    if (observed.current.delete(index) && pending.current === null) return;
     // Already in view — unless an earlier programmatic scroll is still carrying the content away.
     if (pending.current === null && firstVisible(content, items, vertical) === index) return;
     pending.current = index;
@@ -359,6 +362,8 @@ export function Carousel({
         const item = items[settled];
         if (pending.current !== null || !item || settled === visible) return;
         if (firstVisible(content, items, vertical) !== visible) return;
+        // The reports are no longer where the content is going: a late commit of one must scroll.
+        observed.current.clear();
         pending.current = settled;
         scrollToItem(content, item, vertical);
       });
@@ -439,7 +444,7 @@ export function Carousel({
         running,
       }}
     >
-      {/* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useAriaPropsSupportedByRole: a labelled section is a region (which takes aria-roledescription, APG); the pointer and focus handlers only drive autoplay. */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useAriaPropsSupportedByRole lint/a11y/useKeyWithClickEvents: a labelled section is a region (which takes aria-roledescription, APG); the pointer, click and focus handlers only classify focus for autoplay. */}
       <section
         aria-roledescription="carousel"
         {...props}
@@ -458,8 +463,14 @@ export function Carousel({
           onPointerDown?.(event);
           pointerFocus.current = true;
         }}
-        onPointerUp={(event: PointerEvent<HTMLElement>) => {
-          onPointerUp?.(event);
+        // Not cleared on pointerup: after a touch tap, Chromium's compat mousedown (and so the focus)
+        // comes after pointerup. A focus consumes the mark; the click ends the press either way.
+        onPointerCancel={(event: PointerEvent<HTMLElement>) => {
+          onPointerCancel?.(event);
+          pointerFocus.current = false;
+        }}
+        onClick={(event: MouseEvent<HTMLElement>) => {
+          onClick?.(event);
           pointerFocus.current = false;
         }}
         onFocus={(event: FocusEvent<HTMLElement>) => {

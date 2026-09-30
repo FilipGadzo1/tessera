@@ -398,6 +398,44 @@ describe("Carousel", () => {
       expect(current()).toBe(2);
     });
 
+    it("a parent that commits the swiped-to index late (after the snap-back) keeps the swipe", async () => {
+      let resolve = () => {};
+      const committed = new Promise<void>((done) => {
+        resolve = done;
+      });
+      const reported: number[] = [];
+      function Late() {
+        const [index, setIndex] = useState(0);
+        return (
+          <Slides
+            index={index}
+            onIndexChange={(value) => {
+              reported.push(value);
+              // Commits only when the test releases it, long after the scroll ended.
+              void committed.then(() => setIndex(value));
+            }}
+          />
+        );
+      }
+      await render(<Late />);
+      await expect.poll(() => slide(1).getAttribute("aria-label")).toBe("1 of 5");
+      content().scrollTo({ left: 640, behavior: "instant" });
+      // The parent commits just as the (smooth) snap-back to its old index starts.
+      const scroller = content();
+      const scrollTo = scroller.scrollTo.bind(scroller);
+      vi.spyOn(scroller, "scrollTo").mockImplementation(((options: ScrollToOptions) => {
+        scrollTo(options);
+        resolve();
+      }) as typeof scroller.scrollTo);
+      await expect.poll(() => reported.includes(2)).toBe(true);
+      await expect.poll(current).toBe(3);
+      await expect.poll(inView).toEqual([3]);
+      await nextFrame();
+      await nextFrame();
+      expect(inView()).toEqual([3]);
+      expect(reported).not.toContain(0);
+    });
+
     it("reports an index clamped by the slide count or the slides per view", async () => {
       const onIndexChange = vi.fn();
       const screen = await render(<Slides defaultIndex={4} onIndexChange={onIndexChange} />);
@@ -756,6 +794,60 @@ describe("Carousel", () => {
       link.dispatchEvent(new FocusEvent("focusout", { bubbles: true, relatedTarget: null }));
       await nextFrame();
       expect(timer.active()).toBe(0);
+      outside.focus();
+      await expect.poll(timer.active).toBe(1);
+    });
+
+    /**
+     * A touch tap in Chromium's order: pointerdown and pointerup first, then (as separate tasks)
+     * the compat mousedown's focus and the click. Real mouse modality first, so a programmatic
+     * focus is not :focus-visible.
+     */
+    async function tap(target: HTMLElement) {
+      const init = { bubbles: true, cancelable: true, pointerType: "touch", isPrimary: true };
+      target.dispatchEvent(new PointerEvent("pointerdown", init));
+      target.dispatchEvent(new PointerEvent("pointerup", init));
+      await nextFrame();
+      target.focus();
+      await nextFrame();
+      target.click();
+      await nextFrame();
+    }
+
+    it("one touch tap on the rotation control toggles it exactly once", async () => {
+      const timer = holdTimer();
+      await render(
+        <>
+          <Slides autoplay />
+          <button type="button">outside</button>
+        </>,
+      );
+      await userEvent.click(page.getByRole("button", { name: "outside" }).element());
+      await expect.poll(timer.active).toBe(1);
+      const toggle = button("Stop slide rotation");
+      await tap(toggle);
+      expect(toggle.getAttribute("aria-label")).toBe("Start slide rotation");
+      expect(timer.active()).toBe(0);
+      await tap(toggle);
+      expect(toggle.getAttribute("aria-label")).toBe("Stop slide rotation");
+      await expect.poll(timer.active).toBe(1);
+    });
+
+    it("a touch tap on Next moves the slide and does not stop rotation", async () => {
+      const timer = holdTimer();
+      await render(
+        <>
+          <Slides autoplay />
+          <button type="button">outside</button>
+        </>,
+      );
+      const outside = page.getByRole("button", { name: "outside" }).element() as HTMLElement;
+      await userEvent.click(outside);
+      await expect.poll(timer.active).toBe(1);
+      await tap(next());
+      await expect.poll(current).toBe(2);
+      // Paused while focus stays on Next (like hover), not stopped.
+      expect(button("Stop slide rotation")).toBeTruthy();
       outside.focus();
       await expect.poll(timer.active).toBe(1);
     });
