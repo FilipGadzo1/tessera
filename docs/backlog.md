@@ -1,7 +1,8 @@
 # Tessera backlog
 
 Open follow-ups from the foundation, Phase A (2026-09-23), Phase B, Phase C, Phase D (2026-09-24),
-Phase E (2026-09-25), Phase F and Phase G (2026-09-26) and Phase H (2026-09-30) reviews.
+Phase E (2026-09-25), Phase F and Phase G (2026-09-26), Phase H (2026-09-30) and Phase I (2026-10-01)
+reviews.
 None block current use.
 
 ## Components
@@ -324,6 +325,38 @@ phase; items fixed by a later commit are left out).
   The axe test for the open DatePicker calendar hides `main` (the popup covers table text, which axe
   leaves undecided), as the Checkout tests do.
 
+### Phase I notes
+Deferred minors from the Phase I task reviews (none blocking).
+- Drawer direction (Task 0): a drawer already open at mount (`defaultOpen`, or `open` on the first
+  render, e.g. after hydration) resolves `start` / `end` in `DrawerContent`'s mount layout effect, so
+  its side can still change after the popup mounts; `isRtl`'s doc says "never during render" while a
+  controlled `open` turning true reads it in render; the open-handler and controlled-render reads have
+  no discriminating test; the Sidebar static-registration `useLayoutEffect` test is a guard only (it
+  also passes with `useEffect`).
+- DateRangeField / editable DateRangePicker (Task 1): the group does not shrink below its content (two
+  en-US dates plus the icon button need about 22rem at `lg`); no test puts the `min-w-max` group in a
+  wide `w-full` container.
+- Command (Task 2): no dedicated `claimEscape` test with a DatePicker popup or the Sidebar Drawer around a
+  Command (the Popover and Dialog cases are tested). Dialog-wide (pre-existing, seen on CommandDialog in
+  the Task 2 review): a double border in forced colors.
+- Tree (Task 3): the DOM position pass sets `aria-posinset` / `aria-setsize` without comparing first; a
+  wrapper component that reorders its own items without remounting keeps stale positions until the next
+  mount or unmount; a child that renders `null` leaves an empty hidden group; server HTML guesses
+  positions from the element children (a wrapper's items read "1 of 1" until hydration).
+- Carousel (Task 4): a pointer press mark lives until a focus, a click or pointercancel consumes it (a
+  press that causes no focus and whose click is stopped keeps it); a controlled parent that commits a
+  swipe only after the full snap-back sees the content go back, then forward; a programmatic `.focus()`
+  into a rotating carousel stops rotation (it counts as keyboard focus). Manual: a screen-reader pass
+  that `aria-live` announces the slide that turns non-inert.
+- Files example (Task 5):
+  - Folders created with "New folder" are local state only, and new folders are always empty. There is
+    no rename or delete.
+  - The ⌘K / ⌘B hints read ⌘ on every platform (the shortcuts are Ctrl on Windows and Linux).
+  - The command dialog is centred, so it moves up or down as the list grows or shrinks while filtering.
+  - `files-page.tsx` is about 500 lines (the data tables take about 90); split the data out if it grows.
+  - Its keyboard test opens the image preview with a click on the Tree (the Tree's own keyboard flow is
+    tested separately); the mobile test covers the Drawer at 390px only.
+
 ## Next components
 Follow the phases in the design-system spec §6
 (`docs/superpowers/specs/2026-09-23-tessera-design-system-v2.md`): Phase B forms (Label, Field, Input,
@@ -332,6 +365,7 @@ Phase D navigation and feedback, Phase E data entry and display, Phase F dates/t
 (Calendar, DatePicker, DateRangePicker, ToggleGroup, Toolbar, ScrollArea, Meter,
 HoverCard/PreviewCard, ContextMenu). Phases B–G are done (G: Collapsible, CheckboxGroup, Form, OTPField,
 Autocomplete, Menubar, NavigationMenu); Phase H is done (DateField, editable DatePicker, date form
-participation, Sidebar, Dashboard example). Next, Phase I (Phase H spec §6): candidates are DateRangeField,
-a first-class Command palette (if the Autocomplete story's recipe proves worth extracting), Carousel, Tree,
-and data-grid pieces (column visibility, pagination state).
+participation, Sidebar, Dashboard example); Phase I is done (DateRangeField, editable DateRangePicker,
+Command, Tree, Carousel, Files example). Next, Phase J: candidates are data-grid pieces (column
+visibility, pagination state), Resizable panels, Stepper, Rating, a Color picker and a Calendar events
+view.

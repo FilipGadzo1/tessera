@@ -615,7 +615,8 @@ const rowClasses = [
   "transition-[color,background-color,outline-color] duration-150 ease-out motion-reduce:transition-none",
   "not-data-disabled:not-data-selected:hover:bg-accent not-data-disabled:not-data-selected:hover:text-accent-foreground",
   "data-selected:bg-primary-soft data-selected:text-primary-soft-foreground not-data-disabled:data-selected:hover:bg-primary-soft-hover",
-  "forced-colors:data-selected:bg-[Highlight] forced-colors:data-selected:text-[HighlightText] forced-colors:data-selected:forced-color-adjust-none",
+  // The hover selector matches the tint's specificity, so Highlight is not replaced under HighlightText.
+  "forced-colors:data-selected:bg-[Highlight] forced-colors:not-data-disabled:data-selected:hover:bg-[Highlight] forced-colors:data-selected:text-[HighlightText] forced-colors:data-selected:forced-color-adjust-none",
   // Muted text instead of the usual `opacity-50`: a disabled item stays focusable (APG), and row
   // opacity would fade its focus ring too.
   "data-disabled:cursor-not-allowed data-disabled:text-muted-foreground forced-colors:data-disabled:text-[GrayText]",

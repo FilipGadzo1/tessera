@@ -641,8 +641,9 @@ Phase A (foundation), Phase B (forms), Phase C (overlays), Phase D (navigation a
 Phase E (data entry and display), Phase F (dates, toolbars and surfaces — Meter, ScrollArea,
 Toggle/ToggleGroup, Toolbar, PreviewCard, ContextMenu, Calendar, RangeCalendar, DatePicker and
 DateRangePicker) and Phase G (forms and navigation — Collapsible, CheckboxGroup, Form, OTPField,
-Autocomplete, Menubar and NavigationMenu) and Phase H (DateField, editable DatePicker, form participation
-for the date controls, and the Sidebar app shell) are complete.
+Autocomplete, Menubar and NavigationMenu), Phase H (DateField, editable DatePicker, form participation
+for the date controls, and the Sidebar app shell) and Phase I (DateRangeField and the editable
+DateRangePicker, the Command palette, Tree and Carousel) are complete.
 
 Composition: when a part is rendered through another (`<Fieldset render={<RadioGroup className=…/>}>`),
 the outer part's own classes win over conflicting classes on the render element (Base UI merges the
@@ -718,10 +719,18 @@ opens the `Autocomplete` command palette in a `Dialog`; `Card`s with `Progress` 
 `Form` (an editable `DatePicker` and a `DateRangePicker`; Apply shows what `onFormSubmit` reported
 under the Field names) and a `Table` of recent orders.
 
+The Storybook story **Tessera/Examples/Files** (`src/docs/examples/files-page.tsx`) composes the
+Phase I components in a file manager: a `Sidebar` whose content is a folder `Tree` (single selection;
+Enter, Space or a click opens a folder, and the Tree reveals a folder opened from elsewhere); an inset
+with the open folder's files in a `Table`; a filter `Form` with an editable `DateRangePicker`
+"Modified" (the Form reports `{ modified: { start, end } }` and the table filters); an image-preview
+`Carousel` of inline SVG placeholders for image files; and a `CommandDialog` (Ctrl/⌘+K or the Commands
+button) with "Go to folder…" (a sub-list of folders: type a name, Enter goes there), "New folder" and
+"Toggle sidebar".
+
 ## Roadmap
 
-Phase H is complete. Next, Phase I; candidates: DateRangeField, a first-class Command palette (the
-Autocomplete story is a 40-line recipe today), Carousel, Tree, and data-grid pieces (column
-visibility, pagination state).
+Phase I is complete. Next, Phase J; candidates: data-grid pieces (column visibility, pagination
+state), Resizable panels, Stepper, Rating, a Color picker and a Calendar events view.
 
 Later: visual regression · React Compiler on output · publish to npm (`@tessera/ui` is free).

@@ -1016,6 +1016,17 @@ describe("Tree", () => {
         .poll(() => getComputedStyle(selected).outlineColor)
         .toBe(systemColor("HighlightText"));
     });
+
+    it("a hovered selected row stays Highlight (the hover tint does not replace it)", async () => {
+      await emulateForcedColors(true);
+      await render(<Files selectionMode="single" defaultSelectedValues={["src"]} />);
+      const selected = rowOf(item("src"));
+      await userEvent.hover(selected);
+      await expect.poll(() => selected.matches(":hover")).toBe(true);
+      // The background transitions (150ms) to the hover target: read it once that has settled.
+      await expect.poll(() => selected.getAnimations().length).toBe(0);
+      expect(getComputedStyle(selected).backgroundColor).toBe(systemColor("Highlight"));
+    });
   });
 
   it.each(["light", "dark"] as const)("has no axe violations (%s)", async (theme) => {
