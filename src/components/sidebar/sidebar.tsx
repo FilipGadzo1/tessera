@@ -83,8 +83,16 @@ export function Sidebar({
   ref,
   ...props
 }: SidebarProps) {
-  const { state, isMobile, openMobile, setOpenMobile, sidebarId, setSidebarId, setStatic, rtl } =
-    useSidebarInternal();
+  const {
+    state,
+    isMobile,
+    openMobile,
+    setOpenMobile,
+    sidebarId,
+    setSidebarId,
+    registerSidebar,
+    rtl,
+  } = useSidebarInternal();
   const [railHost, setRailHost] = useState<HTMLDivElement | null>(null);
   const edge = physicalSide(side, rtl);
 
@@ -93,10 +101,7 @@ export function Sidebar({
     return () => setSidebarId(undefined);
   }, [id, setSidebarId]);
 
-  useEffect(() => {
-    setStatic(collapsible === "none");
-    return () => setStatic(false);
-  }, [collapsible, setStatic]);
+  useEffect(() => registerSidebar(collapsible === "none"), [collapsible, registerSidebar]);
 
   const content = (
     <SidebarInstanceContext.Provider value={{ side, edge, collapsible, railHost }}>

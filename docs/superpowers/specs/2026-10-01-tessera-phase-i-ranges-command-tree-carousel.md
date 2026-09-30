@@ -53,6 +53,10 @@
   - Make `isStatic` per Sidebar: a counter, or a set of registered static sidebars, not a single boolean.
   - `useSidebar()` reports `state: "expanded"` when the only Sidebar is `collapsible="none"`; document the rule for mixed setups.
   - Test both.
+  - *Amended in Task 0*: the rule.
+    - The provider counts the mounted Sidebars (`registerSidebar`). The trigger and shortcut are inert, and `state` is `"expanded"`, only while every mounted Sidebar is `collapsible="none"` and there is at least one.
+    - With any collapsible Sidebar mounted (a mixed setup), or with none, the provider's `open` decides. The trigger and shortcut then drive the collapsible Sidebars, and the static ones ignore `open`.
+    - `open` itself is not rewritten: it stays the provider's own value (`state: "expanded"` with `open: false` is possible for a lone static Sidebar).
 - **DateField RTL geometry test:** under `dir="rtl"`, the first segment's text starts at the Input's inline-start text position. Also test the editable picker's icon button at the inline end.
 - Update the backlog: remove the resolved entries.
 

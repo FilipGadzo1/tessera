@@ -5,7 +5,7 @@ import { render } from "vitest-browser-react";
 import { emulateReducedMotion } from "../../../test/emulation";
 import { auditOpenOverlay, waitForPopupSettled } from "../../../test/overlay";
 import { DateField } from "../date-field";
-import { SidebarProvider, useSidebar } from ".";
+import { Sidebar, SidebarInset, SidebarProvider, SidebarTrigger, useSidebar } from ".";
 import * as stories from "./sidebar.stories";
 import {
   aside,
@@ -287,6 +287,78 @@ describe("collapsible none", () => {
     expect(aside()).not.toBeNull();
     expect(document.querySelector("[role=dialog]")).toBeNull();
     expect(trigger().element().getAttribute("aria-expanded")).toBe("true");
+  });
+});
+
+describe("static state is per Sidebar", () => {
+  function Probe() {
+    const { state, open } = useSidebar();
+    return <output data-testid="probe">{`${state}:${open}`}</output>;
+  }
+  function Two({
+    defaultOpen,
+    fixed = true,
+    collapsible = true,
+  }: {
+    defaultOpen?: boolean;
+    fixed?: boolean;
+    collapsible?: boolean;
+  }) {
+    return (
+      <SidebarProvider defaultOpen={defaultOpen}>
+        {fixed && (
+          <Sidebar collapsible="none" aria-label="Fixed">
+            <p>fixed</p>
+          </Sidebar>
+        )}
+        {collapsible && (
+          <Sidebar side="right" aria-label="Panel">
+            <p>panel</p>
+          </Sidebar>
+        )}
+        <SidebarInset>
+          <SidebarTrigger />
+          <Probe />
+        </SidebarInset>
+      </SidebarProvider>
+    );
+  }
+  const probe = () => page.getByTestId("probe");
+  const panel = () =>
+    document.querySelector<HTMLElement>("aside[aria-label=Panel]") as HTMLElement | null;
+
+  it("a static Sidebar does not stop the trigger from toggling a collapsible one", async () => {
+    await render(<Two />);
+    await expect.element(probe()).toHaveTextContent("expanded:true");
+    await userEvent.click(trigger());
+    await expect.element(probe()).toHaveTextContent("collapsed:false");
+    await expect.poll(() => panel()?.getAttribute("data-state")).toBe("collapsed");
+    expect(document.querySelector("aside[aria-label=Fixed]")?.getAttribute("data-state")).toBe(
+      "expanded",
+    );
+    await pressShortcut("Control");
+    await expect.element(probe()).toHaveTextContent("expanded:true");
+  });
+
+  it("the collapsible Sidebar leaving does not un-static the remaining one", async () => {
+    const screen = await render(<Two />);
+    await screen.rerender(<Two collapsible={false} />);
+    expect(panel()).toBeNull();
+    await userEvent.click(trigger());
+    await expect.element(probe()).toHaveTextContent("expanded:true");
+    await pressShortcut("Control");
+    await expect.element(probe()).toHaveTextContent("expanded:true");
+  });
+
+  it("state is expanded when the only Sidebar is collapsible=none, even with the provider closed", async () => {
+    const screen = await render(<Two defaultOpen={false} collapsible={false} />);
+    await expect.element(probe()).toHaveTextContent("expanded:false");
+    await screen.rerender(<Two defaultOpen={false} />);
+    // Mixed setup: the provider's own state decides.
+    await expect.element(probe()).toHaveTextContent("collapsed:false");
+    await screen.rerender(<Two defaultOpen={false} fixed={false} collapsible={false} />);
+    // No Sidebar at all: the provider's own state.
+    await expect.element(probe()).toHaveTextContent("collapsed:false");
   });
 });
 

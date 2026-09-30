@@ -306,9 +306,7 @@ phase; items fixed by a later commit are left out).
   `pe-10` / `end-1` icon button under `dir="rtl"` (logical classes, checked visually only).
 - Sidebar (Task 4): the rail takes 8px of the page's edge next to the column (clicks there toggle); the
   content-scrollbar `elementFromPoint` tests use a fixture too short to scroll, so they pin the edge, not a
-  real scrollbar; `useSidebar()` reports `state: "collapsed"` for a `collapsible="none"` Sidebar under
-  `defaultOpen={false}` although it renders expanded; the provider keeps one `isStatic` flag, so with two
-  Sidebars (one `collapsible="none"`) the trigger and shortcut do nothing for the other.
+  real scrollbar.
 - Sidebar direction (final review): `SidebarProvider` reads the text direction in a layout effect after its
   own renders, so a runtime `dir` change on an ancestor that doesn't re-render the provider is picked up
   only on its next render (e.g. the next toggle) for the JS-driven parts: the mobile Drawer's side, the

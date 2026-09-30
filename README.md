@@ -533,7 +533,9 @@ source files automatically (build output + `"use client"` directive checks).
   sticky to the viewport, with `side` left/right, `variant` sidebar (bordered) / floating (a card) / inset (the
   page becomes a card) and `collapsible` offcanvas (slides out and is `inert`) / icon (a 3rem column of icons;
   menu buttons show their `tooltip`, labels stay in the accessible name) / none (static at every width; the
-  trigger and shortcut do nothing, so leave the trigger out). `side` names the edge in a left-to-right
+  trigger and shortcut do nothing while every Sidebar on the provider is static, so leave the trigger
+  out; `useSidebar().state` is then always `"expanded"`, and in a mix of static and collapsible Sidebars
+  `open` decides and drives the collapsible ones). `side` names the edge in a left-to-right
   layout and follows the writing direction: under `dir="rtl"`, `left` (the inline start) renders on the
   right, and its rail, off-canvas slide, icon-mode tooltips and mobile Drawer mirror with it. Below `md`
   the same children open in a `Drawer` from the column's edge, named "Sidebar".

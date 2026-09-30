@@ -49,7 +49,11 @@ export const SidebarInstanceContext = createContext<{
 const DESKTOP_QUERY = "(min-width: 48rem)";
 
 export interface SidebarContextValue {
-  /** `"expanded"` while `open`, otherwise `"collapsed"` (desktop). */
+  /**
+   * `"expanded"` while `open`, otherwise `"collapsed"` (desktop). When the only Sidebar mounted is
+   * `collapsible="none"` it is always `"expanded"`. With a mix of static and collapsible
+   * Sidebars, `open` decides (it drives the collapsible ones; the static ones ignore it).
+   */
   state: "expanded" | "collapsed";
   /** The desktop sidebar's open state. */
   open: boolean;
@@ -67,9 +71,13 @@ interface SidebarInternalValue {
   /** The id the trigger's `aria-controls` points at: the aside, or the open mobile Drawer. */
   sidebarId: string;
   setSidebarId: (id: string | undefined) => void;
-  /** A `collapsible="none"` Sidebar registers here: there is nothing to toggle. */
+  /**
+   * Every mounted Sidebar is `collapsible="none"` (and there is at least one): there is nothing to
+   * toggle. With any collapsible Sidebar mounted it is `false`.
+   */
   isStatic: boolean;
-  setStatic: (isStatic: boolean) => void;
+  /** A Sidebar registers itself while mounted (`fixed`: it is `collapsible="none"`); returns the unregister. */
+  registerSidebar: (fixed: boolean) => () => void;
   /**
    * The provider row's resolved writing direction is right-to-left (read from the computed style,
    * as Calendar does, so a `dir` on any ancestor counts).
@@ -95,7 +103,7 @@ export function useSidebar(): SidebarContextValue {
     sidebarId: _id,
     setSidebarId: _setId,
     isStatic: _isStatic,
-    setStatic: _setStatic,
+    registerSidebar: _registerSidebar,
     rtl: _rtl,
     ...value
   } = useSidebarContext();
@@ -160,7 +168,15 @@ export function SidebarProvider({
   const generatedId = useId();
   const [customId, setSidebarId] = useState<string | undefined>(undefined);
   const sidebarId = customId ?? generatedId;
-  const [isStatic, setStatic] = useState(false);
+  // The mounted Sidebars, counted: a static one must not hide a collapsible one, or the reverse.
+  const [sidebars, setSidebars] = useState({ total: 0, fixed: 0 });
+  const isStatic = sidebars.total > 0 && sidebars.fixed === sidebars.total;
+  const registerSidebar = useCallback((fixed: boolean) => {
+    const step = fixed ? 1 : 0;
+    setSidebars((current) => ({ total: current.total + 1, fixed: current.fixed + step }));
+    return () =>
+      setSidebars((current) => ({ total: current.total - 1, fixed: current.fixed - step }));
+  }, []);
 
   // The resolved direction, re-read after every render (it only re-renders on a change). The
   // desktop column and rail follow it through CSS alone; the mobile Drawer (portalled out of the
@@ -207,7 +223,9 @@ export function SidebarProvider({
 
   const value = useMemo(
     () => ({
-      state: open ? ("expanded" as const) : ("collapsed" as const),
+      // A lone `collapsible="none"` Sidebar is always expanded, whatever `open` says. With any
+      // collapsible Sidebar mounted (or none at all) the provider's `open` decides.
+      state: open || isStatic ? ("expanded" as const) : ("collapsed" as const),
       open,
       setOpen,
       openMobile,
@@ -217,10 +235,10 @@ export function SidebarProvider({
       sidebarId,
       setSidebarId,
       isStatic,
-      setStatic,
+      registerSidebar,
       rtl,
     }),
-    [open, setOpen, openMobile, isMobile, toggleSidebar, sidebarId, isStatic, rtl],
+    [open, setOpen, openMobile, isMobile, toggleSidebar, sidebarId, isStatic, registerSidebar, rtl],
   );
 
   return (
