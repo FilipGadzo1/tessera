@@ -565,8 +565,11 @@ export function CommandDialog({
   ...props
 }: CommandDialogProps) {
   const [open, setOpen] = useControllableState(openProp, defaultOpen, onOpenChange);
+  // The latest state for the document shortcut listener, updated after each commit (not in render).
   const latest = useRef({ open, setOpen });
-  latest.current = { open, setOpen };
+  useLayoutEffect(() => {
+    latest.current = { open, setOpen };
+  });
   const popupRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
