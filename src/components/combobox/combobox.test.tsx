@@ -710,6 +710,46 @@ describe("Combobox", () => {
       expect(getComputedStyle(chip).outlineColor).toBe(systemColor("Highlight"));
     });
 
+    it("forced colors: an invalid, focused group or chips container rings Highlight", async () => {
+      await emulateForcedColors(true);
+      await render(
+        <div>
+          <Field invalid>
+            <FieldLabel>In field</FieldLabel>
+            <Fruit inputProps={{ "aria-label": undefined }} />
+          </Field>
+          <Fruit inputProps={{ "aria-label": "Bare", "aria-invalid": true }} />
+          <Field invalid>
+            <FieldLabel>Chips in field</FieldLabel>
+            <Combobox items={toppings} multiple>
+              <ComboboxChips>
+                <ComboboxInput />
+              </ComboboxChips>
+            </Combobox>
+          </Field>
+          <Combobox items={toppings} multiple>
+            <ComboboxChips>
+              <ComboboxInput aria-label="Bare chips" aria-invalid />
+            </ComboboxChips>
+          </Combobox>
+        </div>,
+      );
+      for (const [name, containerOf] of [
+        ["In field", groupOf],
+        ["Bare", groupOf],
+        ["Chips in field", chipsOf],
+        ["Bare chips", chipsOf],
+      ] as const) {
+        const element = page.getByRole("combobox", { name, exact: true }).element() as HTMLElement;
+        element.focus();
+        const style = getComputedStyle(containerOf(element));
+        expect(style.outlineStyle, name).toBe("solid");
+        // The danger outline is more specific than `forced-colors:focus-within:`; without the
+        // restated forced-colors rule Chromium forces it to CanvasText.
+        expect(style.outlineColor, name).toBe(systemColor("Highlight"));
+      }
+    });
+
     it("read-only uses the muted background; disabled dims and blocks input", async () => {
       const screen = await render(
         <div>

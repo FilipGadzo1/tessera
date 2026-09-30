@@ -818,7 +818,7 @@ describe("DateField: focus", () => {
     expect(style.outlineStyle).toBe("solid");
     // Input's `:focus` ring stays Highlight when invalid; the group's `:focus-within` ring needs
     // `forced-colors:data-invalid:focus-within:outline-[Highlight]` for the same result (without
-    // it the danger outline, forced to CanvasText, wins by source order).
+    // it the more specific danger outline, forced to CanvasText, wins).
     expect(inputRing).toBe(systemColor("Highlight"));
     expect(style.outlineColor).toBe(inputRing);
   });

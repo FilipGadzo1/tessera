@@ -123,9 +123,10 @@ const rootBase = [
   "inline-flex w-full min-w-0 items-center gap-0.5 rounded-md border border-field-border bg-field text-foreground shadow-xs tabular-nums cursor-text",
   "not-data-disabled:not-data-invalid:not-focus-within:hover:border-field-border-hover",
   "outline-none focus-within:outline-1 focus-within:outline-solid focus-within:outline-ring focus-within:border-ring forced-colors:focus-within:outline-[Highlight]",
-  // The forced-colors Highlight ring restated for the invalid state: Tailwind emits
-  // `data-invalid:focus-within:` after `forced-colors:focus-within:`, so without it the danger
-  // outline (forced to CanvasText) would win, unlike Input's `:focus` ring, which stays Highlight.
+  // The forced-colors Highlight ring restated for the invalid state (as `textFieldGroupBase`):
+  // `data-invalid:focus-within:` is more specific than `forced-colors:focus-within:`, so without
+  // it the danger outline (forced to CanvasText) would win, unlike Input's `:focus` ring, which
+  // stays Highlight.
   "data-invalid:border-danger data-invalid:focus-within:outline-danger forced-colors:data-invalid:focus-within:outline-[Highlight]",
   "data-disabled:cursor-not-allowed data-disabled:opacity-50 data-readonly:bg-muted",
   "transition-[color,background-color,border-color,box-shadow,translate] duration-150 ease-out motion-reduce:transition-none",

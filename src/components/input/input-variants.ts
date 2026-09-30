@@ -49,6 +49,10 @@ export const textFieldGroupBase: string[] = [
   "not-data-disabled:not-data-invalid:not-has-aria-invalid:not-focus-within:hover:border-field-border-hover",
   "outline-none focus-within:outline-1 focus-within:outline-solid focus-within:outline-ring focus-within:border-ring forced-colors:focus-within:outline-[Highlight]",
   "data-invalid:border-danger data-invalid:focus-within:outline-danger has-aria-invalid:border-danger has-aria-invalid:focus-within:outline-danger",
+  // The forced-colors Highlight ring restated for the invalid state: `data-invalid:focus-within:`
+  // / `has-aria-invalid:focus-within:` are more specific than `forced-colors:focus-within:`, so
+  // without these the danger outline (forced to CanvasText) wins over the Highlight ring.
+  "forced-colors:data-invalid:focus-within:outline-[Highlight] forced-colors:has-aria-invalid:focus-within:outline-[Highlight]",
   "data-disabled:cursor-not-allowed data-disabled:opacity-50 data-readonly:bg-muted",
   "transition-[color,background-color,border-color,box-shadow,translate] duration-150 ease-out motion-reduce:transition-none",
 ];

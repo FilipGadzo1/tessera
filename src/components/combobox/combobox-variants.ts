@@ -46,6 +46,8 @@ export const comboboxChipsBase: string[] = [
   "not-has-[input:disabled]:not-has-aria-invalid:not-focus-within:hover:border-field-border-hover",
   "outline-none focus-within:outline-1 focus-within:outline-solid focus-within:outline-ring focus-within:border-ring forced-colors:focus-within:outline-[Highlight]",
   "has-aria-invalid:border-danger has-aria-invalid:focus-within:outline-danger",
+  // Restated so the invalid ring stays Highlight in forced colors (see `textFieldGroupBase`).
+  "forced-colors:has-aria-invalid:focus-within:outline-[Highlight]",
   "has-[input:disabled]:cursor-not-allowed has-[input:disabled]:opacity-50 has-[input:read-only]:bg-muted",
   "transition-[color,background-color,border-color,box-shadow,translate] duration-150 ease-out motion-reduce:transition-none",
 ];

@@ -163,6 +163,34 @@ describe("NumberField", () => {
     expect(style.outlineColor).toBe(systemColor("Highlight"));
   });
 
+  it("in forced colors: an invalid, focused group rings Highlight (in an invalid Field or with a bare aria-invalid)", async () => {
+    await emulateForcedColors(true);
+    await render(
+      <div className="flex flex-col gap-2">
+        <Field invalid>
+          <FieldLabel>In field</FieldLabel>
+          <NumberField defaultValue={1} />
+        </Field>
+        <NumberField defaultValue={1}>
+          <NumberFieldGroup>
+            <NumberFieldInput aria-label="Bare" aria-invalid />
+          </NumberFieldGroup>
+        </NumberField>
+      </div>,
+    );
+    for (const name of ["In field", "Bare"]) {
+      const input = page.getByRole("textbox", { name }).element() as HTMLInputElement;
+      const group = input.closest('[data-slot="number-field-group"]') as HTMLElement;
+      input.focus();
+      const style = getComputedStyle(group);
+      expect(style.outlineStyle).toBe("solid");
+      // The danger outline (`data-invalid:` / `has-aria-invalid:` + `focus-within:`) is more
+      // specific than `forced-colors:focus-within:`; without the restated forced-colors rule
+      // Chromium forces it to CanvasText.
+      expect(style.outlineColor).toBe(systemColor("Highlight"));
+    }
+  });
+
   it.each([
     ["sm", 32],
     ["md", 40],
