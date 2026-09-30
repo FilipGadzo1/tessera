@@ -327,6 +327,15 @@ describe("Command", () => {
       await expect.poll(() => input().value).toBe("");
       await expect.poll(() => optionNames().length).toBe(6);
     });
+
+    it("Shift+Escape clears the query like Escape", async () => {
+      await render(<Palette />);
+      await userEvent.click(input());
+      await userEvent.keyboard("bil");
+      await expect.poll(() => input().value).toBe("bil");
+      await userEvent.keyboard("{Shift>}{Escape}{/Shift}");
+      await expect.poll(() => input().value).toBe("");
+    });
   });
 
   describe("header ring", () => {
@@ -349,24 +358,36 @@ describe("Command", () => {
       expect(style.borderBottomLeftRadius).toBe("0px");
     });
 
-    it("in the dialog, the header radius equals the popup's inner radius", async () => {
-      await render(<DialogPalette />);
-      const element = await openDialogByButton();
-      const header = element.querySelector<HTMLElement>(
-        "[data-slot=command-input-wrapper]",
-      ) as HTMLElement;
-      const popupStyle = getComputedStyle(element);
-      const inner =
-        Number.parseFloat(popupStyle.borderTopLeftRadius) -
-        Number.parseFloat(popupStyle.borderTopWidth);
-      expect(getComputedStyle(header).outlineStyle).toBe("solid");
-      expect(Number.parseFloat(getComputedStyle(header).borderTopLeftRadius)).toBeCloseTo(inner, 1);
-      expect(Number.parseFloat(getComputedStyle(header).borderTopRightRadius)).toBeCloseTo(
-        inner,
-        1,
-      );
-      expect(Number.parseFloat(popupStyle.paddingTop)).toBe(0);
-    });
+    /*
+     * The popup clips its content at its padding box, whose corner radius is the popup's radius
+     * minus its border. The header takes the popup's own radius (inherited through the Command),
+     * which is at least that inner radius, so its inset ring curves inside the clip, and it follows
+     * a `contentClassName` radius or border override.
+     */
+    it.each([
+      ["default", undefined],
+      ["overridden radius and border", "rounded-3xl border-4"],
+      ["square", "rounded-none"],
+    ] as const)(
+      "in the dialog, the header follows the popup's radius (%s)",
+      async (_, contentClassName) => {
+        await render(<DialogPalette contentClassName={contentClassName} />);
+        const element = await openDialogByButton();
+        const header = element.querySelector<HTMLElement>(
+          "[data-slot=command-input-wrapper]",
+        ) as HTMLElement;
+        const popupStyle = getComputedStyle(element);
+        const radius = Number.parseFloat(popupStyle.borderTopLeftRadius);
+        const inner = Math.max(0, radius - Number.parseFloat(popupStyle.borderTopWidth));
+        const headerStyle = getComputedStyle(header);
+        expect(headerStyle.outlineStyle).toBe("solid");
+        expect(Number.parseFloat(headerStyle.borderTopLeftRadius)).toBeCloseTo(radius, 1);
+        expect(Number.parseFloat(headerStyle.borderTopRightRadius)).toBeCloseTo(radius, 1);
+        expect(Number.parseFloat(headerStyle.borderTopLeftRadius)).toBeGreaterThanOrEqual(inner);
+        if (contentClassName === "rounded-3xl border-4") expect(radius).toBe(24);
+        expect(Number.parseFloat(popupStyle.paddingTop)).toBe(0);
+      },
+    );
   });
 
   it.each(["light", "dark"] as const)(
@@ -452,6 +473,65 @@ describe("CommandDialog", () => {
     expect(document.querySelector("[role=dialog]")).toBeNull();
   });
 
+  it.each([
+    ["a select", () => <select aria-label="Target">{<option>One</option>}</select>],
+    [
+      "a role=textbox",
+      // biome-ignore lint/a11y/useSemanticElements: the test is about custom ARIA text widgets.
+      () => <div role="textbox" aria-label="Target" tabIndex={0} />,
+    ],
+    [
+      "a role=combobox",
+      () => <div role="combobox" aria-label="Target" aria-expanded="false" tabIndex={0} />,
+    ],
+  ] as const)("ignores the shortcut in %s", async (_, target) => {
+    await render(
+      <>
+        <DialogPalette />
+        {target()}
+      </>,
+    );
+    const element = document.querySelector<HTMLElement>("[aria-label=Target]") as HTMLElement;
+    element.focus();
+    expect(document.activeElement).toBe(element);
+    await userEvent.keyboard("{Control>}k{/Control}");
+    await userEvent.keyboard("{Shift}");
+    expect(document.querySelector("[role=dialog]")).toBeNull();
+    expect(page.getByTestId("state").element().textContent).toBe("closed");
+  });
+
+  it("ignores the shortcut during an IME composition", async () => {
+    await render(<DialogPalette />);
+    const target = page.getByRole("button", { name: "Open palette" }).element();
+    const press = (isComposing: boolean) =>
+      target.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "k",
+          code: "KeyK",
+          ctrlKey: true,
+          isComposing,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    // A handled shortcut calls preventDefault, so dispatchEvent returns false.
+    expect(press(true)).toBe(true);
+    expect(page.getByTestId("state").element().textContent).toBe("closed");
+    expect(press(false)).toBe(false);
+    await expect.element(page.getByTestId("state")).toHaveTextContent("open");
+  });
+
+  it("description is a visually hidden DialogDescription that describes the dialog", async () => {
+    await render(<DialogPalette description="Search for a command to run." />);
+    await openDialogByButton();
+    const description = document.querySelector("[data-slot=dialog-description]") as HTMLElement;
+    expect(description.textContent).toBe("Search for a command to run.");
+    expect(description.className).toContain("sr-only");
+    await expect
+      .element(page.getByRole("dialog", { name: "Command menu" }))
+      .toHaveAccessibleDescription("Search for a command to run.");
+  });
+
   it("a custom shortcut opens it", async () => {
     await render(<DialogPalette shortcut="mod+shift+p" />);
     await userEvent.click(page.getByRole("button", { name: "Open palette" }));
@@ -491,18 +571,44 @@ describe("CommandDialog", () => {
     await expect.element(page.getByRole("button", { name: "Open palette" })).toHaveFocus();
   });
 
-  it("Escape clears the query first, then closes the dialog", async () => {
-    await render(<DialogPalette />);
-    await openDialogByButton();
-    await userEvent.keyboard("bil");
-    await expect.poll(() => input().value).toBe("bil");
-    await userEvent.keyboard("{Escape}");
-    await expect.poll(() => input().value).toBe("");
-    await expect.element(dialog()).toBeVisible();
-    await userEvent.keyboard("{Escape}");
-    await expect.element(dialog()).not.toBeInTheDocument();
-    await expect.element(page.getByRole("button", { name: "Open palette" })).toHaveFocus();
-  });
+  it.each([
+    ["Escape", "{Escape}"],
+    ["Shift+Escape", "{Shift>}{Escape}{/Shift}"],
+  ])(
+    "%s clears the query first, then closes the dialog; nothing stops the event",
+    async (_, key) => {
+      const seen: string[] = [];
+      const listener = (event: KeyboardEvent) => {
+        if (event.key === "Escape") seen.push(input()?.value ?? "");
+      };
+      const windowEscapes = vi.fn();
+      const windowSeen = (event: KeyboardEvent) => {
+        if (event.key === "Escape") windowEscapes();
+      };
+      document.addEventListener("keydown", listener);
+      window.addEventListener("keydown", windowSeen);
+      try {
+        await render(<DialogPalette />);
+        await openDialogByButton();
+        await userEvent.keyboard("bil");
+        await expect.poll(() => input().value).toBe("bil");
+        await userEvent.keyboard(key);
+        await expect.poll(() => input().value).toBe("");
+        // The document and window listeners still received the Escape that cleared the query.
+        expect(seen).toHaveLength(1);
+        expect(windowEscapes).toHaveBeenCalledTimes(1);
+        expect(page.getByTestId("state").element().textContent).toBe("open");
+        expect(popup()?.hasAttribute("data-ending-style")).toBe(false);
+        await userEvent.keyboard(key);
+        await expect.element(dialog()).not.toBeInTheDocument();
+        await expect.element(page.getByTestId("state")).toHaveTextContent("closed");
+        await expect.element(page.getByRole("button", { name: "Open palette" })).toHaveFocus();
+      } finally {
+        document.removeEventListener("keydown", listener);
+        window.removeEventListener("keydown", windowSeen);
+      }
+    },
+  );
 
   it("defaultOpen opens it uncontrolled", async () => {
     await render(

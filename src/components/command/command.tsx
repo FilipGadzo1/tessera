@@ -6,7 +6,6 @@ import {
   type ComponentProps,
   createContext,
   isValidElement,
-  type KeyboardEvent,
   type ReactNode,
   useContext,
   useEffect,
@@ -29,7 +28,7 @@ import {
   comboboxSeparatorBase,
   comboboxStatusBase,
 } from "../combobox/combobox-variants";
-import { Dialog, DialogContent, DialogTitle } from "../dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "../dialog";
 
 const commandBase = "flex flex-col overflow-hidden rounded-lg bg-popover text-popover-foreground";
 /*
@@ -192,12 +191,20 @@ export interface CommandInputProps extends Omit<BaseAutocomplete.Input.Props, "v
   wrapperClassName?: string;
 }
 
+/*
+ * The Escape keydowns that cleared a query. Nothing stops them (the `tooltip-escape.ts` contract:
+ * an app's own listeners still receive Escape); `CommandDialog` instead cancels its Escape close
+ * for an event recorded here, as `yieldEscapeToTooltip` does for tooltips. A WeakSet, so a
+ * recorded event is released with it.
+ */
+const queryClearingEscapes = new WeakSet<Event>();
+
 /**
  * The search row: a leading search icon and the input (`role="combobox"`, named by the Command's
  * `label`), above a hairline. The row shows the focus ring, inset, with the container's rounded
- * top corners. Escape clears a non-empty query (and stops there, so an enclosing dialog stays
- * open). Home/End move the highlight to the first/last item, not the caret (Base UI's inline list
- * navigation).
+ * top corners. Escape (with or without modifiers) clears a non-empty query; the event still
+ * propagates, and an enclosing `CommandDialog` stays open until the next Escape. Home/End move the
+ * highlight to the first/last item, not the caret (Base UI's inline list navigation).
  */
 export function CommandInput({
   wrapperClassName,
@@ -207,16 +214,11 @@ export function CommandInput({
   ...props
 }: CommandInputProps) {
   const { query, setQuery, label } = useCommandContext("CommandInput");
-  const handleKeyDown = (
-    event: KeyboardEvent<HTMLInputElement> & { preventBaseUIHandler: () => void },
-  ) => {
+  const handleKeyDown: CommandInputProps["onKeyDown"] = (event) => {
     onKeyDown?.(event);
     if (event.defaultPrevented || event.nativeEvent.isComposing) return;
-    if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
     if (event.key === "Escape" && query !== "") {
-      event.preventBaseUIHandler();
-      event.preventDefault();
-      event.stopPropagation();
+      queryClearingEscapes.add(event.nativeEvent);
       setQuery("");
     }
   };
@@ -274,7 +276,9 @@ export interface CommandItemProps
   children?: ReactNode;
   /**
    * The text the filter matches. Defaults to the item's text content (without its
-   * `CommandShortcut`); pass it when the label is not plain text.
+   * `CommandShortcut`); pass it when the label is not plain text. It is also the item's Base UI
+   * value, so it must be unique within the Command: two items with the same text need distinct
+   * `value`s.
    */
   value?: string;
   /** Extra words the filter matches (synonyms, ids), never shown. */
@@ -393,7 +397,8 @@ export type CommandSeparatorProps = BaseAutocomplete.Separator.Props;
 
 /**
  * A hairline between groups (`role="presentation"`; CanvasText in forced colors). Not rendered
- * while a query filters the list, so no stray line is left beside a hidden group.
+ * whenever the query is non-empty, so no stray line is left beside a hidden group. That holds even
+ * under a custom `filter` that keeps every item: separators show only with an empty query.
  */
 export function CommandSeparator({ className, ...props }: CommandSeparatorProps) {
   const { query } = useCommandContext("CommandSeparator");
@@ -507,10 +512,12 @@ const nonTextInputTypes = new Set([
   "submit",
 ]);
 
+/** Whether the target takes typing: a text input, textarea, select, contenteditable, or an ARIA textbox / combobox. */
 function isEditable(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) return false;
   if (target.isContentEditable) return true;
-  if (target instanceof HTMLTextAreaElement) return true;
+  if (target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) return true;
+  if (target.matches("[role=textbox], [role=combobox]")) return true;
   return target instanceof HTMLInputElement && !nonTextInputTypes.has(target.type);
 }
 
@@ -523,22 +530,30 @@ export interface CommandDialogProps extends CommandProps {
   onOpenChange?: (open: boolean) => void;
   /**
    * The keyboard shortcut that opens the dialog, as `modifier+key` (`mod` is ⌘ on Apple platforms
-   * and Ctrl elsewhere; also `ctrl`, `meta`, `shift`, `alt`). Ignored while focus is in an editable
-   * field. `false` turns it off. @default "mod+k"
+   * and Ctrl elsewhere; also `ctrl`, `meta`, `shift`, `alt`). Ignored while focus is in a field that
+   * takes typing (text input, textarea, select, contenteditable, `role="textbox"` /
+   * `role="combobox"`) and during an IME composition. `false` turns it off. @default "mod+k"
    */
   shortcut?: string | false;
   /** The dialog's visually hidden title. @default "Command menu" */
   title?: string;
-  /** Classes for the dialog popup (`className` goes to the Command). */
+  /** A visually hidden description of the dialog (`aria-describedby`), e.g. how to use it. */
+  description?: ReactNode;
+  /**
+   * Classes for the dialog popup (`className` goes to the Command). The Command inherits the
+   * popup's corner radius, so a radius or border override here keeps the search row's ring on the
+   * corners.
+   */
   contentClassName?: string;
 }
 
 /**
  * A `Command` in a Tessera Dialog: centred, no padding, at most 32rem wide, named by a visually
- * hidden title, with the input focused when it opens. The `shortcut` (⌘K / Ctrl+K) opens it from
- * anywhere but an editable field. Running an item closes it (unless `onSelect` calls
- * `event.preventDefault()`) and focus returns where it was. Escape clears the query first, then
- * closes it.
+ * hidden title (and described by an optional visually hidden `description`), with the input focused
+ * when it opens. The `shortcut` (⌘K / Ctrl+K) opens it from anywhere but a field that takes typing.
+ * Running an item closes it (unless `onSelect` calls `event.preventDefault()`) and focus returns
+ * where it was. Escape clears the query first, then closes it: the Escape that cleared the query
+ * still propagates, and the dialog cancels its own close for that event.
  */
 export function CommandDialog({
   open: openProp,
@@ -546,6 +561,7 @@ export function CommandDialog({
   onOpenChange,
   shortcut = "mod+k",
   title = "Command menu",
+  description,
   contentClassName,
   className,
   children,
@@ -560,7 +576,8 @@ export function CommandDialog({
     if (shortcut === false) return;
     const parsed = parseShortcut(shortcut);
     const handleKeyDown = (event: globalThis.KeyboardEvent) => {
-      if (event.defaultPrevented || event.repeat || !matchesShortcut(event, parsed)) return;
+      if (event.defaultPrevented || event.repeat || event.isComposing) return;
+      if (!matchesShortcut(event, parsed)) return;
       if (isEditable(event.target)) return;
       event.preventDefault();
       if (!latest.current.open) latest.current.setOpen(true);
@@ -570,7 +587,22 @@ export function CommandDialog({
   }, [shortcut]);
 
   return (
-    <Dialog open={open} onOpenChange={(next) => setOpen(next)}>
+    <Dialog
+      open={open}
+      onOpenChange={(next, eventDetails) => {
+        // The Escape that cleared the query only clears it (see `queryClearingEscapes`).
+        if (
+          !next &&
+          eventDetails.reason === "escape-key" &&
+          queryClearingEscapes.has(eventDetails.event)
+        ) {
+          eventDetails.cancel();
+          eventDetails.allowPropagation();
+          return;
+        }
+        setOpen(next);
+      }}
+    >
       <DialogContent
         ref={popupRef}
         showCloseButton={false}
@@ -580,8 +612,16 @@ export function CommandDialog({
         className={cn("gap-0 overflow-hidden p-0 sm:max-w-lg", contentClassName)}
       >
         <DialogTitle className="sr-only">{title}</DialogTitle>
+        {description != null && (
+          <DialogDescription className="sr-only">{description}</DialogDescription>
+        )}
         <CommandRunContext.Provider value={() => setOpen(false)}>
-          <Command {...props} className={cn("rounded-[calc(var(--radius-xl)-1px)]", className)}>
+          {/*
+           * The Command takes the popup's own radius: at least the radius of the popup's padding
+           * box (radius minus border), where `overflow-hidden` clips, so the search row's inset
+           * ring curves inside the clip, and it follows a `contentClassName` override.
+           */}
+          <Command {...props} className={cn("rounded-[inherit]", className)}>
             {children}
           </Command>
         </CommandRunContext.Provider>

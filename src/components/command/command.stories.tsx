@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useEffect, useState } from "react";
-import { CalendarIcon, PanelLeftIcon, PlusIcon, SearchIcon } from "../../lib/icons";
+import { CalendarIcon, PlusIcon, SearchIcon } from "../../lib/icons";
 import { Button } from "../button";
 import {
   Command,
@@ -57,7 +57,6 @@ const meta = {
             <CommandShortcut>⌘B</CommandShortcut>
           </CommandItem>
           <CommandItem>
-            <PanelLeftIcon />
             Toggle sidebar
             <CommandShortcut>⌘S</CommandShortcut>
           </CommandItem>
@@ -90,16 +89,17 @@ function DialogDemo() {
           Ctrl K
         </span>
       </Button>
-      <CommandDialog open={open} onOpenChange={setOpen}>
+      <CommandDialog
+        open={open}
+        onOpenChange={setOpen}
+        description="Type to filter, use the arrow keys to move and Enter to run a command."
+      >
         <CommandInput placeholder="Type a command or search…" />
         <CommandEmpty />
         <CommandList>
           <CommandGroup>
             <CommandGroupLabel>Orders</CommandGroupLabel>
-            <CommandItem onSelect={run("Create a new order")}>
-              <PlusIcon />
-              Create a new order
-            </CommandItem>
+            <CommandItem onSelect={run("Create a new order")}>Create a new order</CommandItem>
             <CommandItem keywords={["csv", "download"]} onSelect={run("Export orders")}>
               Export orders
             </CommandItem>
