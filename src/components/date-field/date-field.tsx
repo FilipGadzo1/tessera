@@ -14,7 +14,6 @@ import {
   type ComponentProps,
   type KeyboardEvent,
   type RefObject,
-  useCallback,
   useEffect,
   useId,
   useMemo,
@@ -40,6 +39,7 @@ import {
 } from "../../lib/date-segments";
 import { findDefaultButton } from "../../lib/default-button";
 import { useControllableState } from "../../lib/use-controllable-state";
+import { useMergedRefs } from "../../lib/use-merged-refs";
 import {
   type DateValidationLabels,
   dateValidationMessage,
@@ -218,14 +218,7 @@ export function DateField({
   const generatedId = useId();
   const id = idProp ?? generatedId;
   const rootRef = useRef<HTMLDivElement | null>(null);
-  const setRootRef = useCallback(
-    (element: HTMLDivElement | null) => {
-      rootRef.current = element;
-      if (typeof ref === "function") ref(element);
-      else if (ref) ref.current = element;
-    },
-    [ref],
-  );
+  const setRootRef = useMergedRefs(rootRef, ref);
 
   const locale = resolveLocale(localeProp);
   const intl = useMemo(

@@ -5,7 +5,6 @@ import {
   cloneElement,
   createContext,
   isValidElement,
-  type Ref,
   useCallback,
   useContext,
   useEffect,
@@ -17,6 +16,7 @@ import {
 } from "react";
 import { cn } from "../../lib/cn";
 import { mergeClassName } from "../../lib/merge-class-name";
+import { mergeRefs } from "../../lib/merge-refs";
 import { popupMotion } from "../../lib/overlay-classes";
 import { registerOpenTooltip } from "../../lib/tooltip-escape";
 
@@ -169,12 +169,15 @@ export function TooltipContent({
   useInsertionEffect(() => {
     callerRef.current = ref;
   });
-  const popupRef = useCallback(
+  const describeRef = useCallback(
     (element: HTMLDivElement | null) => {
       setDescribedBy?.(element ? element.id : undefined);
-      assignRef(callerRef.current, element);
     },
     [setDescribedBy],
+  );
+  const popupRef = useCallback(
+    (element: HTMLDivElement | null) => mergeRefs(describeRef, callerRef.current)(element),
+    [describeRef],
   );
   return (
     <BaseTooltip.Portal container={container}>
@@ -197,9 +200,4 @@ export function TooltipContent({
       </BaseTooltip.Positioner>
     </BaseTooltip.Portal>
   );
-}
-
-function assignRef<T>(ref: Ref<T> | undefined, value: T | null) {
-  if (typeof ref === "function") ref(value);
-  else if (ref) ref.current = value;
 }

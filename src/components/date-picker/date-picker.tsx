@@ -9,19 +9,12 @@
  */
 import { useFieldRootContext } from "@base-ui/react/internals/field-root-context";
 import { useLabelableContext, useLabelableId } from "@base-ui/react/internals/labelable-provider";
-import {
-  type ComponentProps,
-  type ReactNode,
-  type Ref,
-  useCallback,
-  useId,
-  useRef,
-  useState,
-} from "react";
+import { type ComponentProps, type ReactNode, useId, useRef, useState } from "react";
 import { cn } from "../../lib/cn";
 import { resolveLocale, toISODate, type WeekDay } from "../../lib/date";
 import { CalendarIcon } from "../../lib/icons";
 import { useControllableState } from "../../lib/use-controllable-state";
+import { useMergedRefs } from "../../lib/use-merged-refs";
 import { buttonVariants } from "../button/button-variants";
 import {
   Calendar,
@@ -122,11 +115,6 @@ interface PickerFields {
 
 interface PickerSharedProps extends PickerTriggerProps, PickerFields {}
 
-function assignRef<T>(ref: Ref<T> | undefined, value: T) {
-  if (typeof ref === "function") ref(value);
-  else if (ref) ref.current = value;
-}
-
 const triggerExtras = "justify-start";
 const valueBase = "min-w-0 truncate";
 const iconBase = "size-4 shrink-0 text-muted-foreground";
@@ -184,13 +172,7 @@ function PickerShell({
   const valueId = useId();
   const popupRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
-  const setTriggerRef = useCallback(
-    (element: HTMLButtonElement | null) => {
-      triggerRef.current = element;
-      assignRef(ref, element);
-    },
-    [ref],
-  );
+  const setTriggerRef = useMergedRefs(triggerRef, ref);
 
   const [open, setControllableOpen] = useControllableState(openProp, defaultOpen, onOpenChange);
   // Dedupe locally: the hook itself always calls onChange, but a Popover can re-request the

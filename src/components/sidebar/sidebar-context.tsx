@@ -16,6 +16,7 @@ import {
 } from "react";
 import { cn } from "../../lib/cn";
 import { useControllableState } from "../../lib/use-controllable-state";
+import { useMergedRefs } from "../../lib/use-merged-refs";
 import { sidebarWrapperClasses } from "./sidebar-variants";
 
 /**
@@ -169,14 +170,7 @@ export function SidebarProvider({
     const element = wrapperRef.current;
     if (element) setRtl(getComputedStyle(element).direction === "rtl");
   });
-  const setWrapperRef = useCallback(
-    (element: HTMLDivElement | null) => {
-      wrapperRef.current = element;
-      if (typeof ref === "function") ref(element);
-      else if (ref) ref.current = element;
-    },
-    [ref],
-  );
+  const setWrapperRef = useMergedRefs(wrapperRef, ref);
 
   const setOpen = useCallback(
     (next: boolean) => {
