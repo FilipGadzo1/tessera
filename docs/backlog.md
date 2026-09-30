@@ -324,32 +324,42 @@ phase; items fixed by a later commit are left out).
   leaves undecided), as the Checkout tests do.
 
 ### Phase I notes
-Deferred minors from the Phase I task reviews (none blocking).
-- Drawer direction (Task 0): a drawer already open at mount (`defaultOpen`, or `open` on the first
-  render, e.g. after hydration) resolves `start` / `end` in `DrawerContent`'s mount layout effect, so
-  its side can still change after the popup mounts; `isRtl`'s doc says "never during render" while a
-  controlled `open` turning true reads it in render; the open-handler and controlled-render reads have
-  no discriminating test; the Sidebar static-registration `useLayoutEffect` test is a guard only (it
-  also passes with `useEffect`).
+Deferred minors from the Phase I task reviews and the final review (none blocking). Fixed in the final
+review: the Carousel rejection race, Calendar's Escape (`claimEscape`), the `isRtl` doc, the Drawer
+direction-read tests (they found and fixed a reverted controlled-open read), the wide-container
+DateRangeField test and the Tree position compare.
+- Drawer (Task 0): a drawer already open at mount (`defaultOpen`, or `open` on the first render, e.g.
+  after hydration) resolves `start` / `end` in `DrawerContent`'s mount layout effect, so its side can
+  still be corrected after the popup mounts.
+- Sidebar (Task 0): the static-registration `useLayoutEffect` test is a guard only (it also passes with
+  `useEffect`).
 - DateRangeField / editable DateRangePicker (Task 1): the group does not shrink below its content (two
-  en-US dates plus the icon button need about 22rem at `lg`); no test puts the `min-w-max` group in a
-  wide `w-full` container.
-- Command (Task 2): no dedicated `claimEscape` test with a DatePicker popup or the Sidebar Drawer around a
-  Command (the Popover and Dialog cases are tested). Dialog-wide (pre-existing, seen on CommandDialog in
-  the Task 2 review): a double border in forced colors.
-- Tree (Task 3): the DOM position pass sets `aria-posinset` / `aria-setsize` without comparing first; a
-  wrapper component that reorders its own items without remounting keeps stale positions until the next
-  mount or unmount; a child that renders `null` leaves an empty hidden group; server HTML guesses
-  positions from the element children (a wrapper's items read "1 of 1" until hydration).
+  en-US dates plus the icon button need about 22rem at `lg`).
+- DateRangePicker (Task 1): `onValueChange` has two contracts, complete ranges only (button picker) vs
+  partial pairs (editable, an end can be `null`). Decide before 1.0, e.g. a separate `onPartialValueChange`.
+- Dialog-wide (pre-existing, seen on CommandDialog in the Task 2 review): a double border in forced colors.
+- `claimEscape` (Task 2): no dedicated test with a DatePicker popup or the Sidebar Drawer around a Command
+  (the Popover and Dialog cases are tested).
+- Tree (Task 3): a wrapper component that reorders its own items internally, without the tree
+  re-rendering, keeps stale `aria-posinset` / `aria-setsize` until the next tree commit (documented; a
+  per-item resync would fix it).
+- Tree (Task 3): a child that renders `null` leaves an empty hidden group.
+- Tree (Task 3): server HTML guesses positions from the element children (a wrapper's items read "1 of 1"
+  until hydration).
 - Carousel (Task 4): a pointer press mark lives until a focus, a click or pointercancel consumes it (a
-  press that causes no focus and whose click is stopped keeps it); a controlled parent that commits a
-  swipe only after the full snap-back sees the content go back, then forward; a programmatic `.focus()`
-  into a rotating carousel stops rotation (it counts as keyboard focus). Manual: a screen-reader pass
-  that `aria-live` announces the slide that turns non-inert.
+  press that causes no focus and whose click is stopped keeps it); an optional macrotask clear would
+  bound it.
+- Carousel (Task 4): a controlled parent slower than a render (e.g. committing from `setTimeout`, or after
+  the full snap-back) sees the content go back, then forward. Microtask, promise and transition commits
+  are handled (final review).
+- Carousel (Task 4): a programmatic `.focus()` into a rotating carousel stops rotation (it counts as
+  keyboard focus). Manual: a screen-reader pass that `aria-live` announces the slide that turns non-inert.
+- Shortcut hints: ⌘ is shown on every platform (the Files example's ⌘K / ⌘B; the shortcuts are Ctrl on
+  Windows and Linux). Phase J: a `Kbd` / `useModifierKeyLabel` helper built on `command.tsx`'s
+  `isApplePlatform`.
 - Files example (Task 5):
   - Folders created with "New folder" are local state only, and new folders are always empty. There is
     no rename or delete.
-  - The ⌘K / ⌘B hints read ⌘ on every platform (the shortcuts are Ctrl on Windows and Linux).
   - The command dialog is centred, so it moves up or down as the list grows or shrinks while filtering.
   - Its keyboard test opens the image preview with a click on the Tree (the Tree's own keyboard flow is
     tested separately); the mobile test covers the Drawer at 390px only.
