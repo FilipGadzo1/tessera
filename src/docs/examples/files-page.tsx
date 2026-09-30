@@ -122,14 +122,15 @@ function FolderSidebar({
   const { isMobile, setOpenMobile } = useSidebar();
   const labelId = useId();
   // Enter both selects (single mode) and runs onAction, and a double-click's first click selects:
-  // the second call of a pair finds the folder already open, so each opening runs once.
+  // the second call of a pair finds the folder already open, so each opening runs once. Closing
+  // the phone Drawer is idempotent and runs on every call, so Enter on the open folder closes it.
   const openRef = useRef(current);
   openRef.current = current;
   const open = (id: string) => {
+    if (isMobile) setOpenMobile(false);
     if (id === openRef.current) return;
     openRef.current = id;
     onOpen(id);
-    if (isMobile) setOpenMobile(false);
   };
   return (
     <Sidebar>

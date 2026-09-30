@@ -273,6 +273,23 @@ describe("FilesPage example", () => {
       await expect.element(heading()).toHaveTextContent("Music");
     });
 
+    it("Enter on the folder that is already open closes the Drawer without reopening it", async () => {
+      const onOpenFolder = vi.fn();
+      await page.viewport(390, 800);
+      await render(<FilesPage onOpenFolder={onOpenFolder} />);
+      await expect.poll(() => document.querySelector("aside[data-slot=sidebar]")).toBeNull();
+      await userEvent.click(page.getByRole("button", { name: "Toggle sidebar" }));
+      const drawer = page.getByRole("dialog", { name: "Sidebar" });
+      await expect.element(drawer).toBeVisible();
+      await waitForPopupSettled(drawer.element());
+      // Documents is open (and selected); focus it in the Tree and press Enter.
+      await tabTo(folder("Documents").element());
+      await userEvent.keyboard("{Enter}");
+      await expect.element(drawer).not.toBeInTheDocument();
+      await expect.element(heading()).toHaveTextContent("Documents");
+      expect(onOpenFolder).not.toHaveBeenCalled();
+    });
+
     it("Toggle sidebar from the command dialog opens the Drawer with focus inside it", async () => {
       await page.viewport(390, 800);
       await render(<FilesPage />);
