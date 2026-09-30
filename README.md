@@ -520,6 +520,24 @@ source files automatically (build output + `"use client"` directive checks).
   `errors[name]`), and an invalid submit focuses its first segment. The custom validity also
   blocks a native `<form>` submit outside a Form.
   Pass `locale` explicitly when server-rendering. Client component)
+- [x] DateRangeField (two DateField segment sets in one group with the Input look and `size`
+  heights: the start, an aria-hidden en dash, the end. The halves are named "Start date" / "End
+  date" followed by the field's label (`labels.start` / `labels.end`), and every segment types and
+  steps as DateField's. ←/→ (flipped in RTL) and the auto-advance run across both halves, so a
+  complete start date moves on into the end, and Backspace on the end's empty first segment goes
+  back. Pasting a range fills both halves — two ISO dates separated by "/", "–", " - ", " to " or
+  a space, or two locale dates separated by "–", " - " or " to " ("9/1/2026 – 9/12/2026") — and a
+  single date fills the half it is pasted into. `value` / `defaultValue` / `onValueChange` take a
+  `{ start, end }` range; `onValueChange` reports the pair whenever either half becomes a complete
+  date or `null` (partial input never reports). An end before the start is invalid at once
+  (`labels.rangeReversed`, "The end date must be on or after the start date."), never swapped.
+  `min` / `max` / `isDateDisabled` check the two ends, plus `locale`, `disabled`, `readOnly`,
+  `required` (both ends), `size` and `labels`. In a `Form` it is one control, as DateRangePicker:
+  Field `validate` gets the `DateRange`, `onFormSubmit` reports `{ start, end }` under the Field's
+  name, a half partly typed or one end missing is "Enter a complete date range.", an invalid submit
+  focuses the first segment, Enter in either half submits and the halves are one blur boundary.
+  `name` submits the ISO interval `YYYY-MM-DD/YYYY-MM-DD` natively (the Field's name adds no
+  native entry), `startName` / `endName` each end. Client component)
 - [x] Sidebar, SidebarProvider, SidebarTrigger, SidebarRail, SidebarInset, SidebarHeader, SidebarFooter,
   SidebarContent, SidebarSeparator, SidebarGroup, SidebarGroupLabel, SidebarGroupAction, SidebarGroupContent,
   SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuAction, SidebarMenuBadge, SidebarMenuSub,

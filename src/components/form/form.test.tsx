@@ -8,6 +8,7 @@ import { Button } from "../button";
 import type { DateRange } from "../calendar";
 import { DateField } from "../date-field";
 import { DatePicker, DateRangePicker } from "../date-picker";
+import { DateRangeField } from "../date-range-field";
 import { Field, FieldError, FieldLabel } from "../field";
 import { Input } from "../input";
 import { Form, type FormProps } from "./form";
@@ -258,6 +259,32 @@ const dateCases: Record<string, DateControlCase> = {
       await openPicker();
       await userEvent.click(dayButton(d(2026, 9, 8)));
       await userEvent.click(dayButton(d(2026, 9, 10)));
+    },
+    formData: { from: "2026-09-05", to: "2026-09-12" },
+  },
+  DateRangeField: {
+    control: ({ required, filled, min, native }) => (
+      <DateRangeField
+        locale="en-US"
+        required={required}
+        min={min}
+        startName={native ? "from" : undefined}
+        endName={native ? "to" : undefined}
+        defaultValue={filled ? FILLED_RANGE : undefined}
+      />
+    ),
+    visible: firstSegment,
+    validated: FILLED_RANGE,
+    submitted: { start: "2026-09-05", end: "2026-09-12" },
+    empty: { start: "", end: "" },
+    changed: { start: "2026-09-05", end: "2026-09-13" },
+    change: async () => {
+      await userEvent.click(
+        document.querySelector(
+          "[data-slot=date-range-field-end] [data-slot=date-field-segment][data-type=day]",
+        ) as HTMLElement,
+      );
+      await userEvent.keyboard("{ArrowUp}");
     },
     formData: { from: "2026-09-05", to: "2026-09-12" },
   },

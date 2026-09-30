@@ -7,6 +7,7 @@ import {
   getSegmentLabel,
   getSegmentPlaceholder,
   incrementSegment,
+  parseDateRangeString,
   parseDateString,
   parseDigit,
   segmentBounds,
@@ -222,6 +223,50 @@ describe("parseDateString", () => {
     ["", "en-US"],
   ])("%j in %s → null", (text, locale) => {
     expect(parseDateString(text, locale)).toBeNull();
+  });
+});
+
+describe("parseDateRangeString", () => {
+  const sep = { start: d(2026, 9, 1), end: d(2026, 9, 12) };
+  it.each([
+    ["2026-09-01/2026-09-12", "en-US"],
+    ["2026-09-01 – 2026-09-12", "en-US"],
+    ["2026-09-01–2026-09-12", "en-US"],
+    ["2026-09-01 - 2026-09-12", "en-US"],
+    ["2026-09-01 2026-09-12", "en-US"],
+    ["2026-09-01 to 2026-09-12", "de-DE"],
+    ["2026-09-01\n2026-09-12", "en-US"],
+    ["9/1/2026 - 9/12/2026", "en-US"],
+    ["9/1/2026 – 9/12/2026", "en-US"],
+    ["9/1/2026 – 9/12/2026", "en-US"],
+    ["9/1/2026 to 9/12/2026", "en-US"],
+    ["9/1/2026 TO 9/12/2026", "en-US"],
+    ["01.09.2026 - 12.09.2026", "de-DE"],
+    ["01/09/2026 – 12/09/2026", "en-GB"],
+    ["٠١/٠٩/٢٠٢٦ - ١٢/٠٩/٢٠٢٦", "ar-EG"],
+  ] as const)("%j in %s → Sep 1 – 12, 2026", (text, locale) => {
+    expect(parseDateRangeString(text, locale)).toEqual(sep);
+  });
+
+  it("keeps a reversed range as typed (no swap)", () => {
+    expect(parseDateRangeString("2026-09-12/2026-09-01", "en-US")).toEqual({
+      start: d(2026, 9, 12),
+      end: d(2026, 9, 1),
+    });
+  });
+
+  it.each([
+    ["2026-09-01", "en-US"], // one date
+    ["9/1/2026", "en-US"],
+    ["9/1/2026 9/12/2026", "en-US"], // locale dates need a dash or "to"
+    ["9/1/2026-9/12/2026", "en-US"], // an unspaced hyphen is not a separator
+    ["9/1/2026/9/12/2026", "en-US"], // "/" separates ISO dates only
+    ["2026-09-01 – 2026-02-30", "en-US"], // not a real day
+    ["2026-09-01 – 2026-09-12 – 2026-09-20", "en-US"],
+    ["hello – world", "en-US"],
+    ["", "en-US"],
+  ])("%j in %s → null", (text, locale) => {
+    expect(parseDateRangeString(text, locale)).toBeNull();
   });
 });
 

@@ -182,6 +182,35 @@ export function parseDateString(text: string, locale?: string): Date | null {
   return segmentsToDate(segments);
 }
 
+const isoDate = String.raw`\d{4}-\d{2}-\d{2}`;
+/** Two ISO dates: separated by "/", an en dash, a spaced hyphen, "to", or whitespace alone. */
+const isoRange = new RegExp(
+  String.raw`^(${isoDate})(?:\s*[/–]\s*|\s+-\s+|\s+to\s+|\s+)(${isoDate})$`,
+  "i",
+);
+/** Between two locale-formatted dates: an en dash (spaced or not), a spaced hyphen, or "to". */
+const rangeSeparator = /\s*–\s*|\s+-\s+|\s+to\s+/i;
+
+/**
+ * A pasted range, as typed (a reversed range is not swapped); `null` unless it holds exactly two
+ * real days. Accepted: two ISO dates separated by "/", "–" (spaced or not), " - ", " to " or
+ * whitespace ("2026-09-01/2026-09-12", "2026-09-01 – 2026-09-12"); or two dates `parseDateString`
+ * reads (the locale's format, or ISO) separated by "–" (spaced or not), " - " or " to "
+ * ("9/1/2026 – 9/12/2026", "01.09.2026 - 12.09.2026"). "to" is matched case-insensitively.
+ */
+export function parseDateRangeString(
+  text: string,
+  locale?: string,
+): { start: Date; end: Date } | null {
+  const trimmed = text.trim();
+  const iso = isoRange.exec(trimmed);
+  const parts = iso ? [iso[1] as string, iso[2] as string] : trimmed.split(rangeSeparator);
+  if (parts.length !== 2) return null;
+  const start = parseDateString(parts[0] as string, locale);
+  const end = parseDateString(parts[1] as string, locale);
+  return start && end ? { start, end } : null;
+}
+
 const englishNames: Record<DateSegmentType, string> = { day: "day", month: "month", year: "year" };
 
 function displayName(type: DateSegmentType, locale?: string): string | undefined {

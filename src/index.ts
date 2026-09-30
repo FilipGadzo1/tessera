@@ -187,6 +187,11 @@ export {
   type DateRangePickerProps,
 } from "./components/date-picker";
 export {
+  DateRangeField,
+  type DateRangeFieldLabels,
+  type DateRangeFieldProps,
+} from "./components/date-range-field";
+export {
   Dialog,
   DialogClose,
   type DialogCloseProps,
