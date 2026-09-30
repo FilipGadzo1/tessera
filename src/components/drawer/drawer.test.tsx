@@ -135,6 +135,36 @@ describe("Drawer logical sides and RTL", () => {
     },
   );
 
+  // The mount read (DrawerContent's layout effect) sees LTR; the page turns RTL afterwards, so only
+  // the read on open can put `start` on the right.
+  it("an uncontrolled open re-reads the direction in its open handler", async () => {
+    await render(<Basic side="start" />);
+    document.documentElement.dir = "rtl";
+    const popup = await openByClick();
+    expect(popup.getAttribute("data-side")).toBe("right");
+    expect(Math.round(popup.getBoundingClientRect().right)).toBe(width());
+  });
+
+  it("a controlled open re-reads the direction in the render that turns it on", async () => {
+    function Controlled({ open }: { open: boolean }) {
+      return (
+        <Drawer side="start" open={open}>
+          <DrawerContent>
+            <DrawerTitle>Edit profile</DrawerTitle>
+          </DrawerContent>
+        </Drawer>
+      );
+    }
+    const screen = await render(<Controlled open={false} />);
+    document.documentElement.dir = "rtl";
+    await screen.rerender(<Controlled open />);
+    await expect.element(drawer()).toBeVisible();
+    const popup = drawer().element() as HTMLElement;
+    await waitForPopupSettled(popup);
+    expect(popup.getAttribute("data-side")).toBe("right");
+    expect(Math.round(popup.getBoundingClientRect().right)).toBe(width());
+  });
+
   it("physical left and right stay physical under RTL", async () => {
     document.documentElement.dir = "rtl";
     await render(<Basic side="left" />);

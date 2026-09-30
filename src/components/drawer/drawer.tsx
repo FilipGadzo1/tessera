@@ -99,7 +99,17 @@ export function Drawer({ side, onOpenChange, ...props }: DrawerProps) {
   // right edge (LTR before any read, and on the server).
   const directionSource = useRef<() => boolean>(() => false);
   const [rtl, setRtl] = useState(false);
-  const readDirection = useCallback(() => setRtl(directionSource.current()), []);
+  // A read that finds the direction unchanged sets no state. An unchanged `setRtl` still queues an
+  // update, and one left pending at another lane is later rebased over the render-time read below,
+  // reverting it (a controlled open in RTL came back as LTR on the next render).
+  const committedRtl = useRef(rtl);
+  useLayoutEffect(() => {
+    committedRtl.current = rtl;
+  });
+  const readDirection = useCallback(() => {
+    const next = directionSource.current();
+    if (next !== committedRtl.current) setRtl(next);
+  }, []);
   const handleOpenChange = useLayeredEscape<Parameters<NonNullable<typeof onOpenChange>>[1]>(
     (nextOpen, eventDetails) => {
       if (nextOpen) readDirection();
@@ -112,7 +122,10 @@ export function Drawer({ side, onOpenChange, ...props }: DrawerProps) {
   const [wasOpen, setWasOpen] = useState(props.open ?? false);
   if (props.open !== undefined && props.open !== wasOpen) {
     setWasOpen(props.open);
-    if (props.open) readDirection();
+    if (props.open) {
+      const next = directionSource.current();
+      if (next !== rtl) setRtl(next);
+    }
   }
   // A JS caller can still pass null; treat it like undefined.
   const resolvedSide = resolveSide(side ?? drawerDefaults.side, rtl);
