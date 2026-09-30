@@ -351,7 +351,6 @@ Deferred minors from the Phase I task reviews (none blocking).
     no rename or delete.
   - The ⌘K / ⌘B hints read ⌘ on every platform (the shortcuts are Ctrl on Windows and Linux).
   - The command dialog is centred, so it moves up or down as the list grows or shrinks while filtering.
-  - `files-page.tsx` is about 500 lines (the data tables take about 90); split the data out if it grows.
   - Its keyboard test opens the image preview with a click on the Tree (the Tree's own keyboard flow is
     tested separately); the mobile test covers the Drawer at 390px only.
 

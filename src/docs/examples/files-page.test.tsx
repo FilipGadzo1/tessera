@@ -91,6 +91,45 @@ describe("FilesPage example", () => {
     await expect.element(page.getByRole("table", { name: "Files in Holiday" })).toBeInTheDocument();
   });
 
+  it("Enter and a double-click each open a folder once", async () => {
+    const onOpenFolder = vi.fn();
+    await render(<FilesPage onOpenFolder={onOpenFolder} />);
+    await tabTo(folder("Documents").element());
+    await userEvent.keyboard("{ArrowDown}");
+    await expect.poll(() => document.activeElement).toBe(folder("Pictures").element());
+    // Enter both selects (single mode) and runs onAction: still one opening.
+    await userEvent.keyboard("{Enter}");
+    await expect.element(heading()).toHaveTextContent("Pictures");
+    expect(onOpenFolder.mock.calls).toEqual([["pictures"]]);
+    const musicRow = folder("Music")
+      .element()
+      .querySelector("[data-slot=tree-item-content]") as HTMLElement;
+    await userEvent.dblClick(musicRow);
+    await expect.element(heading()).toHaveTextContent("Music");
+    expect(onOpenFolder.mock.calls).toEqual([["pictures"], ["music"]]);
+  });
+
+  it("leaf folders are leaves: no aria-expanded and no group", async () => {
+    await render(<FilesPage />);
+    // Expand both parents (through the command palette) so their children are visible.
+    for (const name of ["Invoices", "Holiday"]) {
+      await openCommand();
+      await type("go");
+      await userEvent.keyboard("{Enter}");
+      await type(name.toLowerCase());
+      await userEvent.keyboard("{Enter}");
+      await expect.element(heading()).toHaveTextContent(name);
+    }
+    for (const name of ["Music", "Invoices", "Holiday"]) {
+      const item = folder(name).element();
+      expect(item.hasAttribute("aria-expanded"), name).toBe(false);
+      expect(item.querySelector("[role=group]"), name).toBeNull();
+    }
+    const parent = folder("Documents").element();
+    expect(parent.getAttribute("aria-expanded")).toBe("true");
+    expect(parent.querySelector(":scope > [role=group]")).not.toBeNull();
+  });
+
   it("Ctrl+K opens Command; Go to folder…, typing and Enter navigate", async () => {
     await render(<FilesPage />);
     await openCommand();
@@ -232,6 +271,24 @@ describe("FilesPage example", () => {
       await userEvent.click(folder("Music"));
       await expect.element(drawer).not.toBeInTheDocument();
       await expect.element(heading()).toHaveTextContent("Music");
+    });
+
+    it("Toggle sidebar from the command dialog opens the Drawer with focus inside it", async () => {
+      await page.viewport(390, 800);
+      await render(<FilesPage />);
+      await expect.poll(() => document.querySelector("aside[data-slot=sidebar]")).toBeNull();
+      await openCommand();
+      await type("toggle");
+      await userEvent.keyboard("{Enter}");
+      await expect.element(commandDialog()).not.toBeInTheDocument();
+      const drawer = page.getByRole("dialog", { name: "Sidebar" });
+      await expect.element(drawer).toBeVisible();
+      await waitForPopupSettled(drawer.element());
+      await expect.poll(() => drawer.element().contains(document.activeElement)).toBe(true);
+      // Still inside once everything has settled (the command dialog's focus return is done).
+      await expect
+        .poll(() => document.activeElement?.closest("[role=dialog]"))
+        .toBe(drawer.element());
     });
   });
 });
