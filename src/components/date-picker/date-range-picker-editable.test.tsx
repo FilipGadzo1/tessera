@@ -124,6 +124,28 @@ describe("DateRangePicker: editable", () => {
     expect(rect.left).toBeGreaterThan(seg("end", "year").getBoundingClientRect().right);
   });
 
+  it("in a container wider than it, the field fills the container and the button sits at its end", async () => {
+    await render(
+      <div data-testid="wide" className="w-[40rem]">
+        <DateRangePicker
+          editable
+          aria-label="Stay"
+          locale="en-US"
+          size="lg"
+          defaultValue={range(d(2026, 9, 1), d(2026, 9, 12))}
+        />
+      </div>,
+    );
+    const container = page.getByTestId("wide").element().getBoundingClientRect();
+    const box = field().getBoundingClientRect();
+    expect(container.width).toBe(640);
+    expect(box.left).toBe(container.left);
+    expect(box.width).toBe(container.width);
+    const rect = iconButton().getBoundingClientRect();
+    expect(rect.right).toBeLessThanOrEqual(box.right);
+    expect(rect.right).toBeGreaterThan(box.right - 48);
+  });
+
   it("is not editable by default: the button trigger", async () => {
     await render(<DateRangePicker aria-label="Stay" locale="en-US" />);
     expect(document.querySelector("[data-slot=date-range-field]")).toBeNull();

@@ -739,6 +739,19 @@ describe("DateRangeField: width", () => {
     expect(box.right).toBeGreaterThanOrEqual(last.right);
     expect(root().scrollWidth).toBeLessThanOrEqual(root().clientWidth);
   });
+
+  it("in a container wider than its content, it fills the container (min-w-max does not cap w-full)", async () => {
+    await render(
+      <div data-testid="wide" className="w-[40rem]">
+        <Basic size="lg" defaultValue={range(d(2026, 9, 1), d(2026, 9, 12))} />
+      </div>,
+    );
+    const container = page.getByTestId("wide").element().getBoundingClientRect();
+    const box = root().getBoundingClientRect();
+    expect(container.width).toBe(640);
+    expect(box.left).toBe(container.left);
+    expect(box.width).toBe(container.width);
+  });
 });
 
 describe("DateRangeField: focus and forced colors", () => {
