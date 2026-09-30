@@ -88,6 +88,31 @@ describe("DatePicker: editable", () => {
     expect(rect.bottom).toBeLessThanOrEqual(field.bottom);
   });
 
+  it("under dir=rtl, the icon button sits inside the field at its inline end (left), clear of the segments", async () => {
+    await render(
+      <div dir="rtl">
+        <Editable />
+      </div>,
+    );
+    const button = iconButton();
+    const field = (
+      document.querySelector("[data-slot=date-field]") as HTMLElement
+    ).getBoundingClientRect();
+    expect(getComputedStyle(button).direction).toBe("rtl");
+    const rect = button.getBoundingClientRect();
+    expect(rect.left).toBeGreaterThanOrEqual(field.left);
+    // The segments read right to left, so the year is the leftmost one.
+    expect(rect.right).toBeLessThan(seg("year").getBoundingClientRect().left);
+    expect(rect.top).toBeGreaterThanOrEqual(field.top);
+    expect(rect.bottom).toBeLessThanOrEqual(field.bottom);
+    // 0.25rem in from the border (`end-1`), and the field's end padding (`pe-10`) clears it.
+    expect(Math.round(rect.left - field.left)).toBeLessThanOrEqual(6);
+    const fieldStyle = getComputedStyle(
+      document.querySelector("[data-slot=date-field]") as Element,
+    );
+    expect(Number.parseFloat(fieldStyle.paddingLeft)).toBeGreaterThanOrEqual(rect.width);
+  });
+
   it("is not editable by default: no segments", async () => {
     await render(<DatePicker aria-label="Due date" locale="en-US" />);
     expect(document.querySelector("[data-slot=date-field]")).toBeNull();

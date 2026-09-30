@@ -890,6 +890,36 @@ describe("DateField: states", () => {
       expect(start - dateRoot).toBeCloseTo(expected - inputRoot, 1);
     }
   });
+
+  it("under dir=rtl, starts its text at Input's inline-start text position (right) per size", async () => {
+    await render(
+      <div dir="rtl" className="flex flex-col gap-2">
+        {(["sm", "md", "lg"] as const).map((size) => (
+          <div key={size} className="flex gap-2">
+            <Input aria-label={`input-${size}`} size={size} />
+            <DateField aria-label={`date-${size}`} size={size} locale="en-US" />
+          </div>
+        ))}
+      </div>,
+    );
+    for (const size of ["sm", "md", "lg"] as const) {
+      const input = page.getByRole("textbox", { name: `input-${size}` }).element();
+      const date = page.getByRole("group", { name: `date-${size}` }).element();
+      const i = getComputedStyle(input);
+      expect(getComputedStyle(date).direction).toBe("rtl");
+      const expected =
+        input.getBoundingClientRect().right -
+        Number.parseFloat(i.borderRightWidth) -
+        Number.parseFloat(i.paddingRight);
+      const range = document.createRange();
+      range.selectNodeContents(seg("month", date).firstChild as Node);
+      const start = range.getBoundingClientRect().right;
+      const dateRoot = date.getBoundingClientRect().right;
+      const inputRoot = input.getBoundingClientRect().right;
+      // Measured from each box's own right edge, so it compares the inset, not the position.
+      expect(dateRoot - start).toBeCloseTo(inputRoot - expected, 1);
+    }
+  });
 });
 
 describe("DateField: focus", () => {

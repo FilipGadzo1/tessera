@@ -299,11 +299,6 @@ phase; items fixed by a later commit are left out).
 - Blur without focus return (Task 3): where Base UI does not return focus on close (no `focus({ preventScroll })`
   support, some Android browsers), popup→nowhere stays "in transit" under `useFocusScope`, so the Field's blur
   (touched, `onBlur` validation) is only reported once focus next lands outside the control.
-- Ref callbacks (Task 3): the merged ref setters ignore a React 19 ref-callback cleanup return (DateField,
-  DatePicker's trigger, `SidebarProvider`; also `combobox.tsx` ~416 and `tooltip.tsx` ~202). A shared
-  `mergeRefs` in `src/lib` should call the cleanup.
-- RTL geometry (Task 3): no tests pin the DateField first segment's `-ms-0.5` or the editable picker's
-  `pe-10` / `end-1` icon button under `dir="rtl"` (logical classes, checked visually only).
 - Sidebar (Task 4): the rail takes 8px of the page's edge next to the column (clicks there toggle); the
   content-scrollbar `elementFromPoint` tests use a fixture too short to scroll, so they pin the edge, not a
   real scrollbar.
