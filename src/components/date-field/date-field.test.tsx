@@ -364,6 +364,76 @@ describe("DateField: typing", () => {
     await expect.poll(() => submitted.length).toBe(3);
   });
 
+  it("an Enter that commits an IME composition neither submits nor changes the value", async () => {
+    const onSubmit = vi.fn((event: SubmitEvent) => event.preventDefault());
+    const onValueChange = vi.fn();
+    await render(
+      <form onSubmit={(event) => onSubmit(event.nativeEvent as SubmitEvent)}>
+        <Basic name="due" defaultValue={d(2026, 9, 1)} onValueChange={onValueChange} />
+      </form>,
+    );
+    const form = document.querySelector("form") as HTMLFormElement;
+    const requestSubmit = vi.spyOn(form, "requestSubmit");
+    await userEvent.click(seg("year"));
+    // A year still being typed: a composing Enter must not report it either.
+    await type("20");
+    onValueChange.mockClear();
+    const enter = (init: KeyboardEventInit, keyCode?: number) => {
+      const event = new KeyboardEvent("keydown", {
+        key: "Enter",
+        bubbles: true,
+        cancelable: true,
+        ...init,
+      });
+      // Safari reports the committing Enter as keyCode 229 (after compositionend).
+      if (keyCode !== undefined) Object.defineProperty(event, "keyCode", { get: () => keyCode });
+      seg("year").dispatchEvent(event);
+    };
+    enter({ isComposing: true }); // Chrome
+    enter({}, 229); // Safari
+    // A real Enter afterwards submits once: the composing ones queued nothing.
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(() => onSubmit.mock.calls.length).toBe(1);
+    expect(requestSubmit).toHaveBeenCalledTimes(1);
+    expect(onValueChange).toHaveBeenCalledTimes(1);
+  });
+
+  it("Enter follows implicit submission: not with a disabled default button, else through it", async () => {
+    const submitters: (string | null)[] = [];
+    function Ui({ disabled }: { disabled: boolean }) {
+      return (
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            const submitter = (event.nativeEvent as SubmitEvent).submitter;
+            submitters.push(submitter?.getAttribute("name") ?? null);
+          }}
+        >
+          <Basic name="due" defaultValue={d(2026, 9, 1)} />
+          {/* biome-ignore lint/a11y/useButtonType: a button without a type is a submit button; the test needs one as the default button. */}
+          <button name="save" disabled={disabled}>
+            Save
+          </button>
+          <button type="submit" name="other">
+            Other
+          </button>
+        </form>
+      );
+    }
+    const screen = await render(<Ui disabled />);
+    const requestSubmit = vi.spyOn(
+      document.querySelector("form") as HTMLFormElement,
+      "requestSubmit",
+    );
+    await userEvent.click(seg("day"));
+    await userEvent.keyboard("{Enter}");
+    await screen.rerender(<Ui disabled={false} />);
+    await userEvent.click(seg("day"));
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(() => submitters).toEqual(["save"]);
+    expect(requestSubmit).toHaveBeenCalledTimes(1);
+  });
+
   it("ignores letters", async () => {
     const onValueChange = vi.fn();
     await render(<Basic onValueChange={onValueChange} />);

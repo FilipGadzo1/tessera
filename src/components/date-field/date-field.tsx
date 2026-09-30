@@ -343,7 +343,18 @@ export function DateField({
   const [submitRequest, setSubmitRequest] = useState(0);
   useEffect(() => {
     if (submitRequest === 0) return;
-    rootRef.current?.closest("form")?.requestSubmit();
+    const form = rootRef.current?.closest("form");
+    if (!form) return;
+    // As native implicit submission: through the form's default button (its first submit
+    // button, form-associated ones included), and not at all when that button is disabled.
+    const defaultButton = [...form.elements].find(
+      (element): element is HTMLButtonElement | HTMLInputElement =>
+        (element instanceof HTMLButtonElement && element.type === "submit") ||
+        (element instanceof HTMLInputElement &&
+          (element.type === "submit" || element.type === "image")),
+    );
+    if (defaultButton?.disabled) return;
+    form.requestSubmit(defaultButton);
   }, [submitRequest]);
 
   const segmentElements = () => [
@@ -378,6 +389,10 @@ export function DateField({
     index: number,
   ) => {
     if (event.altKey || event.ctrlKey || event.metaKey) return;
+    // A key that belongs to an IME composition (Chrome: `isComposing`; Safari reports the Enter
+    // that commits it as keyCode 229, after `compositionend`) is the IME's, not ours: above all,
+    // that Enter must not submit the form. The committed text arrives through `compositionend`.
+    if (event.nativeEvent.isComposing || event.keyCode === 229) return;
     const { key } = event;
     if (key === "ArrowLeft" || key === "ArrowRight") {
       event.preventDefault();
