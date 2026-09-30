@@ -67,6 +67,14 @@ export function ChevronDownIcon(props: ComponentProps<"svg">) {
   );
 }
 
+export function ChevronUpIcon(props: ComponentProps<"svg">) {
+  return (
+    <StrokeIcon {...props}>
+      <path d="m18 15-6-6-6 6" />
+    </StrokeIcon>
+  );
+}
+
 export function CloseIcon(props: ComponentProps<"svg">) {
   return (
     <StrokeIcon {...props}>
@@ -101,6 +109,25 @@ export function PanelLeftIcon(props: ComponentProps<"svg">) {
     <StrokeIcon {...props}>
       <rect width="18" height="18" x="3" y="3" rx="2" />
       <path d="M9 3v18" />
+    </StrokeIcon>
+  );
+}
+
+/** Two bars: pause (a Carousel's "Stop slide rotation"). */
+export function PauseIcon(props: ComponentProps<"svg">) {
+  return (
+    <StrokeIcon {...props}>
+      <rect x="14" y="4" width="4" height="16" rx="1" />
+      <rect x="6" y="4" width="4" height="16" rx="1" />
+    </StrokeIcon>
+  );
+}
+
+/** A right-pointing triangle: play (a Carousel's "Start slide rotation"). */
+export function PlayIcon(props: ComponentProps<"svg">) {
+  return (
+    <StrokeIcon {...props}>
+      <path d="M6 3v18l14-9Z" />
     </StrokeIcon>
   );
 }

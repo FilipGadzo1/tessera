@@ -1,0 +1,18 @@
+export {
+  Carousel,
+  type CarouselAutoplay,
+  CarouselContent,
+  type CarouselContentProps,
+  CarouselDots,
+  type CarouselDotsProps,
+  CarouselItem,
+  type CarouselItemProps,
+  CarouselNext,
+  type CarouselNextProps,
+  type CarouselOrientation,
+  CarouselPlayPause,
+  type CarouselPlayPauseProps,
+  CarouselPrevious,
+  type CarouselPreviousProps,
+  type CarouselProps,
+} from "./carousel";

@@ -6,6 +6,7 @@ import {
   ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  ChevronUpIcon,
   CloseIcon,
   DotIcon,
   EllipsisIcon,
@@ -13,6 +14,8 @@ import {
   FolderIcon,
   MinusIcon,
   PanelLeftIcon,
+  PauseIcon,
+  PlayIcon,
   PlusIcon,
   SearchIcon,
 } from "./icons";
@@ -23,6 +26,7 @@ const icons = {
   ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  ChevronUpIcon,
   CloseIcon,
   DotIcon,
   EllipsisIcon,
@@ -30,6 +34,8 @@ const icons = {
   FolderIcon,
   MinusIcon,
   PanelLeftIcon,
+  PauseIcon,
+  PlayIcon,
   PlusIcon,
   SearchIcon,
 };

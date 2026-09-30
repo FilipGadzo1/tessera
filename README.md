@@ -612,6 +612,22 @@ source files automatically (build output + `"use client"` directive checks).
   focusable but is not selected or actioned (a disabled parent still expands). Rows indent by
   `--tree-level`; selected rows are primary-soft, Highlight / HighlightText in forced colors, and disabled rows
   are GrayText there. Client component)
+- [x] Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext, CarouselDots, CarouselPlayPause
+  (a hand-built WAI-ARIA APG carousel on native CSS scroll-snap — Base UI has no carousel. Compose
+  `<Carousel aria-label="Photos"><CarouselContent><CarouselItem>…</CarouselItem></CarouselContent><CarouselPrevious /><CarouselDots /><CarouselNext /></Carousel>`.
+  The root is a `section` with `aria-roledescription="carousel"`; each slide is a `role="group"` "slide"
+  labelled "3 of 8" (`slideLabel` localises it). Touch, trackpad and wheel scrolling are the browser's; an
+  IntersectionObserver tracks the leading slide (≥ 60% visible) as `index` / `defaultIndex` / `onIndexChange`
+  (0-based). Previous/Next (outline icon buttons, "Previous slide" / "Next slide") are `aria-disabled` at the
+  ends but stay focusable; `loop` makes them jump from the first to the last slide and back. Focus the content
+  and ←/→ move the slides (↑/↓ with `orientation="vertical"`; RTL flips ←/→). Slides out of view are `inert`.
+  `slidesPerView={n}` sets the items' basis (CSS basis classes work too — the slides per view are measured);
+  the index is then the leading slide, the last index is the last full view, and there is one dot per reachable
+  position. `CarouselDots` are "Go to slide N" buttons with `aria-current` on the current one (Highlight in
+  forced colors). `autoplay` (off by default; `true` or `{ interval }`, 5000ms) rotates and wraps, sets the
+  content's `aria-live` to `off` while rotating (`polite` otherwise), pauses on hover, on focus inside and
+  while the tab is hidden, and does not start under reduced motion; `CarouselPlayPause` ("Stop / Start slide
+  rotation", localisable) toggles it. Scrolling is smooth, instant under reduced motion. Client component)
 
 Phase A (foundation), Phase B (forms), Phase C (overlays), Phase D (navigation and feedback),
 Phase E (data entry and display), Phase F (dates, toolbars and surfaces — Meter, ScrollArea,
