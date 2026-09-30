@@ -78,9 +78,17 @@ const giftWrapPrice = 3;
 
 const money = (amount: number) => `€${amount.toFixed(2)}`;
 
+/**
+ * The fake server's latency. An object, so the example's tests can hold exactly this delay
+ * (`vi.spyOn(fakeServer, "wait")`) and no other timer.
+ */
+export const fakeServer = {
+  wait: (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
+};
+
 /** The fake server: one promo code is rejected, everything else is fine. */
 async function checkPromo(code: string): Promise<string | null> {
-  await new Promise((resolve) => setTimeout(resolve, 250));
+  await fakeServer.wait(250);
   return code.trim().toUpperCase() === "EXPIRED" ? "This code has expired." : null;
 }
 

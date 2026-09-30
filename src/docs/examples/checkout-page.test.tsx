@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { auditOpenOverlay, waitForPopupSettled } from "../../../test/overlay";
-import { CheckoutPage } from "./checkout-page";
+import { CheckoutPage, fakeServer } from "./checkout-page";
 
 async function tabTo(element: Element, max = 60) {
   for (let i = 0; i < max && document.activeElement !== element; i++)
@@ -32,28 +32,19 @@ async function openPromo() {
 }
 
 /**
- * Holds the example's fake server (its 250ms `setTimeout`) until `release()`; every other timer
- * passes through. `held()` is how many server calls are waiting, so a test can tell whether an
- * Apply started. Restored in `afterEach`.
+ * Holds the example's fake server (its `fakeServer.wait` delay) until `release()`; no timer is
+ * touched. `held()` is how many server calls are waiting, so a test can tell whether an Apply
+ * started. Restored in `afterEach`.
  */
 function holdServer() {
-  const real = globalThis.setTimeout;
-  const callbacks: Array<() => void> = [];
-  vi.spyOn(globalThis, "setTimeout").mockImplementation(((
-    handler: TimerHandler,
-    ms?: number,
-    ...args: unknown[]
-  ) => {
-    if (ms === 250 && typeof handler === "function") {
-      callbacks.push(() => handler(...args));
-      return 0;
-    }
-    return real(handler, ms, ...args);
-  }) as typeof setTimeout);
+  const waiting: Array<() => void> = [];
+  vi.spyOn(fakeServer, "wait").mockImplementation(
+    () => new Promise<void>((resolve) => waiting.push(resolve)),
+  );
   return {
-    held: () => callbacks.length,
+    held: () => waiting.length,
     release() {
-      for (const callback of callbacks.splice(0)) callback();
+      for (const resolve of waiting.splice(0)) resolve();
     },
   };
 }
