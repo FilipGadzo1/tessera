@@ -1,5 +1,5 @@
 import axe from "axe-core";
-import { type ReactElement, useState } from "react";
+import { type ReactElement, startTransition, useState } from "react";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
@@ -367,6 +367,49 @@ describe("Carousel", () => {
       expect(scrollTo).not.toHaveBeenCalled();
       expect(content().scrollLeft).toBe(960);
       expect(current()).toBe(4);
+    });
+
+    it.each([
+      ["queueMicrotask", (commit: () => void) => queueMicrotask(commit)],
+      ["a resolved promise", (commit: () => void) => void Promise.resolve().then(commit)],
+      ["startTransition", (commit: () => void) => startTransition(commit)],
+    ])(
+      "a controlled parent committing the scroll-end report via %s keeps the swipe",
+      async (_, defer) => {
+        // The observer stays silent, so the scroll end's report is the parent's only news.
+        holdObserver();
+        function Deferred() {
+          const [index, setIndex] = useState(0);
+          return <Slides index={index} onIndexChange={(value) => defer(() => setIndex(value))} />;
+        }
+        await render(<Deferred />);
+        await expect.poll(() => slide(1).getAttribute("aria-label")).toBe("1 of 5");
+        content().style.scrollBehavior = "auto";
+        const scrollTo = vi.spyOn(content(), "scrollTo");
+        const ended = scrollEnd();
+        content().scrollLeft = 640;
+        await ended;
+        await expect.poll(current).toBe(3);
+        await nextFrame();
+        await nextFrame();
+        expect(scrollTo).not.toHaveBeenCalled();
+        expect(content().scrollLeft).toBe(640);
+        expect(current()).toBe(3);
+      },
+    );
+
+    it("a controlled parent that never commits the scroll-end report snaps the content back", async () => {
+      holdObserver();
+      const onIndexChange = vi.fn();
+      await render(<Slides index={0} onIndexChange={onIndexChange} />);
+      await expect.poll(() => slide(1).getAttribute("aria-label")).toBe("1 of 5");
+      content().style.scrollBehavior = "auto";
+      const ended = scrollEnd();
+      content().scrollLeft = 640;
+      await ended;
+      expect(onIndexChange).toHaveBeenLastCalledWith(2);
+      await expect.poll(() => content().scrollLeft).toBe(0);
+      expect(current()).toBe(1);
     });
 
     it("a retarget that lands where the content already is clears the pending move", async () => {

@@ -10,6 +10,7 @@ import {
   type MouseEvent,
   type PointerEvent,
   type RefObject,
+  startTransition,
   use,
   useCallback,
   useEffect,
@@ -346,35 +347,39 @@ export function Carousel({
       threshold: [0, VISIBLE, 1],
     });
     for (const item of items) observer.observe(item);
-    let frame = 0;
     const onScrollEnd = () => {
       pending.current = null;
-      observed.current.clear();
       const visible = firstVisible(content, items, vertical);
-      // Committed now (uncontrolled, or a parent that sets state in the callback), so the check
-      // below never reads an index that is merely not rendered yet.
+      // Committed now (uncontrolled, or a parent that sets state in the callback).
       flushSync(() => sync(visible));
-      // A controlled parent that rejected the report keeps its index: once it has had a frame to
-      // commit, scroll back to that index — unless the user has scrolled on since.
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        const { index: settled } = latest.current;
-        const item = items[settled];
-        if (pending.current !== null || !item || settled === visible) return;
-        if (firstVisible(content, items, vertical) !== visible) return;
-        // The reports are no longer where the content is going: a late commit of one must scroll.
-        observed.current.clear();
-        pending.current = settled;
-        scrollToItem(content, item, vertical);
-      });
+      // Whether a controlled parent rejected the report is decided in a transition render, which
+      // React processes after every update already pending or queued by now: a parent committing
+      // from a microtask, a promise or its own transition is not mistaken for a rejection.
+      startTransition(() => setSettled({ visible }));
     };
     content.addEventListener("scrollend", onScrollEnd);
     return () => {
       observer.disconnect();
-      cancelAnimationFrame(frame);
       content.removeEventListener("scrollend", onScrollEnd);
     };
   }, [items, vertical]);
+
+  // A settled scroll, decided on the committed index. A controlled parent that rejected the report
+  // keeps its index: scroll back to it, unless the user has scrolled on since (the next scroll end
+  // decides) or a programmatic move has taken over.
+  const [settled, setSettled] = useState<{ visible: number } | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: decided once per settled scroll, on that commit's index.
+  useLayoutEffect(() => {
+    const content = contentRef.current;
+    if (!settled || !content || pending.current !== null) return;
+    if (firstVisible(content, items, vertical) !== settled.visible) return;
+    // Decided: any late commit of a report is no longer where the content is (or is going).
+    observed.current.clear();
+    const item = items[index];
+    if (index === settled.visible || !item) return;
+    pending.current = index;
+    scrollToItem(content, item, vertical);
+  }, [settled]);
 
   // Autoplay.
   const autoplayOn = autoplay !== false;
