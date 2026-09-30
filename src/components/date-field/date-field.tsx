@@ -38,6 +38,7 @@ import {
   segmentsToDate,
   typeDigit,
 } from "../../lib/date-segments";
+import { findDefaultButton } from "../../lib/default-button";
 import { useControllableState } from "../../lib/use-controllable-state";
 import {
   type DateValidationLabels,
@@ -347,12 +348,7 @@ export function DateField({
     if (!form) return;
     // As native implicit submission: through the form's default button (its first submit
     // button, form-associated ones included), and not at all when that button is disabled.
-    const defaultButton = [...form.elements].find(
-      (element): element is HTMLButtonElement | HTMLInputElement =>
-        (element instanceof HTMLButtonElement && element.type === "submit") ||
-        (element instanceof HTMLInputElement &&
-          (element.type === "submit" || element.type === "image")),
-    );
+    const defaultButton = findDefaultButton(form);
     if (defaultButton?.disabled) return;
     form.requestSubmit(defaultButton);
   }, [submitRequest]);
