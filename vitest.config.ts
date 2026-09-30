@@ -57,6 +57,8 @@ export default defineConfig({
       "@base-ui/react/internals/form-context",
       // Icons used by the docs examples (src/docs/examples).
       "lucide-react",
+      // Tree's server-HTML test renders with renderToString.
+      "react-dom/server",
     ],
   },
   test: {

@@ -32,10 +32,16 @@ import { useMergedRefs } from "../../lib/use-merged-refs";
  * - The focusable element is the `li role="treeitem"` (roving tabindex); its row
  *   (`TreeItemContent`) paints the focus ring through `li:focus-visible > row`, so the ring
  *   surrounds the row and not the item's nested group.
- * - Collapsed children are not mounted. The visible items are therefore exactly the mounted
- *   treeitems, read in document order from the DOM at keypress time (one `querySelectorAll`, O(n)).
- * - Each item registers its element with the root (a ref callback), so a key handler can map the
- *   focused element back to its value, label, disabled and parent state.
+ * - Collapsed children stay mounted inside a `hidden` group, so every item knows whether it has
+ *   child treeitems (a child component may render none). The visible items are read from the DOM
+ *   at keypress time by walking the expanded groups in document order (O(n)).
+ * - Each item registers its element with the root and with its parent item (ref callbacks), so a
+ *   key handler can map the focused element back to its value, label, disabled and parent state,
+ *   and a parent counts its real child treeitems.
+ * - `aria-posinset` / `aria-setsize` come from the DOM: each list's treeitem children are counted
+ *   in a layout effect, so wrapper components, fragments and children rendering `null` are counted
+ *   as the items they actually render. The render-time values (from the element children) are
+ *   only a first guess for server HTML.
  */
 
 /** How many items a user can select: none (a navigation tree), one, or many. */
@@ -57,7 +63,13 @@ interface TreeContextValue {
   selectionMode: TreeSelectionMode;
   selected: ReadonlySet<string>;
   expanded: ReadonlySet<string>;
-  activeValue: string | null;
+  /** The tabbable item's value; `null` until the root's first layout effect. */
+  tabStop: string | null;
+  /**
+   * Before the first layout effect (server HTML, the first client render) the first level-1
+   * item to render claims the tab stop, so there is exactly one: render order is tree order.
+   */
+  firstClaim: { id: string | null };
   register: (element: HTMLElement, record: RefObject<ItemRecord>) => () => void;
   toggleExpanded: (value: string) => void;
   clickRow: (record: ItemRecord, clickCount: number) => void;
@@ -73,6 +85,26 @@ interface ItemPosition {
 }
 
 const PositionContext = createContext<ItemPosition | null>(null);
+
+/** A parent item's count of its registered child treeitems. */
+interface ParentItem {
+  add: (element: HTMLElement) => void;
+  remove: (element: HTMLElement) => void;
+}
+
+const ParentItemContext = createContext<ParentItem | null>(null);
+
+const isTreeItem = (element: Element) => element.getAttribute("role") === "treeitem";
+
+/** Sets `aria-posinset` / `aria-setsize` on a list's treeitem children from their DOM order. */
+function syncPositions(list: Element) {
+  const items = Array.from(list.children).filter(isTreeItem);
+  const setsize = String(items.length);
+  items.forEach((item, index) => {
+    item.setAttribute("aria-posinset", String(index + 1));
+    item.setAttribute("aria-setsize", setsize);
+  });
+}
 
 interface TreeItemContextValue {
   record: ItemRecord;
@@ -109,7 +141,10 @@ function flattenChildren(
   });
 }
 
-/** Renders child items, telling each its level and its position among its siblings. */
+/**
+ * Renders child items, telling each its level and its first-guess position among its siblings
+ * (corrected from the DOM after mount).
+ */
 function renderItems(items: { key: string; element: ReactElement }[], level: number) {
   return items.map(({ key, element }, index) => (
     <PositionContext key={key} value={{ level, posinset: index + 1, setsize: items.length }}>
@@ -143,7 +178,8 @@ export interface TreeProps extends ComponentProps<"ul"> {
  * A `ul role="tree"` of `TreeItem`s (APG treeview). Name it with `aria-label` or
  * `aria-labelledby`. ↑/↓ move, → expands then enters, ← collapses then goes to the parent,
  * Home/End, typeahead, `*` expands the siblings, Enter runs `onAction`, Space toggles the
- * selection (multiple: Shift+↑/↓ extend, Ctrl/⌘+A selects every visible item). RTL flips ←/→.
+ * selection (multiple: Shift+↑/↓ and Shift+Home/End extend it from the anchor, Ctrl/⌘+A selects
+ * every visible item). RTL flips ←/→.
  */
 export function Tree({
   selectionMode = "none",
@@ -173,13 +209,17 @@ export function Tree({
   );
   const selected = useMemo(() => new Set(selectedValues), [selectedValues]);
   const expanded = useMemo(() => new Set(expandedValues), [expandedValues]);
-  const [activeValue, setActiveValue] = useState<string | null>(null);
-  const [, setReconcile] = useState(0);
+  /** The last item that had focus (set only on focus). */
+  const [focusedValue, setFocusedValue] = useState<string | null>(null);
+  /** The one tabbable item, derived after each commit from the visible items. */
+  const [tabStop, setTabStop] = useState<string | null>(null);
+  // Bumped when an item mounts or unmounts, so the layout effect below re-runs even when only a
+  // subtree re-rendered.
+  const [, setItemsVersion] = useState(0);
 
   const rootRef = useRef<HTMLUListElement>(null);
   const mergedRef = useMergedRefs(ref, rootRef);
   const registry = useRef(new Map<HTMLElement, RefObject<ItemRecord>>()).current;
-  const activeValueRef = useRef(activeValue);
   /** The Shift+↑/↓ anchor, and the selection the range is added to. */
   const anchorRef = useRef<{ value: string; base: string[] } | null>(null);
   const typeaheadRef = useRef({ buffer: "", time: Number.NEGATIVE_INFINITY });
@@ -187,10 +227,10 @@ export function Tree({
   const register = useCallback(
     (element: HTMLElement, record: RefObject<ItemRecord>) => {
       registry.set(element, record);
+      setItemsVersion((n) => n + 1);
       return () => {
         registry.delete(element);
-        // The tabbable item went away without the root re-rendering: pick another one.
-        if (record.current.value === activeValueRef.current) setReconcile((n) => n + 1);
+        setItemsVersion((n) => n + 1);
       };
     },
     [registry],
@@ -198,20 +238,51 @@ export function Tree({
 
   const recordOf = (element: Element) => registry.get(element as HTMLElement)?.current;
 
-  /** The visible (mounted) items in document order. */
-  const visibleItems = () =>
-    Array.from(rootRef.current?.querySelectorAll<HTMLElement>("[role=treeitem]") ?? []).filter(
-      (element) => registry.has(element),
-    );
+  /** The visible items in document order: the root's items, and the items of expanded groups. */
+  const visibleItems = () => {
+    const items: HTMLElement[] = [];
+    const walk = (list: Element) => {
+      for (const child of Array.from(list.children) as HTMLElement[]) {
+        if (!registry.has(child)) continue;
+        items.push(child);
+        if (child.getAttribute("aria-expanded") !== "true") continue;
+        const group = child.querySelector(":scope > [role=group]");
+        if (group) walk(group);
+      }
+    };
+    if (rootRef.current) walk(rootRef.current);
+    return items;
+  };
 
-  // Roving tabindex: exactly one item is tabbable. Keep the last focused item while it is
-  // visible; otherwise fall back to the first visible selected item, else the first item.
   useLayoutEffect(() => {
-    activeValueRef.current = activeValue;
-    const values = visibleItems().map((element) => recordOf(element)?.value);
-    if (activeValue !== null && values.includes(activeValue)) return;
-    const next = values.find((value) => value !== undefined && selected.has(value)) ?? values[0];
-    if ((next ?? null) !== activeValue) setActiveValue(next ?? null);
+    const root = rootRef.current;
+    if (!root) return;
+    syncPositions(root);
+    for (const group of Array.from(root.querySelectorAll("[role=group]"))) syncPositions(group);
+
+    const items = visibleItems();
+    const values = items.map((element) => recordOf(element)?.value);
+
+    // A controlled collapse hid the focused item: keep focus in the tree, on the nearest
+    // visible ancestor (its focus event then updates `focusedValue`).
+    if (focusedValue !== null && !values.includes(focusedValue)) {
+      const hidden = [...registry].find(([, record]) => record.current.value === focusedValue)?.[0];
+      if (hidden && document.activeElement === hidden) {
+        let ancestor = hidden.parentElement?.closest<HTMLElement>("[role=treeitem]");
+        while (ancestor && !items.includes(ancestor))
+          ancestor = ancestor.parentElement?.closest<HTMLElement>("[role=treeitem]");
+        ancestor?.focus();
+      }
+    }
+
+    // Roving tabindex: exactly one tabbable item. The focused item while it is visible, else
+    // the first visible selected item, else the first item.
+    const next =
+      (focusedValue !== null && values.includes(focusedValue) ? focusedValue : undefined) ??
+      values.find((value) => value !== undefined && selected.has(value)) ??
+      values[0] ??
+      null;
+    if (next !== tabStop) setTabStop(next);
   });
 
   const setSelection = (next: string[]) => {
@@ -357,14 +428,15 @@ export function Tree({
   const handleFocus = (event: FocusEvent<HTMLUListElement>) => {
     onFocus?.(event);
     const record = recordOf(event.target);
-    if (record) setActiveValue(record.value);
+    if (record) setFocusedValue(record.value);
   };
 
   const context: TreeContextValue = {
     selectionMode,
     selected,
     expanded,
-    activeValue,
+    tabStop,
+    firstClaim: { id: null },
     register,
     toggleExpanded,
     clickRow: (record, clickCount) => {
@@ -409,10 +481,10 @@ export interface TreeItemProps extends ComponentProps<"li"> {
 }
 
 /**
- * A `li role="treeitem"`. Its children are its `TreeItemContent` row and its child items: any
- * other element child is a child item (a `TreeItem`, or a component rendering one), which makes
- * this item an expandable parent. The child items render in a `ul role="group"` only while
- * expanded.
+ * A `li role="treeitem"`. Its children are its `TreeItemContent` row (a direct child, or inside a
+ * fragment) and its child items: every other child renders inside a `ul role="group"` (hidden
+ * while collapsed), so `TreeItem`s, wrapper components and fragments of them all work. The item is
+ * an expandable parent when at least one child treeitem actually renders.
  */
 export function TreeItem({
   value,
@@ -430,25 +502,65 @@ export function TreeItem({
   const flat = flattenChildren(children);
   const rows = flat.filter(({ element }) => element.type === TreeItemContent);
   const items = flat.filter(({ element }) => element.type !== TreeItemContent);
-  const isParent = items.length > 0;
+
+  // The child treeitems that actually rendered, counted as they register. Until the first
+  // layout effect (server HTML, the first client render) the element children are the guess.
+  const childItems = useRef(new Set<HTMLElement>()).current;
+  const [childCount, setChildCount] = useState<number | null>(null);
+  const parentItem = useMemo<ParentItem>(
+    () => ({
+      add: (element) => {
+        childItems.add(element);
+        setChildCount(childItems.size);
+      },
+      remove: (element) => {
+        childItems.delete(element);
+        setChildCount(childItems.size);
+      },
+    }),
+    [childItems],
+  );
+  const isParent = childCount === null ? items.length > 0 : childCount > 0;
   const expanded = isParent && tree.expanded.has(value);
   const selected = tree.selected.has(value);
   const record: ItemRecord = { value, label, disabled, isParent };
 
+  const groupRef = useRef<HTMLUListElement>(null);
   const recordRef = useRef(record);
   useLayoutEffect(() => {
     recordRef.current = record;
+    if (childCount !== childItems.size) setChildCount(childItems.size);
+    // This item's children may have changed without the root re-rendering.
+    if (groupRef.current) syncPositions(groupRef.current);
   });
+
   const { register } = tree;
+  const parent = use(ParentItemContext);
   const registerElement = useCallback(
-    (element: HTMLLIElement | null) => (element ? register(element, recordRef) : undefined),
-    [register],
+    (element: HTMLLIElement | null) => {
+      if (!element) return;
+      const unregister = register(element, recordRef);
+      parent?.add(element);
+      return () => {
+        unregister();
+        parent?.remove(element);
+      };
+    },
+    [register, parent],
   );
   const mergedRef = useMergedRefs(ref, registerElement);
 
   const labelledBy =
     props["aria-labelledby"] ??
     (props["aria-label"] === undefined && rows.length > 0 ? rowId : undefined);
+
+  // Before the root has picked a tab stop, the first level-1 item to render is tabbable.
+  const { firstClaim } = tree;
+  let tabbable = tree.tabStop === value;
+  if (tree.tabStop === null && position.level === 1) {
+    if (firstClaim.id === null) firstClaim.id = rowId;
+    tabbable = firstClaim.id === rowId;
+  }
 
   return (
     <TreeItemContext value={{ record, rowId, expanded, selected }}>
@@ -463,16 +575,24 @@ export function TreeItem({
         aria-selected={tree.selectionMode === "none" ? undefined : selected}
         aria-disabled={disabled || undefined}
         aria-labelledby={labelledBy}
-        tabIndex={tree.activeValue === value ? 0 : -1}
+        tabIndex={tabbable ? 0 : -1}
         data-slot="tree-item"
         className={cn("flex flex-col gap-px outline-none", className)}
         style={{ "--tree-level": position.level - 1, ...style } as CSSProperties}
       >
         {rows.map(({ element }) => element)}
-        {expanded && (
+        {items.length > 0 && (
           // biome-ignore lint/a11y/useSemanticElements: an APG treeview's nested items are a list with role="group", not a fieldset.
-          <ul role="group" data-slot="tree-group" className="flex flex-col gap-px">
-            {renderItems(items, position.level + 1)}
+          <ul
+            ref={groupRef}
+            role="group"
+            hidden={!expanded}
+            data-slot="tree-group"
+            className="flex flex-col gap-px"
+          >
+            <ParentItemContext value={parentItem}>
+              {renderItems(items, position.level + 1)}
+            </ParentItemContext>
           </ul>
         )}
       </li>
@@ -498,14 +618,17 @@ const rowClasses = [
   "forced-colors:data-selected:bg-[Highlight] forced-colors:data-selected:text-[HighlightText] forced-colors:data-selected:forced-color-adjust-none",
   // Muted text instead of the usual `opacity-50`: a disabled item stays focusable (APG), and row
   // opacity would fade its focus ring too.
-  "data-disabled:cursor-not-allowed data-disabled:text-muted-foreground",
+  "data-disabled:cursor-not-allowed data-disabled:text-muted-foreground forced-colors:data-disabled:text-[GrayText]",
   rowFocusClasses,
   "[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
 ].join(" ");
 
-/** Icons in a selected row take its text colour (in forced colors, HighlightText). */
+/**
+ * Icons in a selected or disabled row take its text colour (in forced colors, HighlightText or
+ * GrayText).
+ */
 const rowIconClasses =
-  "flex size-4 shrink-0 items-center justify-center text-muted-foreground group-data-selected/tree-item-content:text-inherit";
+  "flex size-4 shrink-0 items-center justify-center text-muted-foreground group-data-selected/tree-item-content:text-inherit group-data-disabled/tree-item-content:text-inherit";
 
 export type TreeItemContentProps = ComponentProps<"div">;
 

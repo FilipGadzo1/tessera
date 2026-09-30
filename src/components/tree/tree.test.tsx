@@ -1,5 +1,6 @@
 import axe from "axe-core";
 import { type ReactElement, type ReactNode, useState } from "react";
+import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
@@ -63,16 +64,23 @@ const rowOf = (element: Element) =>
 const nameOf = (element: Element | null) =>
   element ? rowOf(element)?.textContent?.trim() : undefined;
 const focused = () => nameOf(document.activeElement);
+/** Items inside a collapsed (hidden) group are mounted but not rendered. */
+const visible = (element: Element) => element.checkVisibility();
 const visibleNames = () =>
-  Array.from(tree().querySelectorAll("[role=treeitem]")).map((element) => nameOf(element));
+  Array.from(tree().querySelectorAll("[role=treeitem]"))
+    .filter(visible)
+    .map((element) => nameOf(element));
 const tabbable = () =>
   Array.from(tree().querySelectorAll<HTMLElement>("[role=treeitem]"))
     .filter((element) => element.tabIndex === 0)
     .map((element) => nameOf(element));
 const selectedNames = () =>
-  Array.from(tree().querySelectorAll("[role=treeitem][aria-selected=true]")).map((element) =>
-    nameOf(element),
-  );
+  Array.from(tree().querySelectorAll("[role=treeitem][aria-selected=true]"))
+    .filter(visible)
+    .map((element) => nameOf(element));
+/** [aria-level, aria-posinset, aria-setsize] */
+const positionOf = (element: Element) =>
+  ["aria-level", "aria-posinset", "aria-setsize"].map((name) => Number(element.getAttribute(name)));
 
 /** Presses one key and waits until focus lands on `name`. */
 async function press(key: string, name?: string) {
@@ -129,10 +137,85 @@ describe("Tree", () => {
       expect(icon?.getAttribute("aria-hidden")).toBe("true");
     });
 
-    it("does not mount collapsed children", async () => {
+    it("keeps collapsed children mounted in a hidden group", async () => {
       await render(<Files />);
       expect(visibleNames()).toEqual(["src", "docs", "package.json"]);
-      expect(item("src").querySelector(":scope > ul")).toBeNull();
+      const group = item("src").querySelector(":scope > ul") as HTMLElement;
+      expect(group.hidden).toBe(true);
+      expect(getComputedStyle(group).display).toBe("none");
+      // components (with button.tsx and card.tsx) and index.ts.
+      expect(group.querySelectorAll("[role=treeitem]")).toHaveLength(4);
+    });
+
+    it("counts positions from the rendered items in the FileTree story's composition", async () => {
+      await render(<StoryView story={stories.FileTree} />);
+      // The story renders <Tree><FileTreeItems /></Tree>: one element child, four items.
+      await expect.poll(() => positionOf(item("package.json"))).toEqual([1, 3, 4]);
+      expect(positionOf(item("src"))).toEqual([1, 1, 4]);
+      expect(positionOf(item("docs"))).toEqual([1, 2, 4]);
+      expect(positionOf(item("tsconfig.json"))).toEqual([1, 4, 4]);
+      expect(positionOf(item("components"))).toEqual([2, 1, 3]);
+      expect(positionOf(item("index.ts"))).toEqual([2, 3, 3]);
+      expect(positionOf(item("tree.tsx"))).toEqual([3, 3, 3]);
+      expect(tabbable()).toEqual(["src"]);
+    });
+
+    it("counts the items of a fragment-returning wrapper, and a child rendering null", async () => {
+      function Pair({ a, b }: { a: string; b: string }) {
+        return (
+          <>
+            <Leaf value={a} />
+            <Leaf value={b} />
+          </>
+        );
+      }
+      function Nothing() {
+        return null;
+      }
+      await render(
+        <Tree aria-label="Files" defaultExpandedValues={["empty", "folder"]}>
+          <Pair a="a.txt" b="b.txt" />
+          <TreeItem value="empty">
+            <TreeItemContent>empty</TreeItemContent>
+            <Nothing />
+          </TreeItem>
+          <TreeItem value="folder">
+            <TreeItemContent>folder</TreeItemContent>
+            <Nothing />
+            <Pair a="c.txt" b="d.txt" />
+          </TreeItem>
+          <Nothing />
+        </Tree>,
+      );
+      await expect.poll(() => positionOf(item("a.txt"))).toEqual([1, 1, 4]);
+      expect(positionOf(item("b.txt"))).toEqual([1, 2, 4]);
+      expect(positionOf(item("empty"))).toEqual([1, 3, 4]);
+      expect(positionOf(item("folder"))).toEqual([1, 4, 4]);
+      expect(positionOf(item("c.txt"))).toEqual([2, 1, 2]);
+      expect(positionOf(item("d.txt"))).toEqual([2, 2, 2]);
+      // A child that renders nothing does not make a parent.
+      const empty = item("empty");
+      await expect.poll(() => empty.hasAttribute("aria-expanded")).toBe(false);
+      expect(empty.querySelector("[data-slot=tree-item-chevron]")).toBeNull();
+      expect(empty.querySelector("[data-slot=tree-item-spacer]")).not.toBeNull();
+      expect(visibleNames()).toEqual(["a.txt", "b.txt", "empty", "folder", "c.txt", "d.txt"]);
+      expect(item("folder").getAttribute("aria-expanded")).toBe("true");
+    });
+
+    it("renders a tab stop and positions in server HTML", async () => {
+      const html = renderToString(<Files defaultExpandedValues={["src"]} />);
+      const container = document.createElement("div");
+      container.innerHTML = html;
+      const items = Array.from(container.querySelectorAll<HTMLElement>("[role=treeitem]"));
+      expect(items.filter((element) => element.tabIndex === 0).map(nameOf)).toEqual(["src"]);
+      expect(positionOf(items[0] as HTMLElement)).toEqual([1, 1, 3]);
+      // Through the story's wrapper component too: one tab stop, on the first item.
+      container.innerHTML = renderToString(<StoryView story={stories.FileTree} />);
+      expect(
+        Array.from(container.querySelectorAll<HTMLElement>("[role=treeitem]"))
+          .filter((element) => element.tabIndex === 0)
+          .map(nameOf),
+      ).toEqual(["src"]);
     });
 
     it("sets aria-level, aria-setsize and aria-posinset on every item", async () => {
@@ -216,6 +299,54 @@ describe("Tree", () => {
       expect(tabbable()).toEqual(["package.json"]);
       await userEvent.tab({ shift: true });
       await expect.poll(focused).toBe("package.json");
+    });
+
+    it("moves to a selection that arrives after mount while the tree has never been focused", async () => {
+      function Controlled() {
+        const [selected, setSelected] = useState<string[]>([]);
+        return (
+          <>
+            <button type="button" onClick={() => setSelected(["docs"])}>
+              Select docs
+            </button>
+            <Files
+              selectionMode="single"
+              selectedValues={selected}
+              onSelectedValuesChange={setSelected}
+            />
+          </>
+        );
+      }
+      await render(<Controlled />);
+      await expect.poll(tabbable).toEqual(["src"]);
+      await userEvent.click(page.getByRole("button", { name: "Select docs" }));
+      await expect.poll(tabbable).toEqual(["docs"]);
+      await userEvent.tab();
+      await expect.poll(focused).toBe("docs");
+    });
+
+    it("keeps focus in the tree when a controlled collapse hides the focused item", async () => {
+      let setExpanded: (values: string[]) => void = () => {};
+      function Controlled() {
+        const [expanded, set] = useState(["src", "components"]);
+        setExpanded = set;
+        return <Files expandedValues={expanded} onExpandedValuesChange={set} />;
+      }
+      await render(<Controlled />);
+      await tabIn("src");
+      await press("{ArrowDown}", "components");
+      await press("{ArrowDown}", "button.tsx");
+      // Collapsing the parent moves focus to it, the nearest visible ancestor.
+      setExpanded(["src"]);
+      await expect.poll(focused).toBe("components");
+      expect(tabbable()).toEqual(["components"]);
+      // Collapsing two levels at once moves it to the visible ancestor further up.
+      await press("{ArrowRight}");
+      await expect.poll(() => item("components").getAttribute("aria-expanded")).toBe("true");
+      await press("{ArrowDown}", "button.tsx");
+      setExpanded([]);
+      await expect.poll(focused).toBe("src");
+      expect(tabbable()).toEqual(["src"]);
     });
 
     it("falls back when the tabbable item is hidden", async () => {
@@ -535,12 +666,36 @@ describe("Tree", () => {
       await expect.poll(selectedNames).toEqual(["src", "components"]);
     });
 
-    it("Shift+↓ keeps the selection outside the range, and a plain arrow resets the anchor", async () => {
+    it("Shift+↓ keeps the selection outside the range", async () => {
       await render(<Files selectionMode="multiple" defaultSelectedValues={["package.json"]} />);
       await tabIn("package.json");
       await press("{Home}", "src");
       await press("{Shift>}{ArrowDown}{/Shift}", "docs");
       await expect.poll(selectedNames).toEqual(["src", "docs", "package.json"]);
+    });
+
+    it("a plain arrow drops the anchor, so the next Shift+arrow starts where it is pressed", async () => {
+      await render(<Files selectionMode="multiple" />);
+      await tabIn("src");
+      await press("{ArrowDown}", "docs");
+      // Space makes docs the anchor.
+      await press(" ");
+      await expect.poll(selectedNames).toEqual(["docs"]);
+      await press("{ArrowUp}", "src");
+      // With the anchor still at docs, this range would be docs..docs and src would stay out.
+      await press("{Shift>}{ArrowDown}{/Shift}", "docs");
+      await expect.poll(selectedNames).toEqual(["src", "docs"]);
+    });
+
+    it("Shift+Home and Shift+End extend the selection to the first and last visible items", async () => {
+      await render(<Files selectionMode="multiple" />);
+      await tabIn("src");
+      await press("{ArrowDown}", "docs");
+      await press(" ");
+      await press("{Shift>}{End}{/Shift}", "package.json");
+      await expect.poll(selectedNames).toEqual(["docs", "package.json"]);
+      await press("{Shift>}{Home}{/Shift}", "src");
+      await expect.poll(selectedNames).toEqual(["src", "docs"]);
     });
 
     it("Shift+↓ moves without selecting in single mode", async () => {
@@ -813,6 +968,32 @@ describe("Tree", () => {
       await expect.poll(() => getComputedStyle(row).outlineStyle).toBe("solid");
       // The outline colour transitions (150ms) into the system colour.
       await expect.poll(() => getComputedStyle(row).outlineColor).toBe(systemColor("Highlight"));
+    });
+
+    it("a disabled row and its icons are GrayText", async () => {
+      await emulateForcedColors(true);
+      await render(
+        <Tree aria-label="Files">
+          <TreeItem value="vendor" disabled>
+            <TreeItemContent>
+              <TreeItemIcon>
+                <svg />
+              </TreeItemIcon>
+              vendor
+            </TreeItemContent>
+            <Leaf value="lib.js" />
+          </TreeItem>
+          <Leaf value="index.ts" />
+        </Tree>,
+      );
+      const row = rowOf(item("vendor"));
+      expect(getComputedStyle(row).color).toBe(systemColor("GrayText"));
+      for (const slot of ["tree-item-chevron", "tree-item-icon"])
+        expect(
+          getComputedStyle(row.querySelector(`[data-slot=${slot}]`) as HTMLElement).color,
+          slot,
+        ).toBe(systemColor("GrayText"));
+      expect(getComputedStyle(rowOf(item("index.ts"))).color).not.toBe(systemColor("GrayText"));
     });
 
     it("a selected row is Highlight with HighlightText and no backplate", async () => {

@@ -596,18 +596,22 @@ source files automatically (build output + `"use client"` directive checks).
   setOpenMobile, isMobile, toggleSidebar }`. Client component)
 - [x] Tree, TreeItem, TreeItemContent, TreeItemIcon (a hand-built WAI-ARIA APG treeview — Base UI has no
   tree. Compose `<Tree aria-label="Files"><TreeItem value="src/"><TreeItemContent><TreeItemIcon>…</TreeItemIcon>src</TreeItemContent><TreeItem value="src/index.ts">…</TreeItem></TreeItem></Tree>`:
-  a `TreeItem`'s children are its `TreeItemContent` row and its child items (any other element, so a
-  recursive component rendering a `TreeItem` works), which make it an expandable parent. `value` is required
-  and unique across the tree. Collapsed children are not mounted. ↑/↓ move through the visible items, → expands
+  a `TreeItem`'s children are its `TreeItemContent` row (a direct child, or inside a fragment) and its child
+  items: everything else renders in its group, so `TreeItem`s, recursive or wrapper components and fragments
+  of items all work, and it is an expandable parent when a child treeitem actually renders. `aria-posinset` /
+  `aria-setsize` are counted from the rendered items. `value` is required and unique across the tree.
+  Collapsed children stay mounted in a hidden group. ↑/↓ move through the visible items, → expands
   then enters, ← collapses then goes to the parent (RTL flips them), Home/End, typeahead (500ms buffer, on
   `label` or the row text), `*` expands the siblings, Enter or a double-click runs `onAction(value)`. One Tab
-  stop (roving tabindex: the last focused item, else the first visible selected, else the first). `selectionMode`
+  stop (roving tabindex: the last focused item while visible, else the first visible selected, else the first;
+  a controlled collapse that hides the focused item moves focus to its nearest visible ancestor). `selectionMode`
   `none` (default) / `single` / `multiple` with `selectedValues` / `defaultSelectedValues` /
   `onSelectedValuesChange`: a click or Space selects (multiple: toggles), Enter also selects in single mode,
-  Shift+↑/↓ extend from the last toggled item and Ctrl/⌘+A selects every visible item. `expandedValues` /
+  Shift+↑/↓ and Shift+Home/End extend from the last toggled item and Ctrl/⌘+A selects every visible item. `expandedValues` /
   `defaultExpandedValues` / `onExpandedValuesChange`; the chevron toggles on click. A `disabled` item stays
   focusable but is not selected or actioned (a disabled parent still expands). Rows indent by
-  `--tree-level`; selected rows are primary-soft, Highlight / HighlightText in forced colors. Client component)
+  `--tree-level`; selected rows are primary-soft, Highlight / HighlightText in forced colors, and disabled rows
+  are GrayText there. Client component)
 
 Phase A (foundation), Phase B (forms), Phase C (overlays), Phase D (navigation and feedback),
 Phase E (data entry and display), Phase F (dates, toolbars and surfaces — Meter, ScrollArea,
