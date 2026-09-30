@@ -309,6 +309,9 @@ phase; items fixed by a later commit are left out).
   real scrollbar; `useSidebar()` reports `state: "collapsed"` for a `collapsible="none"` Sidebar under
   `defaultOpen={false}` although it renders expanded; the provider keeps one `isStatic` flag, so with two
   Sidebars (one `collapsible="none"`) the trigger and shortcut do nothing for the other.
+- Drawer RTL (final review): Drawer's `side`, its close button (`right-4`) and footer alignment are
+  physical, not mirrored under `dir="rtl"`. The mobile Sidebar maps its edge onto `side` and pads its
+  header on the physical right to match; a logical Drawer would drop both workarounds.
 - Dashboard tests (Task 5): the keyboard flow still clicks in places (the segments, the Period trigger and
   the days) rather than tabbing everywhere.
 - Dashboard example (Task 5): the nav only changes the heading, breadcrumb and `aria-current`; every

@@ -499,6 +499,26 @@ describe("RTL (`side` follows the writing direction: left is the start)", () => 
       if (edge === "right") expect(Math.round(box.right)).toBe(390);
       else expect(Math.round(box.left)).toBe(0);
     });
+
+    it("with the whole document RTL, the header still clears the Drawer's close button (physically right)", async () => {
+      document.documentElement.dir = "rtl";
+      try {
+        await render(<Shell />);
+        await userEvent.click(trigger());
+        const drawer = page.getByRole("dialog", { name: "Sidebar" });
+        await expect.element(drawer).toBeVisible();
+        const popup = drawer.element() as HTMLElement;
+        await waitForPopupSettled(popup);
+        expect(Math.round(popup.getBoundingClientRect().right)).toBe(390);
+        const header = popup.querySelector("[data-slot=sidebar-header]") as HTMLElement;
+        const close = popup.querySelector("[data-slot=drawer-close-button]") as HTMLElement;
+        const content =
+          header.getBoundingClientRect().right - parseFloat(getComputedStyle(header).paddingRight);
+        expect(content).toBeLessThanOrEqual(close.getBoundingClientRect().left);
+      } finally {
+        document.documentElement.removeAttribute("dir");
+      }
+    });
   });
 });
 

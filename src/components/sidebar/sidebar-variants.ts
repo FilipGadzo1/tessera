@@ -142,8 +142,10 @@ const itemFocus = cn(
 const itemMotion =
   "transition-[color,background-color,border-color,outline-color,box-shadow,translate] duration-150 ease-out motion-reduce:transition-none";
 
+/* In the mobile Drawer the header clears Drawer's close button, which is physically `right-4` in
+ * both directions, so the padding is physical too (`pe-12` put it on the wrong side under RTL). */
 export const sidebarHeaderClasses =
-  "flex flex-col gap-2 p-2 group-data-[mobile=true]/sidebar:pe-12";
+  "flex flex-col gap-2 p-2 group-data-[mobile=true]/sidebar:pr-12";
 export const sidebarFooterClasses = "flex flex-col gap-2 p-2";
 export const sidebarContentClasses =
   "flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]/sidebar:overflow-hidden";
