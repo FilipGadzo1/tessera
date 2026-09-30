@@ -314,9 +314,8 @@ phase; items fixed by a later commit are left out).
   only on its next render (e.g. the next toggle) for the JS-driven parts: the mobile Drawer's side, the
   icon-mode tooltip side and the rail's resize cursor (`data-edge`). The desktop column, rail placement
   and off-canvas slide are CSS and follow at once.
-- Drawer RTL (final review): Drawer's `side`, its close button (`right-4`) and footer alignment are
-  physical, not mirrored under `dir="rtl"`. The mobile Sidebar maps its edge onto `side` and pads its
-  header on the physical right to match; a logical Drawer would drop both workarounds.
+- Dialog / AlertDialog: the close button is still physical (`right-4`), as Drawer's was before Phase I
+  Task 0 made it `end-4`.
 - Dashboard tests (Task 5): the keyboard flow still clicks in places (the segments, the Period trigger and
   the days) rather than tabbing everywhere.
 - Dashboard example (Task 5): the nav only changes the heading, breadcrumb and `aria-current`; every

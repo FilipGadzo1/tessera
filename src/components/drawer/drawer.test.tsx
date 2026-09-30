@@ -79,7 +79,100 @@ async function openByClick() {
 
 afterEach(async () => {
   document.documentElement.classList.remove("dark");
+  document.documentElement.removeAttribute("dir");
   await resetEmulatedMedia();
+});
+
+describe("Drawer logical sides and RTL", () => {
+  const width = () => document.documentElement.clientWidth;
+  const closeSlot = (popup: HTMLElement) =>
+    popup.querySelector("[data-slot=drawer-close-button]") as HTMLElement;
+
+  it.each([
+    ["ltr", "start", "left"],
+    ["ltr", "end", "right"],
+    ["rtl", "start", "right"],
+    ["rtl", "end", "left"],
+  ] as const)(
+    "dir=%s: side=%s opens from the %s edge, swiping back towards it",
+    async (dir, side, edge) => {
+      document.documentElement.dir = dir;
+      await render(<Basic side={side} />);
+      const popup = await openByClick();
+      expect(popup.getAttribute("data-side")).toBe(edge);
+      expect(popup.getAttribute("data-swipe-direction")).toBe(edge);
+      const rect = popup.getBoundingClientRect();
+      if (edge === "right") expect(Math.round(rect.right)).toBe(width());
+      else expect(Math.round(rect.left)).toBe(0);
+    },
+  );
+
+  it("physical left and right stay physical under RTL", async () => {
+    document.documentElement.dir = "rtl";
+    await render(<Basic side="left" />);
+    const popup = await openByClick();
+    expect(popup.getAttribute("data-side")).toBe("left");
+    expect(Math.round(popup.getBoundingClientRect().left)).toBe(0);
+  });
+
+  it("resolves start/end from the popup's own direction (a dir on the content)", async () => {
+    await render(<Basic side="start" dir="rtl" />);
+    const popup = await openByClick();
+    expect(popup.getAttribute("data-side")).toBe("right");
+    expect(Math.round(popup.getBoundingClientRect().right)).toBe(width());
+  });
+
+  it.each([
+    ["ltr", "right"],
+    ["rtl", "left"],
+  ] as const)(
+    "dir=%s: the close button sits at the inline end (%s), 1rem in",
+    async (dir, corner) => {
+      document.documentElement.dir = dir;
+      await render(<Basic side="bottom" />);
+      const popup = await openByClick();
+      const popupBox = popup.getBoundingClientRect();
+      const slotBox = closeSlot(popup).getBoundingClientRect();
+      if (corner === "right") expect(Math.round(popupBox.right - slotBox.right)).toBe(16);
+      else expect(Math.round(slotBox.left - popupBox.left)).toBe(16);
+    },
+  );
+
+  it("the header keeps a wrapping title clear of the close button in both directions", async () => {
+    for (const dir of ["ltr", "rtl"] as const) {
+      document.documentElement.dir = dir;
+      const screen = await render(<Basic side="bottom" />);
+      const popup = await openByClick();
+      const header = popup.querySelector("[data-slot=drawer-header]") as HTMLElement;
+      const style = getComputedStyle(header);
+      const slotBox = closeSlot(popup).getBoundingClientRect();
+      const box = header.getBoundingClientRect();
+      if (dir === "ltr") {
+        expect(box.right - parseFloat(style.paddingRight)).toBeLessThanOrEqual(slotBox.left);
+      } else {
+        expect(box.left + parseFloat(style.paddingLeft)).toBeGreaterThanOrEqual(slotBox.right);
+      }
+      await userEvent.keyboard("{Escape}");
+      await expect.element(drawer()).not.toBeInTheDocument();
+      await screen.unmount();
+    }
+  });
+
+  it.each([
+    ["ltr", "right"],
+    ["rtl", "left"],
+  ] as const)("dir=%s: the footer's actions end at the inline end (%s)", async (dir, corner) => {
+    document.documentElement.dir = dir;
+    await page.viewport(800, 600);
+    await render(<WithForm side="bottom" />);
+    const popup = await openByClick();
+    const footer = popup.querySelector("[data-slot=drawer-footer]") as HTMLElement;
+    // The row flows with the direction, so the last action is the one at the inline end.
+    const last = (footer.lastElementChild as HTMLElement).getBoundingClientRect();
+    const box = footer.getBoundingClientRect();
+    if (corner === "right") expect(Math.round(box.right - 16 - last.right)).toBe(0);
+    else expect(Math.round(last.left - box.left - 16)).toBe(0);
+  });
 });
 
 describe("Drawer", () => {
@@ -172,7 +265,7 @@ describe("Drawer", () => {
     const close = page.getByRole("button", { name: "Close" });
     const slot = popup.querySelector("[data-slot=drawer-close-button]") as HTMLElement;
     expect(slot.contains(close.element())).toBe(true);
-    expect(slot.className).toBe("absolute right-4 top-4");
+    expect(slot.className).toBe("absolute end-4 top-4");
     await expect.element(close).toHaveAttribute("data-slot", "button");
     await expect.element(close).toHaveAttribute("data-variant", "ghost");
     await expect.element(close).toHaveAttribute("data-color", "neutral");
@@ -332,7 +425,7 @@ describe("Drawer", () => {
     expect(getComputedStyle(part("drawer-body")).display).toBe("contents");
     expect(part("drawer-body").contains(part("drawer-header"))).toBe(true);
     expect(part("drawer-body").contains(part("drawer-close-button"))).toBe(false);
-    expect(part("drawer-header").className).toBe("flex flex-col gap-1.5 p-4 pr-12");
+    expect(part("drawer-header").className).toBe("flex flex-col gap-1.5 p-4 pe-12");
     expect(part("drawer-footer").className).toBe(
       "mt-auto flex flex-col-reverse gap-2 p-4 sm:flex-row sm:justify-end",
     );

@@ -500,7 +500,7 @@ describe("RTL (`side` follows the writing direction: left is the start)", () => 
       else expect(Math.round(box.left)).toBe(0);
     });
 
-    it("with the whole document RTL, the header still clears the Drawer's close button (physically right)", async () => {
+    it("with the whole document RTL, the header clears the Drawer's close button (at the inline end, physically left)", async () => {
       document.documentElement.dir = "rtl";
       try {
         await render(<Shell />);
@@ -513,8 +513,8 @@ describe("RTL (`side` follows the writing direction: left is the start)", () => 
         const header = popup.querySelector("[data-slot=sidebar-header]") as HTMLElement;
         const close = popup.querySelector("[data-slot=drawer-close-button]") as HTMLElement;
         const content =
-          header.getBoundingClientRect().right - parseFloat(getComputedStyle(header).paddingRight);
-        expect(content).toBeLessThanOrEqual(close.getBoundingClientRect().left);
+          header.getBoundingClientRect().left + parseFloat(getComputedStyle(header).paddingLeft);
+        expect(content).toBeGreaterThanOrEqual(close.getBoundingClientRect().right);
       } finally {
         document.documentElement.removeAttribute("dir");
       }

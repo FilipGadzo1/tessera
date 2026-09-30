@@ -15,6 +15,7 @@ import {
   useState,
 } from "react";
 import { cn } from "../../lib/cn";
+import { isRtl } from "../../lib/direction";
 import { useControllableState } from "../../lib/use-controllable-state";
 import { useMergedRefs } from "../../lib/use-merged-refs";
 import { sidebarWrapperClasses } from "./sidebar-variants";
@@ -168,7 +169,7 @@ export function SidebarProvider({
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   useLayoutEffect(() => {
     const element = wrapperRef.current;
-    if (element) setRtl(getComputedStyle(element).direction === "rtl");
+    if (element) setRtl(isRtl(element));
   });
   const setWrapperRef = useMergedRefs(wrapperRef, ref);
 

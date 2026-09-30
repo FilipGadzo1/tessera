@@ -29,6 +29,7 @@ import {
   toISODate,
   type WeekDay,
 } from "../../lib/date";
+import { isRtl } from "../../lib/direction";
 import {
   type CalendarDayState,
   calendarCaptionClasses,
@@ -302,7 +303,7 @@ export function CalendarBase({
     // Alt/Ctrl/Meta combinations belong to the browser and OS (Alt+ArrowLeft is Back). Shift stays:
     // Shift+PageUp/PageDown move by a year.
     if (event.altKey || event.ctrlKey || event.metaKey) return;
-    const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
+    const rtl = isRtl(event.currentTarget);
     let next: Date;
     switch (event.key) {
       case "ArrowLeft":

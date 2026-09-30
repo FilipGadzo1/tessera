@@ -1,6 +1,7 @@
 "use client";
 
 import type { KeyboardEvent } from "react";
+import { isRtl } from "../../lib/direction";
 import { ChevronLeftIcon, ChevronRightIcon } from "../../lib/icons";
 import {
   calendarCaptionButtonClasses,
@@ -120,7 +121,7 @@ export const clampOrdinal = (ordinal: number, { low, high }: OrdinalBounds) =>
  */
 function viewKeyTarget(event: KeyboardEvent<HTMLElement>, ordinal: number): number | null {
   if (event.altKey || event.ctrlKey || event.metaKey) return null;
-  const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
+  const rtl = isRtl(event.currentTarget);
   switch (event.key) {
     case "ArrowLeft":
       return ordinal + (rtl ? 1 : -1);

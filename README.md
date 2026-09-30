@@ -363,7 +363,9 @@ source files automatically (build output + `"use client"` directive checks).
 - [x] Drawer, DrawerTrigger, DrawerContent, DrawerHeader, DrawerFooter, DrawerTitle,
   DrawerDescription, DrawerClose (Tessera's Sheet, on Base UI `Drawer.*`. A modal `role="dialog"`
   panel against an edge over a dimmed backdrop: `side` on the `Drawer` root — `right` (default),
-  `left`, `bottom`, `top` — because Base UI's swipe direction is a root prop. Side panels are `w-3/4`
+  `left`, `bottom`, `top`, plus the logical `start` / `end` that follow the panel's writing
+  direction (LTR on the first render, corrected before paint; the close button sits at the inline
+  end) — because Base UI's swipe direction is a root prop. Side panels are `w-3/4`
   up to `max-w-sm`; bottom/top sheets span the width up to 85% of the viewport height, and bottom
   sheets show a grab handle. DrawerContent takes `showCloseButton` (default true) and `container`,
   like DialogContent. Focus moves to the panel and is trapped; page scroll is locked; Escape, a

@@ -38,6 +38,7 @@ import {
   typeDigit,
 } from "../../lib/date-segments";
 import { findDefaultButton } from "../../lib/default-button";
+import { isRtl } from "../../lib/direction";
 import { useControllableState } from "../../lib/use-controllable-state";
 import { useMergedRefs } from "../../lib/use-merged-refs";
 import {
@@ -385,7 +386,7 @@ export function DateField({
     const { key } = event;
     if (key === "ArrowLeft" || key === "ArrowRight") {
       event.preventDefault();
-      const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
+      const rtl = isRtl(event.currentTarget);
       const forward = (key === "ArrowRight") !== rtl;
       focusSegment(index + (forward ? 1 : -1));
       return;

@@ -29,7 +29,7 @@ const meta = {
   tags: ["autodocs"],
   args: { side: "right" },
   argTypes: {
-    side: { control: "inline-radio", options: ["right", "left", "bottom", "top"] },
+    side: { control: "inline-radio", options: ["right", "left", "bottom", "top", "start", "end"] },
   },
   render: (args) => (
     <Drawer {...args}>

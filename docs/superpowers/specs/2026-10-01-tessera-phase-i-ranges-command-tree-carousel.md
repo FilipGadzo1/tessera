@@ -43,6 +43,12 @@
   - `side` gains `"start" | "end"`, which map by the resolved direction (read as Sidebar does). The physical `left`/`right` stay as they are.
   - The Sidebar then uses `start`/`end` and drops its two workarounds: the edge→physical side mapping and the header's physical `pr-12`.
   - Tests: under `dir="rtl"`, the close button sits at the inline end, and `side="start"` opens from the right.
+  - *Amended in Task 0*: how `start`/`end` resolve.
+    - Drawer's root renders no element, so `DrawerContent` reads the direction. It reads the panel's computed `direction` in a ref callback, which runs in the layout phase, and reports it to the root. A `dir` on the content, or a `dir` on the portal container or the document, therefore counts.
+    - In SSR and on the very first render the direction is LTR (`start` = left, `end` = right). The panel then corrects itself before it paints, so RTL sees no visible jump. The panel is portalled, so a `dir` on the trigger's own ancestors does not reach it.
+    - `data-side` and the swipe direction report the resolved physical edge.
+    - The direction read is one shared helper, `isRtl(element)` in `src/lib/direction.ts`. Calendar, DateField, SidebarProvider and Drawer all use it.
+    - The Sidebar's mobile Drawer passes `dir` (the provider's resolved direction) to its `DrawerContent`, because the panel is portalled out of the provider's row. The header padding is not dropped but made logical (`pe-12`): the header still has to clear the close button, which now sits at the inline end.
 - **Sidebar state edge cases:**
   - Make `isStatic` per Sidebar: a counter, or a set of registered static sidebars, not a single boolean.
   - `useSidebar()` reports `state: "expanded"` when the only Sidebar is `collapsible="none"`; document the rule for mixed setups.

@@ -57,9 +57,10 @@ export const drawerBackdropClasses = cn(
 export const drawerHandleClasses = "mx-auto mt-2 h-1.5 w-12 shrink-0 rounded-full bg-muted";
 
 /**
- * Layout part classes. Title and description reuse Dialog's. The header's `pr-12` keeps a wrapping
- * title or description clear of the close button (`right-4` + `size-8` = 3rem).
+ * Layout part classes. Title and description reuse Dialog's. The header's `pe-12` keeps a wrapping
+ * title or description clear of the close button (`end-4` + `size-8` = 3rem), at the inline end
+ * in both directions. The footer's `justify-end` is logical (the flex row's own end).
  */
-export const drawerHeaderClasses = "flex flex-col gap-1.5 p-4 pr-12";
+export const drawerHeaderClasses = "flex flex-col gap-1.5 p-4 pe-12";
 export const drawerFooterClasses =
   "mt-auto flex flex-col-reverse gap-2 p-4 sm:flex-row sm:justify-end";

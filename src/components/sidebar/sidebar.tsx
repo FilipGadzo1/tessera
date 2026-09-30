@@ -125,9 +125,19 @@ export function Sidebar({
 
   if (isMobile) {
     return (
-      // The Drawer's `side` is physical: the edge the column would render on.
-      <Drawer side={edge} open={openMobile} onOpenChange={setOpenMobile}>
-        <DrawerContent id={sidebarId} aria-label={ariaLabel} className={sidebarMobileClasses}>
+      // `left` is the inline start, as for the column. The panel is portalled out of the row, so
+      // it takes the provider's resolved direction explicitly (start/end resolve against it).
+      <Drawer
+        side={side === "left" ? "start" : "end"}
+        open={openMobile}
+        onOpenChange={setOpenMobile}
+      >
+        <DrawerContent
+          id={sidebarId}
+          aria-label={ariaLabel}
+          dir={rtl ? "rtl" : "ltr"}
+          className={sidebarMobileClasses}
+        >
           <div
             {...props}
             // The ref reaches the drawer's wrapper `div` (an HTMLElement, like the aside).

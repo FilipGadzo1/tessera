@@ -1,11 +1,13 @@
 "use client";
 
 import { Drawer as BaseDrawer } from "@base-ui/react/drawer";
-import { type ComponentProps, createContext, useContext } from "react";
+import { type ComponentProps, createContext, useCallback, useContext, useState } from "react";
 import { cn } from "../../lib/cn";
+import { isRtl } from "../../lib/direction";
 import { CloseIcon } from "../../lib/icons";
 import { mergeClassName } from "../../lib/merge-class-name";
 import { useLayeredEscape } from "../../lib/tooltip-escape";
+import { useMergedRefs } from "../../lib/use-merged-refs";
 import { Button } from "../button";
 import { dialogDescriptionClasses, dialogTitleClasses } from "../dialog/dialog-variants";
 import {
@@ -18,7 +20,14 @@ import {
   drawerVariants,
 } from "./drawer-variants";
 
-export type DrawerSide = NonNullable<DrawerVariantProps["side"]>;
+/** The physical edges. */
+type PhysicalDrawerSide = NonNullable<DrawerVariantProps["side"]>;
+
+/**
+ * `left`, `right`, `top` and `bottom` are physical. `start` and `end` are the inline edges: they
+ * resolve by the drawer's writing direction (`start` is the left in LTR and the right in RTL).
+ */
+export type DrawerSide = PhysicalDrawerSide | "start" | "end";
 
 /** Base UI's swipe-to-dismiss direction for each side: a drawer is swiped back towards its edge. */
 const swipeDirections = {
@@ -26,23 +35,38 @@ const swipeDirections = {
   left: "left",
   bottom: "down",
   top: "up",
-} as const satisfies Record<DrawerSide, BaseDrawer.Root.Props["swipeDirection"]>;
+} as const satisfies Record<PhysicalDrawerSide, BaseDrawer.Root.Props["swipeDirection"]>;
+
+/** `start` / `end` as a physical edge, for the resolved direction. */
+function resolveSide(side: DrawerSide, rtl: boolean): PhysicalDrawerSide {
+  if (side === "start") return rtl ? "right" : "left";
+  if (side === "end") return rtl ? "left" : "right";
+  return side;
+}
 
 export interface DrawerProps extends Omit<BaseDrawer.Root.Props, "swipeDirection"> {
   /**
    * The edge the drawer slides in from; it is swiped back towards it to dismiss. Set on the root
-   * because Base UI's swipe direction is a root prop. @default "right"
+   * because Base UI's swipe direction is a root prop. `start` and `end` follow the writing
+   * direction of the drawer panel (read from its computed `direction`, so a `dir` on the content
+   * or on the portal container counts). The first render assumes left-to-right; the panel corrects
+   * itself before it paints. @default "right"
    */
   side?: DrawerSide;
 }
 
 /**
- * The root's `side`, and its `modal` value (Base UI hides the outside but sets no `aria-modal`;
- * Tessera adds it for modal drawers, like Dialog).
+ * The root's resolved (physical) `side`, its `modal` value (Base UI hides the outside but sets no
+ * `aria-modal`; Tessera adds it for modal drawers, like Dialog) and the panel's direction report.
  */
-const DrawerContext = createContext<{ side: DrawerSide; modal: DrawerProps["modal"] }>({
+const DrawerContext = createContext<{
+  side: PhysicalDrawerSide;
+  modal: DrawerProps["modal"];
+  setRtl: (rtl: boolean) => void;
+}>({
   side: drawerDefaults.side,
   modal: true,
+  setRtl: () => {},
 });
 
 /**
@@ -51,10 +75,12 @@ const DrawerContext = createContext<{ side: DrawerSide; modal: DrawerProps["moda
  */
 export function Drawer({ side, onOpenChange, ...props }: DrawerProps) {
   const handleOpenChange = useLayeredEscape(onOpenChange);
+  // The panel's resolved direction, reported by `DrawerContent` when it mounts (LTR until then).
+  const [rtl, setRtl] = useState(false);
   // A JS caller can still pass null; treat it like undefined.
-  const resolvedSide = side ?? drawerDefaults.side;
+  const resolvedSide = resolveSide(side ?? drawerDefaults.side, rtl);
   return (
-    <DrawerContext.Provider value={{ side: resolvedSide, modal: props.modal ?? true }}>
+    <DrawerContext.Provider value={{ side: resolvedSide, modal: props.modal ?? true, setRtl }}>
       <BaseDrawer.Root
         {...props}
         swipeDirection={swipeDirections[resolvedSide]}
@@ -75,7 +101,7 @@ export function DrawerTrigger(props: DrawerTriggerProps) {
 }
 
 export interface DrawerContentProps extends BaseDrawer.Popup.Props {
-  /** Renders a ghost icon Button (named "Close") in the top-right corner. @default true */
+  /** Renders a ghost icon Button (named "Close") in the top corner at the inline end. @default true */
   showCloseButton?: boolean;
   /**
    * Element to portal into (default `document.body`). Pass an element inside a nested theme scope
@@ -95,15 +121,26 @@ export function DrawerContent({
   container,
   className,
   children,
+  ref,
   ...props
 }: DrawerContentProps) {
-  const { side, modal } = useContext(DrawerContext);
+  const { side, modal, setRtl } = useContext(DrawerContext);
+  // Reports the panel's direction as it attaches (a layout-phase ref, before paint), so `start` /
+  // `end` resolve without a visible jump.
+  const directionRef = useCallback(
+    (element: HTMLDivElement | null) => {
+      if (element) setRtl(isRtl(element));
+    },
+    [setRtl],
+  );
+  const popupRef = useMergedRefs(directionRef, ref);
   return (
     <BaseDrawer.Portal container={container}>
       <BaseDrawer.Backdrop data-slot="drawer-backdrop" className={drawerBackdropClasses} />
       <BaseDrawer.Viewport data-slot="drawer-viewport">
         <BaseDrawer.Popup
           {...props}
+          ref={popupRef}
           aria-modal={modal !== false ? true : undefined}
           data-slot="drawer-content"
           data-side={side}
@@ -124,7 +161,7 @@ export function DrawerContent({
           {showCloseButton && (
             // Button always sets its own `data-slot="button"`, so the slot and the corner position
             // live on this wrapper; the button inside keeps Button's full DOM contract.
-            <span data-slot="drawer-close-button" className="absolute right-4 top-4">
+            <span data-slot="drawer-close-button" className="absolute end-4 top-4">
               <BaseDrawer.Close
                 render={
                   <Button variant="ghost" color="neutral" size="icon-sm" aria-label="Close" />
