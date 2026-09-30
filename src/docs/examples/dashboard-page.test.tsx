@@ -118,6 +118,24 @@ describe("DashboardPage example", () => {
       .not.toBeInTheDocument();
   });
 
+  it("Ctrl+K opens the palette; Escape clears the query first, then closes it", async () => {
+    await render(<DashboardPage />);
+    await userEvent.click(page.getByRole("heading", { level: 1 }));
+    await userEvent.keyboard("{Control>}k{/Control}");
+    const dialog = page.getByRole("dialog", { name: "Command palette" });
+    await expect.element(dialog).toBeVisible();
+    await waitForPopupSettled(dialog.element());
+    const input = page.getByRole("combobox", { name: "Search commands" });
+    await expect.poll(() => document.activeElement).toBe(input.element());
+    await type("cust");
+    await expect.element(input).toHaveValue("cust");
+    await userEvent.keyboard("{Escape}");
+    await expect.element(input).toHaveValue("");
+    await expect.element(dialog).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+    await expect.element(dialog).not.toBeInTheDocument();
+  });
+
   it("typing a date and picking a period, then Apply, reports the ISO values", async () => {
     await render(<DashboardPage />);
     await userEvent.click(segment("month") as HTMLElement);

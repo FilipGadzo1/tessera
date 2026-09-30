@@ -715,7 +715,7 @@ The Storybook story **Tessera/Examples/Dashboard** (`src/docs/examples/dashboard
 the Phase H app shell with earlier components: an icon-collapsible `Sidebar` (Ctrl/⌘+B; a Drawer below
 `md`) with a workspace-switcher `Menu`, a nav whose current page has `aria-current`, and an account
 `Menu` on an `Avatar`; an inset top bar with `SidebarTrigger`, `Breadcrumb` and a Search button that
-opens the `Autocomplete` command palette in a `Dialog`; `Card`s with `Progress` and `Meter`; a filter
+opens the command palette, a `CommandDialog` (also Ctrl/⌘+K); `Card`s with `Progress` and `Meter`; a filter
 `Form` (an editable `DatePicker` and a `DateRangePicker`; Apply shows what `onFormSubmit` reported
 under the Field names) and a `Table` of recent orders.
 

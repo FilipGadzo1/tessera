@@ -1,18 +1,7 @@
 "use client";
 
 import { Box, ChevronsUpDown, LayoutDashboard, ShoppingCart, Users } from "lucide-react";
-import { type ComponentType, useState } from "react";
-import {
-  Autocomplete,
-  AutocompleteCollection,
-  AutocompleteEmpty,
-  AutocompleteGroup,
-  AutocompleteGroupLabel,
-  AutocompleteInput,
-  AutocompleteItem,
-  AutocompleteList,
-  AutocompleteSeparator,
-} from "../../components/autocomplete";
+import { type ComponentType, Fragment, useState } from "react";
 import { Avatar, AvatarFallback } from "../../components/avatar";
 import { Badge, type BadgeColor } from "../../components/badge";
 import {
@@ -25,8 +14,17 @@ import {
 } from "../../components/breadcrumb";
 import { Button } from "../../components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/card";
+import {
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandGroupLabel,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from "../../components/command";
 import { DatePicker, DateRangePicker } from "../../components/date-picker";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "../../components/dialog";
 import { Field, FieldLabel } from "../../components/field";
 import { Form } from "../../components/form";
 import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from "../../components/menu";
@@ -279,47 +277,37 @@ function CommandPalette({
   onRun: (command: Command) => void;
 }) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className="gap-0 overflow-hidden p-0">
-        <DialogTitle className="sr-only">Command palette</DialogTitle>
-        <DialogDescription className="sr-only">
-          Type to filter commands, use the arrow keys to move and Enter to run one.
-        </DialogDescription>
-        <Autocomplete open inline items={commands} autoHighlight="always" keepHighlight>
-          <div className="flex items-center gap-2 border-b border-border ps-3 outline-none focus-within:outline-1 focus-within:outline-solid focus-within:outline-ring focus-within:-outline-offset-1 forced-colors:focus-within:outline-[Highlight]">
-            <SearchIcon className="size-4 shrink-0 text-muted-foreground" />
-            <AutocompleteInput
-              aria-label="Search commands"
-              placeholder="Search for a command…"
-              groupClassName="h-12 flex-1 border-0 bg-transparent px-0 shadow-none focus-within:outline-none forced-colors:focus-within:outline-none"
-            />
-          </div>
-          <div className="max-h-72 overflow-y-auto p-1">
-            <AutocompleteEmpty className="py-10">No results found.</AutocompleteEmpty>
-            <AutocompleteList>
-              {(group: (typeof commands)[number], index: number) => (
-                <AutocompleteGroup key={group.value} items={group.items}>
-                  {index > 0 && <AutocompleteSeparator />}
-                  <AutocompleteGroupLabel>{group.value}</AutocompleteGroupLabel>
-                  <AutocompleteCollection>
-                    {(command: Command) => (
-                      <AutocompleteItem
-                        key={command.value}
-                        value={command}
-                        onClick={() => onRun(command)}
-                      >
-                        <span className="flex-1">{command.label}</span>
-                        <span className="text-xs text-muted-foreground">{command.hint}</span>
-                      </AutocompleteItem>
-                    )}
-                  </AutocompleteCollection>
-                </AutocompleteGroup>
-              )}
-            </AutocompleteList>
-          </div>
-        </Autocomplete>
-      </DialogContent>
-    </Dialog>
+    // Ctrl/⌘+K opens it too; running an item closes it, and Escape clears the query before closing.
+    <CommandDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Command palette"
+      description="Type to filter commands, use the arrow keys to move and Enter to run one."
+      label="Search commands"
+    >
+      <CommandInput placeholder="Search for a command…" />
+      <CommandEmpty>No results found.</CommandEmpty>
+      <CommandList>
+        {commands.map((group, index) => (
+          <Fragment key={group.value}>
+            {index > 0 && <CommandSeparator />}
+            <CommandGroup>
+              <CommandGroupLabel>{group.value}</CommandGroupLabel>
+              {group.items.map((command) => (
+                <CommandItem
+                  key={command.value}
+                  value={command.label}
+                  onSelect={() => onRun(command)}
+                >
+                  <span className="flex-1">{command.label}</span>
+                  <span className="text-xs text-muted-foreground">{command.hint}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </Fragment>
+        ))}
+      </CommandList>
+    </CommandDialog>
   );
 }
 
@@ -482,7 +470,13 @@ export function DashboardPage({ defaultOpen = true }: DashboardPageProps) {
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
-          <Button variant="outline" color="neutral" size="sm" onClick={() => setPaletteOpen(true)}>
+          <Button
+            variant="outline"
+            color="neutral"
+            size="sm"
+            aria-keyshortcuts="Control+K Meta+K"
+            onClick={() => setPaletteOpen(true)}
+          >
             <SearchIcon aria-hidden="true" />
             Search
           </Button>
@@ -504,7 +498,6 @@ export function DashboardPage({ defaultOpen = true }: DashboardPageProps) {
         onOpenChange={setPaletteOpen}
         onRun={(command) => {
           if (command.page) setPage(command.page);
-          setPaletteOpen(false);
         }}
       />
     </SidebarProvider>
