@@ -213,7 +213,8 @@ phase; items fixed by a later commit are left out).
 - DatePicker / DateRangePicker / DateField (Task 5; Phase H Task 2): Field and Form wiring uses four Base UI
   internals (`@base-ui/react/internals/field-root-context`, `…/internals/labelable-provider`,
   `…/internals/field-register-control` and `…/internals/form-context`, the last two in
-  `src/components/date-picker/date-form-control.tsx`, which follows `SelectRoot.js`'s hidden-input recipe); they are
+  `src/components/field/form-control.tsx` (moved from `date-picker/date-form-control.tsx` in Phase J and shared
+  with the ColorPicker), which follows `SelectRoot.js`'s hidden-input recipe); they are
   in the package's `exports` but undocumented, so a Base UI upgrade can move or change them. The Field tests (label
   name, description, invalid, disabled) and the date-control tests in `src/components/form/form.test.tsx` (required,
   `validate`, `errors`, `onFormSubmit` values, focus-first-invalid, FormData) are the guard. Before bumping Base UI,
@@ -222,7 +223,7 @@ phase; items fixed by a later commit are left out).
   `src/index.ts` re-exports the date controls). Two more pins on the same upgrade (Phase H): the Sidebar's
   `@base-ui/react/unstable-use-media-query` (`sidebar-context.tsx`; `unstable_`, so it can change or go in any
   release), and `useFocusScope`'s reliance on Base UI's `data-base-ui-focus-guard` attribute and its guards
-  sending Shift+Tab from a non-modal popup back to the trigger (`date-form-control.tsx`; the form.test.tsx
+  sending Shift+Tab from a non-modal popup back to the trigger (`field/form-control.tsx`; the form.test.tsx
   Shift+Tab / outside-click tests are the guard).
 - Editor example (Task 6): `ContextMenu` marks the rest of the page inert while open (Base UI's
   `data-base-ui-inert` on the background), so a test that picks a Format submenu item and then
