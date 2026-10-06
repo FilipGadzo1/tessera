@@ -1,7 +1,7 @@
 "use client";
 
 import { Field as BaseField } from "@base-ui/react/field";
-import { createContext, useContext } from "react";
+import { Children, createContext, type ReactNode, useContext } from "react";
 import { mergeClassName } from "../../lib/merge-class-name";
 
 export type FieldProps = BaseField.Root.Props;
@@ -68,18 +68,24 @@ export function FieldDescription({ className, ...props }: FieldDescriptionProps)
   );
 }
 
+/** Whether `children` renders anything: `toArray` drops `null`, `undefined` and booleans. */
+function hasContent(children: ReactNode): boolean {
+  return Children.toArray(children).some((child) => child !== "");
+}
+
 /**
  * Error message, rendered only while the Field is invalid: from `validate`, native constraints,
  * Form errors, or the Field's `invalid` prop. An explicit `match` takes precedence. The `invalid`
  * prop shows it only with children: it carries no message of its own, so a children-less
- * FieldError would render an empty node.
+ * FieldError would render an empty node. `false`, `null`, `undefined` and `""` count as no
+ * children, so `<FieldError>{error && message}</FieldError>` renders nothing for a falsy `error`.
  */
 export function FieldError({ className, match, ...props }: FieldErrorProps) {
   const fieldInvalid = useContext(FieldInvalidContext);
   return (
     <BaseField.Error
       {...props}
-      match={match ?? (fieldInvalid && props.children != null ? true : undefined)}
+      match={match ?? (fieldInvalid && hasContent(props.children) ? true : undefined)}
       data-slot="field-error"
       className={mergeClassName("text-sm text-danger", className)}
     />

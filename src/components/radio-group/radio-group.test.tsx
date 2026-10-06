@@ -186,6 +186,18 @@ describe("RadioGroup", () => {
     expect(cursor("Off A")).toBe("not-allowed");
   });
 
+  it("disabled wins over read-only: a not-allowed cursor", async () => {
+    const screen = await render(
+      <RadioGroup aria-label="Both" readOnly disabled defaultValue="a">
+        <Radio value="a" aria-label="Both A" />
+      </RadioGroup>,
+    );
+    const radio = screen.getByRole("radio", { name: "Both A" });
+    await expect.element(radio).toHaveAttribute("data-readonly");
+    await expect.element(radio).toHaveAttribute("data-disabled");
+    expect(getComputedStyle(radio.element()).cursor).toBe("not-allowed");
+  });
+
   it("read-only: a default cursor and no hover border", async () => {
     const screen = await render(
       <RadioGroup aria-label="Locked" readOnly defaultValue="a">

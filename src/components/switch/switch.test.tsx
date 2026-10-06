@@ -153,6 +153,14 @@ describe("Switch", () => {
   describe("hover", () => {
     const bg = (el: Element) => getComputedStyle(el).backgroundColor;
 
+    it("disabled wins over read-only: a not-allowed cursor", async () => {
+      const screen = await render(<Labelled label="Both" readOnly disabled />);
+      const toggle = screen.getByRole("switch", { name: "Both" });
+      await expect.element(toggle).toHaveAttribute("data-readonly");
+      await expect.element(toggle).toHaveAttribute("data-disabled");
+      expect(getComputedStyle(toggle.element()).cursor).toBe("not-allowed");
+    });
+
     it.each([
       ["Off", false],
       ["On", true],

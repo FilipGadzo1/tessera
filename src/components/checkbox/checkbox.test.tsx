@@ -201,6 +201,14 @@ describe("Checkbox", () => {
     const settle = () => new Promise((resolve) => setTimeout(resolve, 250));
     const border = (el: Element) => getComputedStyle(el).borderTopColor;
 
+    it("disabled wins over read-only: a not-allowed cursor", async () => {
+      const screen = await render(<Labelled label="Both" readOnly disabled />);
+      const checkbox = screen.getByRole("checkbox", { name: "Both" });
+      await expect.element(checkbox).toHaveAttribute("data-readonly");
+      await expect.element(checkbox).toHaveAttribute("data-disabled");
+      expect(getComputedStyle(checkbox.element()).cursor).toBe("not-allowed");
+    });
+
     it("read-only: a default cursor and no hover border", async () => {
       const screen = await render(<Labelled label="Locked" readOnly />);
       const checkbox = screen.getByRole("checkbox", { name: "Locked" });

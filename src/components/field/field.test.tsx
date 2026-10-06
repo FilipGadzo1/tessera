@@ -129,6 +129,23 @@ describe("Field", () => {
       .not.toHaveAttribute("aria-describedby");
   });
 
+  it.each([
+    ["false", false],
+    ["null", null],
+    ["undefined", undefined],
+    ['""', ""],
+  ])("renders no FieldError for the invalid prop when its children are %s", async (_, child) => {
+    const screen = await render(
+      <Field invalid>
+        <FieldLabel>Email</FieldLabel>
+        <Input />
+        <FieldError>{child}</FieldError>
+      </Field>,
+    );
+    await expect.element(screen.getByRole("textbox", { name: "Email" })).toBeInTheDocument();
+    expect(document.querySelector("[data-slot='field-error']")).toBeNull();
+  });
+
   it("shows FieldError's children for the invalid prop", async () => {
     const screen = await render(<EmailField invalid />);
     await expect.element(screen.getByText(ERROR)).toBeVisible();

@@ -15,7 +15,7 @@ const radioClasses = cn(
   "size-5 rounded-full border border-field-border bg-field",
   "data-checked:bg-primary data-checked:not-data-invalid:border-primary",
   "not-data-disabled:not-data-readonly:not-data-checked:not-data-indeterminate:not-data-invalid:hover:border-field-border-hover",
-  "cursor-pointer data-readonly:cursor-default data-disabled:cursor-not-allowed data-disabled:opacity-50",
+  "cursor-pointer not-data-disabled:data-readonly:cursor-default data-disabled:cursor-not-allowed data-disabled:opacity-50",
   "outline-none outline-offset-2 outline-ring focus-visible:outline-2 focus-visible:outline-solid",
   "data-invalid:border-danger",
   "transition-[color,background-color,border-color,outline-color,box-shadow,translate] duration-150 ease-out motion-reduce:transition-none",

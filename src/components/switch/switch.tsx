@@ -20,7 +20,7 @@ const trackClasses = cn(
   "h-6 w-11 rounded-full bg-switch-track p-0.5",
   "data-checked:bg-primary",
   "not-data-disabled:not-data-readonly:not-data-checked:hover:bg-field-border-hover not-data-disabled:not-data-readonly:data-checked:hover:bg-primary-hover",
-  "cursor-pointer data-readonly:cursor-default data-disabled:cursor-not-allowed data-disabled:opacity-50",
+  "cursor-pointer not-data-disabled:data-readonly:cursor-default data-disabled:cursor-not-allowed data-disabled:opacity-50",
   "outline-none outline-offset-2 outline-ring focus-visible:outline-2 focus-visible:outline-solid",
   "data-invalid:outline-1 data-invalid:outline-solid data-invalid:outline-danger data-invalid:focus-visible:outline-2",
   "transition-[translate,background-color] duration-150 ease-out motion-reduce:transition-none",
