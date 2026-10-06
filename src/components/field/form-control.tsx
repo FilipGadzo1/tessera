@@ -61,6 +61,8 @@ export interface FormControlOptions {
   formValue: unknown;
   /** The input's name for native FormData; unnamed when omitted. */
   name?: string;
+  /** The `id` of a `<form>` elsewhere in the document to associate the input with. */
+  form?: string;
   /** The name `onFormSubmit` falls back to when the Field has none. */
   registrationName?: string;
   required?: boolean;
@@ -84,6 +86,7 @@ export function useFormControl({
   inputValue,
   formValue,
   name,
+  form,
   registrationName,
   required,
   disabled,
@@ -166,6 +169,7 @@ export function useFormControl({
       })}
       ref={setRef}
       name={name}
+      form={form}
       value={inputValue}
       // The value only changes through the visible control (no autofill support).
       onChange={() => {}}

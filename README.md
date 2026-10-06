@@ -655,6 +655,23 @@ source files automatically (build output + `"use client"` directive checks).
   `dir` on it or any ancestor, for feeding Base UI's `DirectionProvider`. `"ltr"` on the server and in the first
   client render; it is read in a layout effect on mount, then again only when a `dir` attribute changes
   (one shared MutationObserver, no style read per render). Client hook)
+- [x] ColorPicker, ColorArea, ColorHueSlider, ColorAlphaSlider, ColorInput, ColorFormatToggle, ColorEyeDropper,
+  ColorSwatches, ColorSwatch (an inline colour picker, `role="group"` named "Color picker" or by a surrounding
+  `Field`'s label. With no children it renders a saturation/brightness area, a hue slider, an alpha slider with
+  `alpha`, a text field with a HEX / RGB / HSL toggle and an eyedropper button (only where the browser has the
+  EyeDropper API), then `swatches` (`string[]` or `{ value, label }[]`); pass the parts as children to compose your
+  own. The value is always a valid lowercase hex string: `#rrggbb`, or `#rrggbbaa` with `alpha` and an alpha below
+  1 (`value` / `defaultValue` (`"#000000"`) / `onValueChange` on every change, also mid-drag / `onValueCommitted` on
+  pointer up, each key, an input commit, a swatch or the eyedropper). The hue survives a grey. The area thumb is a
+  "2D slider" (←/→ saturation, ↑/↓ brightness, Shift ×10, PageUp/PageDown, Home/End); the hue and alpha thumbs
+  are sliders (PageUp/PageDown ±15° / ±10%). The area and tracks are physical: → moves right in RTL too, while the
+  input and swatches follow the page. The text field takes any `parseColor` format on Enter or blur, marks
+  unparsable text invalid and reverts it on blur, and Escape reverts (an enclosing overlay closes on the next
+  Escape). `format` / `defaultFormat` / `onFormatChange`; `formatLabel` on `ColorFormatToggle`, `getValueText`
+  and `aria-label` on each part localise it. In a `Field` and `Form` the picker is one control: `name` (and
+  `form`) submit the hex through a hidden input, `onFormSubmit` reports it under the Field's name, Field
+  `validate` gets the hex and an invalid submit focuses the area thumb. In forced colors the colour surfaces keep
+  their colours inside CanvasText frames and the pressed swatch has a Highlight border. Client component)
 
 Phase A (foundation), Phase B (forms), Phase C (overlays), Phase D (navigation and feedback),
 Phase E (data entry and display), Phase F (dates, toolbars and surfaces — Meter, ScrollArea,

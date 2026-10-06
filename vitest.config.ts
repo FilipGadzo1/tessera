@@ -48,6 +48,8 @@ export default defineConfig({
       "@base-ui/react/otp-field",
       "@base-ui/react/menubar",
       "@base-ui/react/navigation-menu",
+      // Phase J components feed their own element's direction to Base UI parts.
+      "@base-ui/react/direction-provider",
       // Sidebar switches to its mobile Drawer below `md` with Base UI's media-query hook.
       "@base-ui/react/unstable-use-media-query",
       // The date controls join a Field and Form through these (the modules Select uses).

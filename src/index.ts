@@ -148,6 +148,27 @@ export {
   type CollapsibleTriggerProps,
 } from "./components/collapsible";
 export {
+  ColorAlphaSlider,
+  type ColorAlphaSliderProps,
+  ColorArea,
+  type ColorAreaProps,
+  ColorEyeDropper,
+  type ColorEyeDropperProps,
+  ColorFormatToggle,
+  type ColorFormatToggleProps,
+  ColorHueSlider,
+  type ColorHueSliderProps,
+  ColorInput,
+  type ColorInputProps,
+  ColorPicker,
+  type ColorPickerProps,
+  ColorSwatch,
+  ColorSwatches,
+  type ColorSwatchesProps,
+  type ColorSwatchOption,
+  type ColorSwatchProps,
+} from "./components/color-picker";
+export {
   Combobox,
   ComboboxChip,
   type ComboboxChipProps,
