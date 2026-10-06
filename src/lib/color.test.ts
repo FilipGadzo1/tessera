@@ -62,6 +62,8 @@ describe("parseColor", () => {
     ["RGB(12,34,56)", rgba(12, 34, 56)],
     ["  rgb(  12 ,34,   56  )  ", rgba(12, 34, 56)],
     ["rgb(12.5 34 56)", rgba(12.5, 34, 56)],
+    // Numbers and percentages mixed: a deliberate leniency for typed input.
+    ["rgb(255, 50%, 0)", rgba(255, 127.5, 0)],
     // hsl(): comma and space syntax, hue units, bare saturation / lightness
     ["hsl(210, 50%, 40%)", rgba(51, 102, 153)],
     ["hsla(210, 50%, 40%, 0.5)", rgba(51, 102, 153, 0.5)],
@@ -114,8 +116,45 @@ describe("parseColor", () => {
     "hsl(10% 50% 50%)",
     "hsl(10 50% 50% 50%)",
     "hsl(10grad 50% 50%)",
+    // Non-finite numbers (an exponent overflowing to Infinity)
+    "hsl(1e999 50% 50%)",
+    "hsl(1e400deg 1% 1%)",
+    "hsl(1e308turn 50% 50%)",
+    "rgb(1e999 0 0)",
+    "rgb(1.7e308% 0 0)",
+    "rgb(0 0 0 / 1e999)",
+    "rgb(0 0 0 / 1e999%)",
+    "hsl(0 1e999% 50%)",
+    "hsl(0 50% -1e999)",
   ])("%j is null", (input) => {
     expect(parseColor(input)).toBeNull();
+  });
+
+  it("never returns a NaN or infinite channel", () => {
+    const huge = ["1e999", "-1e999", "1e308", "-1e308", "1.7e308", "1e-999", "0e999"];
+    const nasty: string[] = [];
+    for (const n of huge) {
+      for (const unit of ["", "%", "deg", "turn", "rad"]) {
+        const token = `${n}${unit}`;
+        nasty.push(
+          `rgb(${token} 0 0)`,
+          `rgb(0, ${token}, 0)`,
+          `rgb(0 0 0 / ${token})`,
+          `rgba(0, 0, 0, ${token})`,
+          `hsl(${token} 50% 50%)`,
+          `hsl(0 ${token} 50%)`,
+          `hsl(0, 50%, ${token})`,
+          `hsl(0 50% 50% / ${token})`,
+        );
+      }
+    }
+    for (const input of nasty) {
+      const color = parseColor(input);
+      if (color === null) continue;
+      for (const [key, value] of Object.entries(color)) {
+        expect(Number.isFinite(value), `${input} → ${key} = ${value}`).toBe(true);
+      }
+    }
   });
 });
 
@@ -138,6 +177,17 @@ describe("formatting", () => {
     expect(formatHex(translucent, { alpha: "auto" })).toBe("#1d4ed880");
     expect(formatHex(opaque, { alpha: "always" })).toBe("#1d4ed8ff");
     expect(formatHex(translucent, { alpha: "never" })).toBe("#1d4ed8");
+  });
+
+  it("decides whether to print alpha from the rounded alpha", () => {
+    const almostOpaque = rgba(1, 2, 3, 0.999);
+    expect(formatHex(almostOpaque)).toBe("#010203");
+    expect(formatHex(almostOpaque, { alpha: "always" })).toBe("#010203ff");
+    expect(formatRgb(almostOpaque)).toBe("rgb(1 2 3)");
+    expect(formatHsl(rgba(255, 0, 0, 0.999))).toBe("hsl(0 100% 50%)");
+    // Below the rounding threshold the alpha stays.
+    expect(formatHex(rgba(1, 2, 3, 0.99))).toBe("#010203fc");
+    expect(formatRgb(rgba(1, 2, 3, 0.99))).toBe("rgb(1 2 3 / 0.99)");
   });
 
   it("formatHex rounds half up", () => {
@@ -279,5 +329,23 @@ describe("contrast", () => {
     expect(readableForeground(hex("#1d4ed8"))).toBe("#ffffff");
     expect(readableForeground(black)).toBe("#ffffff");
     expect(readableForeground(white)).toBe("#000000");
+  });
+
+  it("readableForeground at the black / white crossover", () => {
+    // Black and white contrast equally when (L + 0.05) / 0.05 = 1.05 / (L + 0.05), i.e.
+    // L = √0.0525 − 0.05 ≈ 0.17913, a grey of channel ≈ 117.38.
+    const crossover = Math.sqrt(0.0525) - 0.05;
+    const channel = (1.055 * crossover ** (1 / 2.4) - 0.055) * 255;
+    expect(channel).toBeGreaterThan(117);
+    expect(channel).toBeLessThan(118);
+    // The nearest 8-bit greys on each side.
+    expect(relativeLuminance(rgba(117, 117, 117))).toBeLessThan(crossover);
+    expect(readableForeground(rgba(117, 117, 117))).toBe("#ffffff");
+    expect(relativeLuminance(rgba(118, 118, 118))).toBeGreaterThan(crossover);
+    expect(readableForeground(rgba(118, 118, 118))).toBe("#000000");
+    // The tie itself goes to white.
+    const tie = rgba(channel, channel, channel);
+    expect(relativeLuminance(tie)).toBeCloseTo(crossover, 12);
+    expect(readableForeground(tie)).toBe("#ffffff");
   });
 });

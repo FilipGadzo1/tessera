@@ -166,6 +166,12 @@ Server-safe, no dependency, no hooks. Every function is pure and unit-tested in 
 - contrast (values computed for this spec): `#000` / `#fff` = 21; `#777777` / `#ffffff` = 4.48; `#ffffff` on itself = 1; order does not matter; 50%-alpha black over white = 3.98 (the unrounded 127.5 grey; `#808080` would give 3.95, so the test proves no rounding); `#1d4ed8` / `#ffffff` = 6.7; `#ffff66` / `#ffffff` = 1.06; `#1d4ed8` / `#0f172a` = 2.66; `wcagContrast` at 2.99 / 3 / 4.49 / 4.5 / 7;
 - `readableForeground` on `#ffff00` (black) and `#1d4ed8` (white).
 - *Amended in Task 2*: `color.ts` is exported from the package (`src/index.ts`: the functions and the `RGBA` / `HSVA` / `HSLA` / `ColorFormat` types). Evidence: the build's only entry is `src/index.ts`, so a module nothing imports is not emitted, and the gate's `verify:consumer` failed with "missing dist/lib/color.d.ts (from src/lib/color.ts)" until Task 3 would import it. The ColorPicker's values are hex strings, so the parser, formatters and contrast helpers are also what a consumer needs to work with them (and what the Theme Studio's contrast badge, §6, shows). `formatHex`'s option is `{ alpha?: "auto" | "always" | "never" }`; `readableForeground` and the contrast functions take `RGBA` (a caller parses a string first).
+- *Amended in Task 2 (fix round 1)*:
+  - `parseColor` accepts a number only when it is finite, after any unit or percentage scaling. `hsl(1e999 50% 50%)`, `rgb(1e999 0 0)`, `rgb(0 0 0 / 1e999)` and the like are `null`, not NaN channels or clamped values.
+  - `rgb()` accepts numbers and percentages mixed in one colour, a deliberate leniency for typed input.
+  - `formatHex` (`"auto"`), `formatRgb` and `formatHsl` decide whether to print alpha from the *rounded* alpha. An alpha of 0.999 gives `#010203` and `rgb(1 2 3)`, not `…ff` or `/ 1`.
+  - `contrastRatio` treats `b` as opaque (its alpha is ignored), so it is symmetric only when `b` is opaque.
+  - A test pins `readableForeground` at the black/white crossover (a grey of channel ≈ 117.38): 117 → white, 118 → black, and the computed tie → white.
 
 ## 2. ColorPicker (Tasks 2–4)
 
@@ -208,6 +214,7 @@ Server-safe, no dependency, no hooks. Every function is pure and unit-tested in 
   - The hidden input's value is the hex (`name`, `form`, `disabled`; never `required`); `onFormSubmit` reports the hex under the Field's name; `controlRef` is the area thumb (inline) or the trigger (popover), which Form focuses on an invalid submit (e.g. a Field `validate` that rejects the colour).
   - Labelling: in a Field, the root group (inline) or the trigger (popover) is `aria-labelledby` the Field label (inline: the label id alone; popover: label id + the trigger's own id, so "Primary color Choose color: #1d4ed8"), as DateField and DatePicker read it; a FieldDescription describes the same element.
   - Blur: `useFocusScope` over the root (inline) or the trigger + popup (popover).
+  - *Amended in Task 2 (fix round 1)*: Task 2 moved `useFormControl` unchanged, so `FormControlOptions` has no `form` option yet (the date controls never had one), and the hidden input renders no `form` attribute. Task 3 adds `form?: string` to `FormControlOptions` and passes it to the hidden input, so a ColorPicker's `form` prop reaches FormData. The date controls simply do not pass it.
 
 **RTL:** the area and tracks are `dir="ltr"` (scope ruling). The input row, format toggle and swatches follow the page: the ToggleGroups are wrapped in a Base UI `DirectionProvider` fed by `useElementDirection(rootRef)`, so → in RTL moves to the previous swatch.
 

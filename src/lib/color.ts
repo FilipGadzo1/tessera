@@ -34,15 +34,18 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
 
 const numberPattern = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/;
 
+const finite = (value: number) => (Number.isFinite(value) ? value : null);
+
+/** A finite number; `null` otherwise (an exponent can overflow to Infinity, e.g. `1e999`). */
 function parseNumber(token: string): number | null {
-  return numberPattern.test(token) ? Number(token) : null;
+  return numberPattern.test(token) ? finite(Number(token)) : null;
 }
 
-/** A number, or a percentage scaled so that 100% is `full`. */
+/** A number, or a percentage scaled so that 100% is `full`; `null` unless finite. */
 function parseScaled(token: string, full: number): number | null {
   if (token.endsWith("%")) {
     const percent = parseNumber(token.slice(0, -1));
-    return percent === null ? null : (percent / 100) * full;
+    return percent === null ? null : finite((percent / 100) * full);
   }
   return parseNumber(token);
 }
@@ -59,8 +62,8 @@ function parseHue(token: string): number | null {
   const match = /^(.*?)(deg|turn|rad)?$/.exec(token);
   const value = match ? parseNumber(match[1] as string) : null;
   if (value === null) return null;
-  const degrees = value * (hueUnits[match?.[2] ?? ""] as number);
-  return ((degrees % 360) + 360) % 360;
+  const degrees = finite(value * (hueUnits[match?.[2] ?? ""] as number));
+  return degrees === null ? null : ((degrees % 360) + 360) % 360;
 }
 
 function parseHex(input: string): RGBA | null {
@@ -94,8 +97,11 @@ function splitArguments(body: string): { channels: string[]; alpha?: string } | 
 /**
  * Parses hex (`#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa`; 3, 6 or 8 digits also without `#`),
  * `rgb()` / `rgba()` and `hsl()` / `hsla()` (comma or space syntax). Trimmed and case-insensitive;
- * out-of-range values clamp. Anything else (named colours, `color()`, `oklch()`, malformed input)
- * is `null`.
+ * out-of-range values clamp. Anything else (named colours, `color()`, `oklch()`, malformed input,
+ * a number that is not finite such as `1e999`) is `null`.
+ *
+ * Deliberately lenient for typed input: `rgb()` accepts numbers and percentages mixed in one
+ * colour (`rgb(255 50% 0)`), which CSS's legacy comma syntax does not allow.
  */
 export function parseColor(input: string): RGBA | null {
   const text = input.trim().toLowerCase();
@@ -124,31 +130,42 @@ const roundHalfUp = (value: number) => Math.floor(value + 0.5);
 
 const hexByte = (value: number) => clamp(roundHalfUp(value), 0, 255).toString(16).padStart(2, "0");
 
-const formatAlpha = (alpha: number) => String(Math.round(clamp(alpha, 0, 1) * 100) / 100);
+/** Alpha with at most 2 decimals. */
+const roundAlpha = (alpha: number) => Math.round(clamp(alpha, 0, 1) * 100) / 100;
 
 /**
- * Lowercase `#rrggbb`, or `#rrggbbaa` when `alpha` is `"auto"` and the colour has alpha below 1
- * (`"always"` adds it to an opaque colour too, `"never"` drops it). Channels round half up.
+ * Lowercase `#rrggbb`, or `#rrggbbaa` when `alpha` is `"auto"` and the colour's alpha byte (rounded)
+ * is below `ff` (`"always"` adds it to an opaque colour too, `"never"` drops it). Channels round
+ * half up, so an alpha of 0.999 prints as opaque.
  */
 export function formatHex(
   { r, g, b, a }: RGBA,
   { alpha = "auto" }: { alpha?: "auto" | "always" | "never" } = {},
 ): string {
-  const withAlpha = alpha === "always" || (alpha === "auto" && a < 1);
-  return `#${hexByte(r)}${hexByte(g)}${hexByte(b)}${withAlpha ? hexByte(a * 255) : ""}`;
+  const alphaByte = hexByte(a * 255);
+  const withAlpha = alpha === "always" || (alpha === "auto" && alphaByte !== "ff");
+  return `#${hexByte(r)}${hexByte(g)}${hexByte(b)}${withAlpha ? alphaByte : ""}`;
 }
 
-/** `rgb(12 34 56)` or `rgb(12 34 56 / 0.5)` (CSS Color 4 space syntax; alpha with ≤ 2 decimals). */
+/**
+ * `rgb(12 34 56)` or `rgb(12 34 56 / 0.5)` (CSS Color 4 space syntax; alpha with ≤ 2 decimals,
+ * left out when it rounds to 1).
+ */
 export function formatRgb({ r, g, b, a }: RGBA): string {
   const channels = [r, g, b].map((channel) => clamp(roundHalfUp(channel), 0, 255)).join(" ");
-  return a < 1 ? `rgb(${channels} / ${formatAlpha(a)})` : `rgb(${channels})`;
+  const alpha = roundAlpha(a);
+  return alpha < 1 ? `rgb(${channels} / ${alpha})` : `rgb(${channels})`;
 }
 
-/** `hsl(210 50% 40%)` or `hsl(210 50% 40% / 0.5)`, in integers (a hue rounding to 360 is 0). */
+/**
+ * `hsl(210 50% 40%)` or `hsl(210 50% 40% / 0.5)`, in integers (a hue rounding to 360 is 0; alpha
+ * as in `formatRgb`).
+ */
 export function formatHsl(rgba: RGBA): string {
   const { h, s, l, a } = rgbToHsl(rgba);
   const channels = `${Math.round(h) % 360} ${Math.round(s)}% ${Math.round(l)}%`;
-  return a < 1 ? `hsl(${channels} / ${formatAlpha(a)})` : `hsl(${channels})`;
+  const alpha = roundAlpha(a);
+  return alpha < 1 ? `hsl(${channels} / ${alpha})` : `hsl(${channels})`;
 }
 
 export function formatColor(rgba: RGBA, format: ColorFormat): string {
@@ -238,7 +255,9 @@ const ratioOf = (first: number, second: number) =>
 
 /**
  * The WCAG contrast ratio, 1–21, rounded to 2 decimals at the end only. A translucent `a` is
- * composited over `b` first.
+ * composited over `b` first. `b` is treated as opaque (its alpha is ignored), so the arguments are
+ * interchangeable only when `b` is opaque; composite a translucent background over its own
+ * backdrop first.
  */
 export function contrastRatio(a: RGBA, b: RGBA): number {
   const front = a.a < 1 ? compositeOver(a, b) : a;
