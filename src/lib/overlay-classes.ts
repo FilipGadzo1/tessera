@@ -16,11 +16,13 @@ export const backdropMotion =
   "transition-opacity duration-150 data-starting-style:opacity-0 data-ending-style:opacity-0 motion-reduce:transition-none";
 
 /**
- * Surface base for Popover and Menu popups. Surfaces keep `outline-hidden`: its forced-colors
- * outline is a desirable border on a floating surface (interactive controls use `outline-none`).
+ * Surface base for Popover and Menu popups (also Select, Combobox and Autocomplete). The 1px
+ * border is the surface's frame in forced colors (CanvasText); `outline-hidden` applies in the
+ * normal mode only, since in forced colors it becomes a transparent 2px outline that Chromium
+ * paints as a second frame outside the border (`forced-colors:outline-none` removes it).
  */
 export const popupSurface =
-  "rounded-lg border border-border bg-popover text-popover-foreground shadow-lg outline-hidden";
+  "rounded-lg border border-border bg-popover text-popover-foreground shadow-lg outline-hidden forced-colors:outline-none";
 
 /**
  * Menu item base: `outline-none` (no outline in any mode), plus a transparent outline on the

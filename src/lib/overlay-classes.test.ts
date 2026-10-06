@@ -29,7 +29,7 @@ describe("overlay classes (spec §2–§3)", () => {
 
   it("popupSurface is the Popover/Menu surface base", () => {
     expect(popupSurface).toBe(
-      "rounded-lg border border-border bg-popover text-popover-foreground shadow-lg outline-hidden",
+      "rounded-lg border border-border bg-popover text-popover-foreground shadow-lg outline-hidden forced-colors:outline-none",
     );
   });
 

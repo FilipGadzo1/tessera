@@ -16,7 +16,7 @@ export const drawerDefaults = { side: "right" } as const;
  */
 const drawerCva = cva(
   [
-    "fixed z-(--z-overlay) flex flex-col gap-4 overflow-y-auto overscroll-contain border-border bg-popover text-popover-foreground shadow-xl outline-hidden",
+    "fixed z-(--z-overlay) flex flex-col gap-4 overflow-y-auto overscroll-contain border-border bg-popover text-popover-foreground shadow-xl outline-hidden forced-colors:outline-none",
     "transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] data-swiping:transition-none motion-reduce:transition-none",
   ],
   {

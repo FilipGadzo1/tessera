@@ -12,7 +12,7 @@ export const dialogDefaults = { size: "md" } as const;
  */
 const dialogCva = cva(
   [
-    "fixed left-1/2 top-1/2 z-(--z-overlay) -translate-x-1/2 -translate-y-1/2 grid w-[calc(100%-2rem)] gap-4 rounded-xl border border-border bg-popover p-6 text-popover-foreground shadow-xl outline-hidden",
+    "fixed left-1/2 top-1/2 z-(--z-overlay) -translate-x-1/2 -translate-y-1/2 grid w-[calc(100%-2rem)] gap-4 rounded-xl border border-border bg-popover p-6 text-popover-foreground shadow-xl outline-hidden forced-colors:outline-none",
     "max-h-[calc(100dvh-2rem)] overflow-y-auto",
     dialogMotion,
   ],
