@@ -7,12 +7,23 @@ import { toggleFocusClasses } from "../../lib/focus-classes";
  */
 
 /**
- * The root: a column of parts. Disabled, the root's 50% is the only fade: the inner Toggles, Button
- * and input would otherwise fade a second time (to 25%), so their own opacity is reset (`!`: their
- * own `data-disabled:` / `disabled:` rules are more specific than a descendant rule).
+ * The root: a column of parts. Disabled, the root's 50% is the only fade: the picker's own input,
+ * format toggle items and eyedropper add `noSecondFade` to cancel their own disabled fade (merged
+ * on the element, so a consumer's composed children keep their own opacity).
  */
 export const colorPickerClasses =
-  "flex w-64 flex-col gap-3 data-disabled:cursor-not-allowed data-disabled:opacity-50 data-disabled:**:opacity-100!";
+  "flex w-64 flex-col gap-3 data-disabled:cursor-not-allowed data-disabled:opacity-50";
+
+/**
+ * Per part, while the whole picker is disabled: the part's own disabled-fade utility at 100%, so
+ * tailwind-merge replaces the 50% one (input `disabled:`, Toggle `data-disabled:`, Button
+ * `data-disabled:not-data-loading:`). The swatches have no fade of their own.
+ */
+export const noSecondFade = {
+  input: "disabled:opacity-100",
+  toggle: "data-disabled:opacity-100",
+  button: "data-disabled:not-data-loading:opacity-100",
+} as const;
 
 /** The 8px grey-and-white checkerboard behind a translucent colour. */
 export const checkerboardClasses =

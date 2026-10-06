@@ -57,6 +57,7 @@ import {
   colorSliderThumbClasses,
   colorSliderTrackClasses,
   colorSwatchClasses,
+  noSecondFade,
 } from "./color-picker-classes";
 
 /** A swatch: a colour string (named by its hex), or a colour with its accessible name. */
@@ -81,6 +82,8 @@ function toHsva(rgba: RGBA, alpha: boolean, previousHue?: number): HSVA {
     a: alpha ? hsva.a : 1,
   };
 }
+
+const sameHsva = (a: HSVA, b: HSVA) => a.h === b.h && a.s === b.s && a.v === b.v && a.a === b.a;
 
 /**
  * Where an enclosing component hosts the picker. `ColorPickerPopover` sets `joinsForm: false` for
@@ -184,13 +187,19 @@ export function ColorPicker({
   );
   // A controlled value that formats to the hex the state already has keeps the state (the hue
   // survives a grey); any other value replaces it, keeping the hue for a grey. Unparsable: ignored.
+  // The replacement is adopted into the state during render (React's "adjust state when a prop
+  // changes"), so the hue a later grey keeps is the one on screen, not the last internal change's.
+  // It cannot loop: the adopted state derives the same HSVA again (its hue is the state's own for a
+  // grey, the value's otherwise), so the second render sets nothing. Nothing is reported back.
   const parsedValue = value === undefined ? null : parseColor(value);
   let hsva = alpha ? state : { ...state, a: 1 };
   if (
     parsedValue &&
     formatHex(parsedValue, { alpha: alpha ? "auto" : "never" }) !== hexOf(hsva, alpha)
   ) {
-    hsva = toHsva(parsedValue, alpha, state.h);
+    const adopted = toHsva(parsedValue, alpha, state.h);
+    if (!sameHsva(adopted, state)) setState(adopted);
+    hsva = adopted;
   }
   const hex = hexOf(hsva, alpha);
 
@@ -688,6 +697,7 @@ export function ColorInput({
   format: formatProp,
   "aria-label": ariaLabel = "Color value",
   className,
+  disabled,
   onChange,
   onBlur,
   onKeyDown,
@@ -709,13 +719,16 @@ export function ColorInput({
       {...props}
       type="text"
       value={draft ?? display}
-      disabled={picker.disabled}
+      disabled={picker.disabled || disabled}
       spellCheck={false}
       autoComplete="off"
       aria-label={ariaLabel}
       aria-invalid={invalid || undefined}
       data-slot="color-input"
-      className={inputVariants({ size: "sm", className: cn("font-mono", className) })}
+      className={inputVariants({
+        size: "sm",
+        className: cn("font-mono", picker.disabled && noSecondFade.input, className),
+      })}
       onChange={(event) => {
         onChange?.(event);
         setDraft(event.target.value);
@@ -778,7 +791,11 @@ export function ColorFormatToggle({
       disabled={picker.disabled || props.disabled}
     >
       {formats.map((format) => (
-        <ToggleGroupItem key={format} value={format}>
+        <ToggleGroupItem
+          key={format}
+          value={format}
+          className={picker.disabled ? noSecondFade.toggle : undefined}
+        >
           {formatLabel(format)}
         </ToggleGroupItem>
       ))}
@@ -803,49 +820,53 @@ export interface ColorEyeDropperProps
 /**
  * Picks a colour from the screen with the browser's EyeDropper API (an outline icon button). It
  * renders nothing where the API is missing, decided after mount, so the server HTML and the first
- * client render agree. Disabled while picking; Escape in the browser's picker changes nothing.
+ * client render agree. While picking it is `aria-disabled` but keeps focus (so an enclosing Field is
+ * not blurred mid-pick) and ignores clicks, with muted text rather than a fade. Escape in the
+ * browser's picker (`AbortError`) changes nothing; any other rejection (`NotAllowedError`, …) is
+ * swallowed with a dev-only warning; a pick that settles after unmount is dropped.
  */
 export function ColorEyeDropper({
   "aria-label": ariaLabel = "Pick a color from the screen",
   onClick,
   disabled,
+  className,
   ...props
 }: ColorEyeDropperProps) {
   const picker = useColorPicker("ColorEyeDropper");
   const [supported, setSupported] = useState(false);
   const [picking, setPicking] = useState(false);
-  const buttonRef = useRef<HTMLButtonElement | null>(null);
-  const refocus = useRef(false);
+  const pickingRef = useRef(false);
+  const mounted = useRef(false);
   useEffect(() => {
+    mounted.current = true;
     setSupported(eyeDropper() !== undefined);
+    return () => {
+      mounted.current = false;
+    };
   }, []);
-  // The button is disabled (and so blurred) while picking; give focus back once it is not.
-  useEffect(() => {
-    if (picking || !refocus.current) return;
-    refocus.current = false;
-    buttonRef.current?.focus();
-  }, [picking]);
-  const setRef = useMergedRefs(buttonRef, props.ref);
   if (!supported) return null;
   const pick = async () => {
     const EyeDropper = eyeDropper();
-    if (!EyeDropper) return;
-    refocus.current = document.activeElement === buttonRef.current;
+    if (!EyeDropper || pickingRef.current) return;
+    pickingRef.current = true;
     setPicking(true);
     try {
       const { sRGBHex } = await new EyeDropper().open();
       const rgba = parseColor(sRGBHex);
-      if (rgba) picker.commitColor(rgba);
+      if (rgba && mounted.current) picker.commitColor(rgba);
     } catch (error) {
-      if (!(error instanceof DOMException && error.name === "AbortError")) throw error;
+      const aborted = error instanceof DOMException && error.name === "AbortError";
+      if (!aborted && process.env.NODE_ENV !== "production") {
+        console.warn("ColorEyeDropper: the EyeDropper could not pick a colour.", error);
+      }
     } finally {
-      setPicking(false);
+      pickingRef.current = false;
+      if (mounted.current) setPicking(false);
     }
   };
   return (
     <Button
       {...props}
-      ref={setRef}
       // Button sets its own `data-slot`; the render element's props win over it.
       render={<button type="button" data-slot="color-eye-dropper" />}
       variant="outline"
@@ -853,9 +874,17 @@ export function ColorEyeDropper({
       size="icon-sm"
       aria-label={ariaLabel}
       disabled={picker.disabled || picking || disabled}
+      focusableWhenDisabled={picking && !picker.disabled && !disabled}
+      className={mergeClassName(
+        cn(
+          picker.disabled && noSecondFade.button,
+          picking && `${noSecondFade.button} text-muted-foreground forced-colors:text-[GrayText]`,
+        ),
+        className,
+      )}
       onClick={(event) => {
         onClick?.(event);
-        if (!event.defaultPrevented) void pick();
+        if (!event.defaultPrevented && !pickingRef.current) void pick();
       }}
     >
       <PipetteIcon />
@@ -928,8 +957,15 @@ export interface ColorSwatchProps extends Omit<BaseToggle.Props, "value" | "chil
 export function ColorSwatch({ value, label, className, style, ...props }: ColorSwatchProps) {
   const picker = useColorPicker("ColorSwatch");
   const rgba = parseColor(value);
-  const hex = rgba ? formatHex(rgba, { alpha: picker.alpha ? "auto" : "never" }) : value;
-  const translucent = !!rgba && picker.alpha && rgba.a < 1;
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "production" && !rgba) {
+      console.warn(`ColorSwatch: skipping the unparsable colour "${value}".`);
+    }
+  }, [rgba, value]);
+  // A swatch that could never set a colour is left out rather than shown doing nothing.
+  if (!rgba) return null;
+  const hex = formatHex(rgba, { alpha: picker.alpha ? "auto" : "never" });
+  const translucent = picker.alpha && rgba.a < 1;
   const pressed = hex === picker.hex;
   return (
     <BaseToggle
@@ -953,7 +989,7 @@ export function ColorSwatch({ value, label, className, style, ...props }: ColorS
       {pressed && (
         <CheckIcon
           className="absolute inset-0 m-auto size-4"
-          style={{ color: readableForeground(compositeOver(rgba ?? black, white)) }}
+          style={{ color: readableForeground(compositeOver(rgba, white)) }}
         />
       )}
     </BaseToggle>

@@ -414,6 +414,46 @@ describe("ColorPicker pointer", () => {
     expect(onValueCommitted).toHaveBeenCalledWith("#ff0000");
   });
 
+  it.each(["pointercancel", "lostpointercapture"] as const)(
+    "%s mid-drag ends the drag: one commit, data-dragging cleared",
+    async (ending) => {
+      const onValueCommitted = vi.fn();
+      await render(<ColorPicker defaultValue="#ff0000" onValueCommitted={onValueCommitted} />);
+      const area = slot("color-area") as HTMLElement;
+      let pointerId = -1;
+      area.addEventListener("pointerdown", (event) => {
+        pointerId = event.pointerId;
+      });
+      let ended = false;
+      const seen = { dragging: false, clearedAfterEnd: false };
+      // As soon as the drag starts, end it the way the browser would: a cancel (e.g. a touch turned
+      // into a scroll) or the capture being taken away. The real mouse drag then carries on.
+      const observer = new MutationObserver(() => {
+        if (area.hasAttribute("data-dragging")) {
+          seen.dragging = true;
+          if (ended) return;
+          ended = true;
+          if (ending === "pointercancel") {
+            area.dispatchEvent(new PointerEvent("pointercancel", { pointerId, bubbles: true }));
+          } else {
+            area.releasePointerCapture(pointerId);
+          }
+        } else if (ended) {
+          seen.clearedAfterEnd = true;
+        }
+      });
+      observer.observe(area, { attributes: true, attributeFilter: ["data-dragging"] });
+      const rect = area.getBoundingClientRect();
+      await drag(area, { x: rect.width / 2, y: rect.height / 2 }, { x: 4, y: rect.height - 4 });
+      await expect.poll(() => seen.clearedAfterEnd).toBe(true);
+      observer.disconnect();
+      expect(seen.dragging).toBe(true);
+      expect(area.hasAttribute("data-dragging")).toBe(false);
+      // The cancel ended the drag; the pointerup that follows does not commit again.
+      expect(onValueCommitted).toHaveBeenCalledTimes(1);
+    },
+  );
+
   it("a drag on the hue track moves the hue and commits once", async () => {
     const onValueCommitted = vi.fn();
     await render(<ColorPicker defaultValue="#ff0000" onValueCommitted={onValueCommitted} />);
@@ -644,6 +684,15 @@ describe("ColorPicker swatches", () => {
     expect(onValueCommitted).toHaveBeenCalledTimes(1);
   });
 
+  it("an unparsable swatch renders nothing, with a warning", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await render(<ColorPicker swatches={["#ff0000", "tomato", "#00ff00"]} />);
+    await expect.element(page.getByRole("button", { name: "#00ff00" })).toBeInTheDocument();
+    expect(slots("color-swatch")).toHaveLength(2);
+    expect(page.getByRole("button", { name: "tomato" }).query()).toBeNull();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("tomato"));
+  });
+
   it("a value matching a swatch (normalised) presses it", async () => {
     await render(<ColorPicker defaultValue="#1D4ED8" swatches={swatches} />);
     await expect
@@ -662,23 +711,80 @@ describe("ColorPicker EyeDropper", () => {
     await expect.element(button()).not.toBeInTheDocument();
   });
 
-  it("sets and commits the picked colour, disabled while picking", async () => {
+  it("sets and commits the picked colour; aria-disabled and focused while picking", async () => {
     let resolve: (result: { sRGBHex: string }) => void = () => {};
-    stubEyeDropper(
+    const open = vi.fn(
       () =>
-        new Promise((done) => {
+        new Promise<{ sRGBHex: string }>((done) => {
           resolve = done;
         }),
     );
+    stubEyeDropper(open);
     const onValueCommitted = vi.fn();
-    await render(<ColorPicker onValueCommitted={onValueCommitted} />);
+    await render(
+      <Form aria-label="Theme">
+        <Field name="accent">
+          <FieldLabel>Accent</FieldLabel>
+          <ColorPicker onValueCommitted={onValueCommitted} />
+        </Field>
+      </Form>,
+    );
+    const field = slot("field") as HTMLElement;
     await expect.element(button()).toHaveAttribute("data-slot", "color-eye-dropper");
     await userEvent.click(button());
-    await expect.element(button()).toBeDisabled();
+    await expect.element(button()).toHaveAttribute("aria-disabled", "true");
+    // Focus stays on the button (not natively disabled), so the Field is not touched mid-pick.
+    expect(document.activeElement).toBe(button().element());
+    expect(field.hasAttribute("data-touched")).toBe(false);
+    // A second click while picking is ignored. Its text is muted, not faded.
+    await userEvent.click(button(), { force: true });
+    expect(open).toHaveBeenCalledTimes(1);
+    expect(getComputedStyle(button().element()).opacity).toBe("1");
     resolve({ sRGBHex: "#1d4ed8" });
     await expect.element(textInput()).toHaveValue("#1d4ed8");
-    await expect.element(button()).toBeEnabled();
+    await expect.element(button()).not.toHaveAttribute("aria-disabled");
+    expect(document.activeElement).toBe(button().element());
     expect(onValueCommitted).toHaveBeenCalledWith("#1d4ed8");
+  });
+
+  it("swallows other rejections (NotAllowedError) with a warning, not an unhandled error", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    stubEyeDropper(() => Promise.reject(new DOMException("No", "NotAllowedError")));
+    const onValueChange = vi.fn();
+    await render(<ColorPicker defaultValue="#1d4ed8" onValueChange={onValueChange} />);
+    await userEvent.click(button());
+    await expect.poll(() => warn.mock.calls.length).toBe(1);
+    await expect.element(button()).not.toHaveAttribute("aria-disabled");
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+
+  it("a pick that resolves after unmount changes nothing", async () => {
+    let resolve: (result: { sRGBHex: string }) => void = () => {};
+    let settled = Promise.resolve();
+    stubEyeDropper(() => {
+      const pick = new Promise<{ sRGBHex: string }>((done) => {
+        resolve = done;
+      });
+      settled = pick.then(() => {});
+      return pick;
+    });
+    const onValueChange = vi.fn();
+    const onValueCommitted = vi.fn();
+    const error = vi.spyOn(console, "error");
+    const screen = await render(
+      <ColorPicker onValueChange={onValueChange} onValueCommitted={onValueCommitted} />,
+    );
+    await userEvent.click(button());
+    await screen.unmount();
+    resolve({ sRGBHex: "#1d4ed8" });
+    // The component's continuation was queued on the same promise right after `settled`'s, so it
+    // has run by the time these microtasks drain (no timer involved).
+    await settled;
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(onValueChange).not.toHaveBeenCalled();
+    expect(onValueCommitted).not.toHaveBeenCalled();
+    expect(error).not.toHaveBeenCalled();
   });
 
   it("ignores an AbortError (the user pressed Escape)", async () => {
@@ -686,7 +792,7 @@ describe("ColorPicker EyeDropper", () => {
     const onValueChange = vi.fn();
     await render(<ColorPicker defaultValue="#1d4ed8" onValueChange={onValueChange} />);
     await userEvent.click(button());
-    await expect.element(button()).toBeEnabled();
+    await expect.element(button()).not.toHaveAttribute("aria-disabled");
     await expect.element(textInput()).toHaveValue("#1d4ed8");
     expect(onValueChange).not.toHaveBeenCalled();
   });
@@ -738,6 +844,42 @@ describe("ColorPicker controlled and uncontrolled", () => {
     await expect.element(areaThumb()).toHaveAttribute("aria-valuenow", "0");
     await expect.element(hueThumb()).toHaveAttribute("aria-valuenow", "210");
     await screen.rerender(<ColorPicker value="#ff0000" />);
+    await expect.element(hueThumb()).toHaveAttribute("aria-valuenow", "0");
+  });
+
+  it("a grey after an outside change keeps the hue on screen, not the last internal one", async () => {
+    // A (hue 210) → non-grey B (hue 0), both from outside → grey C: the hue stays 0.
+    const onValueChange = vi.fn();
+    const screen = await render(<ColorPicker value="#0080ff" onValueChange={onValueChange} />);
+    await expect.element(hueThumb()).toHaveAttribute("aria-valuenow", "210");
+    await screen.rerender(<ColorPicker value="#ff0000" onValueChange={onValueChange} />);
+    await expect.element(hueThumb()).toHaveAttribute("aria-valuenow", "0");
+    await screen.rerender(<ColorPicker value="#808080" onValueChange={onValueChange} />);
+    await expect.element(areaThumb()).toHaveAttribute("aria-valuenow", "0");
+    await expect.element(hueThumb()).toHaveAttribute("aria-valuenow", "0");
+    // Adopting an outside value reports nothing back.
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+
+  it("a controlled parent that rejects a hue change keeps the value's hue for a later grey", async () => {
+    const onValueChange = vi.fn();
+    const screen = await render(<ColorPicker value="#0080ff" onValueChange={onValueChange} />);
+    hueThumb().element().focus();
+    await userEvent.keyboard("{Home}");
+    expect(onValueChange).toHaveBeenLastCalledWith("#ff0000");
+    // Rejected: the slider shows the value's hue.
+    await expect.element(hueThumb()).toHaveAttribute("aria-valuenow", "210");
+    await screen.rerender(<ColorPicker value="#808080" onValueChange={onValueChange} />);
+    await expect.element(hueThumb()).toHaveAttribute("aria-valuenow", "210");
+  });
+
+  it("uncontrolled: a grey after a swatch keeps the swatch's hue", async () => {
+    await render(<ColorPicker defaultValue="#0080ff" swatches={["#ff0000"]} />);
+    await userEvent.click(page.getByRole("button", { name: "#ff0000" }));
+    await expect.element(hueThumb()).toHaveAttribute("aria-valuenow", "0");
+    await userEvent.fill(textInput(), "#808080");
+    await userEvent.keyboard("{Enter}");
+    await expect.element(areaThumb()).toHaveAttribute("aria-valuenow", "0");
     await expect.element(hueThumb()).toHaveAttribute("aria-valuenow", "0");
   });
 
@@ -1022,6 +1164,46 @@ describe("ColorPicker disabled", () => {
     await userEvent.keyboard("{Home}");
     expect(onValueChange).not.toHaveBeenCalled();
     expect(getComputedStyle(area).cursor).toBe("not-allowed");
+  });
+});
+
+describe("ColorPicker disabled fade", () => {
+  it("a consumer's own opacity on a composed child survives a disabled picker", async () => {
+    stubEyeDropper(() => Promise.resolve({ sRGBHex: "#ffffff" }));
+    await render(
+      <ColorPicker disabled defaultValue="#1d4ed8" swatches={["#ff0000"]}>
+        <p data-testid="note" className="opacity-75">
+          Brand colour
+        </p>
+        <div data-testid="frame" data-disabled="" className="opacity-60 data-disabled:opacity-40">
+          <ColorInput />
+        </div>
+        <ColorFormatToggle />
+        <ColorEyeDropper />
+        <ColorSwatches />
+      </ColorPicker>,
+    );
+    expect(getComputedStyle(slot("color-picker") as HTMLElement).opacity).toBe("0.5");
+    expect(getComputedStyle(page.getByTestId("note").element()).opacity).toBe("0.75");
+    expect(getComputedStyle(page.getByTestId("frame").element()).opacity).toBe("0.4");
+    for (const element of [
+      textInput().element(),
+      page.getByRole("button", { name: "HEX" }).element(),
+      page.getByRole("button", { name: "#ff0000" }).element(),
+      page.getByRole("button", { name: "Pick a color from the screen" }).element(),
+    ]) {
+      expect(getComputedStyle(element).opacity).toBe("1");
+    }
+  });
+
+  it("a part disabled on its own (picker enabled) fades itself", async () => {
+    await render(
+      <ColorPicker defaultValue="#1d4ed8">
+        <ColorInput disabled />
+      </ColorPicker>,
+    );
+    await expect.element(textInput()).toBeDisabled();
+    expect(getComputedStyle(textInput().element()).opacity).toBe("0.5");
   });
 });
 

@@ -667,7 +667,7 @@ source files automatically (build output + `"use client"` directive checks).
   are sliders (PageUp/PageDown ±15° / ±10%). The area and tracks are physical: → moves right in RTL too, while the
   input and swatches follow the page. The text field takes any `parseColor` format on Enter or blur, marks
   unparsable text invalid and reverts it on blur, and Escape reverts (an enclosing overlay closes on the next
-  Escape). `format` / `defaultFormat` / `onFormatChange`; `formatLabel` on `ColorFormatToggle`, `getValueText`
+  Escape). In a form, Enter after typing a colour commits it, and a second Enter submits the form. `format` / `defaultFormat` / `onFormatChange`; `formatLabel` on `ColorFormatToggle`, `getValueText`
   and `aria-label` on each part localise it. In a `Field` and `Form` the picker is one control: `name` (and
   `form`) submit the hex through a hidden input, `onFormSubmit` reports it under the Field's name, Field
   `validate` gets the hex and an invalid submit focuses the area thumb. In forced colors the colour surfaces keep
