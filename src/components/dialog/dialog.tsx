@@ -96,7 +96,7 @@ export function DialogContent({
         {showCloseButton && (
           // Button always sets its own `data-slot="button"`, so the slot and the corner position
           // live on this wrapper; the button inside keeps Button's full DOM contract.
-          <span data-slot="dialog-close-button" className="absolute right-4 top-4">
+          <span data-slot="dialog-close-button" className="absolute end-4 top-4">
             <BaseDialog.Close
               render={<Button variant="ghost" color="neutral" size="icon-sm" aria-label="Close" />}
             >

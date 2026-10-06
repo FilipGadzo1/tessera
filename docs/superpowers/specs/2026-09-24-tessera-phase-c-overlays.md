@@ -57,6 +57,7 @@ Each overlay ships three kinds of part:
   - The `size` prop sets the max width: sm `max-w-sm`, md `max-w-lg` (default), lg `max-w-2xl`.
   - `showCloseButton` (default `true`) renders a `DialogClose` composed with `<Button variant="ghost" color="neutral" size="icon-sm" aria-label="Close">` plus an X icon (inline SVG), positioned `absolute right-4 top-4`.
     - Because Button always sets its own `data-slot="button"` after its props, the `dialog-close-button` slot and the `absolute right-4 top-4` position sit on a `<span>` wrapping the close Button (Task 3).
+    - *Superseded by Phase J §0.2*: the position is logical, `absolute end-4 top-4`.
   - Base UI hides everything outside a modal dialog (`aria-hidden` plus `data-base-ui-inert`) but sets no `aria-modal`; Tessera adds `aria-modal="true"` when the dialog is modal (Dialog `modal` true or `"trap-focus"`; AlertDialog always).
   - AlertDialog content matches, but has no close button and no `showCloseButton` prop.
 - **Dialog text and layout parts:**

@@ -160,7 +160,7 @@ describe("Dialog", () => {
     const slot = popup.querySelector("[data-slot=dialog-close-button]") as HTMLElement;
     expect(slot).not.toBeNull();
     expect(slot.contains(close.element())).toBe(true);
-    expect(slot.className).toBe("absolute right-4 top-4");
+    expect(slot.className).toBe("absolute end-4 top-4");
     // The close is Tessera's Button: ghost, neutral, icon-sm, with an aria-hidden X icon.
     await expect.element(close).toHaveAttribute("data-slot", "button");
     await expect.element(close).toHaveAttribute("data-variant", "ghost");
@@ -171,6 +171,24 @@ describe("Dialog", () => {
     await expect.element(dialog()).not.toBeInTheDocument();
     await expect.poll(() => document.activeElement).toBe(trigger().element());
   });
+
+  it.each(["ltr", "rtl"] as const)(
+    "the close button sits 16px from the popup's inline end (%s)",
+    async (dir) => {
+      await render(<Basic dir={dir} />);
+      const popup = await openByClick();
+      await waitForPopupSettled(popup);
+      const slot = popup.querySelector("[data-slot=dialog-close-button]") as HTMLElement;
+      const box = popup.getBoundingClientRect();
+      const style = getComputedStyle(popup);
+      const button = slot.getBoundingClientRect();
+      // Distances from the popup's padding edge (inside the border), as `end-4` measures.
+      const fromLeft = button.left - (box.left + Number.parseFloat(style.borderLeftWidth));
+      const fromRight = box.right - Number.parseFloat(style.borderRightWidth) - button.right;
+      expect(dir === "rtl" ? fromLeft : fromRight).toBeCloseTo(16, 1);
+      expect(dir === "rtl" ? fromRight : fromLeft).toBeGreaterThan(100);
+    },
+  );
 
   it("closes from DialogClose", async () => {
     await render(<WithForm />);
