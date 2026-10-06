@@ -687,7 +687,8 @@ source files automatically (build output + `"use client"` directive checks).
   RTL) and wrap at the ends, as a radio group does. `value` / `defaultValue` (`number | null`) /
   `onValueChange`, `max` (5), `clearable` (choosing the checked star again, by click or Space, clears to
   `null`), `size` (`sm` / `md` / `lg`: 16 / 20 / 24px stars), `disabled` (stays focusable, muted, ignores
-  input). A mouse or pen hover previews the value; touch does not. In a `Field` and `Form` it is one control:
+  input). A value between the steps (3.7, or 3.5 without `allowHalf`) shows its fractional fill but checks no
+  radio, so Tab lands on the first star. A mouse or pen hover previews the value; touch does not. In a `Field` and `Form` it is one control:
   the Field label names the group, `name` / `form` / `required` submit the number. `readOnly` is a display, not
   an input: an image named "4.3 out of 5 stars" with fractional fills, no Tab stop and no form value.
   `itemLabel(value, max)` and `valueLabel(value, max)` localise the names. Filled stars are solid and empty

@@ -299,7 +299,7 @@ Server-safe, no dependency, no hooks. Every function is pure and unit-tested in 
 **Display mode** (`readOnly`): a `span role="img"` with `aria-label={valueLabel(value, max)}`, `data-slot="rating"`, `data-readonly`, holding the same star visuals with any fractional fill (4.3 → the fifth item's `--rating-fill: 30%`). It has no radios and no Tab stop, and it ignores `name` / `required` (it is not a form control: a read-only average is display, not input; documented). Base UI's own `readOnly` radio state is not exposed. Cost if wrong: a focusable read-only rating inside a form needs a disabled-looking interactive one instead.
 
 **Styling:**
-- Root: `inline-flex items-center gap-0.5 data-disabled:cursor-not-allowed data-disabled:opacity-50` (a disabled RadioGroup's radios leave the Tab order, so the §4 opacity look applies).
+- Root: `inline-flex items-center gap-0.5 data-disabled:cursor-not-allowed` ~~`data-disabled:opacity-50` (a disabled RadioGroup's radios leave the Tab order, so the §4 opacity look applies)~~ (superseded by the Task 5 amendment "Disabled stays focusable": the radios stay in the Tab order, so the stars are muted at opacity 1).
 - Item: `relative inline-flex shrink-0 rounded-sm forced-color-adjust-none outline-none outline-offset-2 outline-ring has-[[role=radio]:focus-visible]:outline-2 has-[[role=radio]:focus-visible]:outline-solid forced-colors:has-[[role=radio]:focus-visible]:outline-[Highlight]` + sizes `sm: size-4`, `md: size-5`, `lg: size-6`. The ring goes round the whole star when either half is focused (the radio itself is `outline-none`).
 - Radio: `absolute inset-y-0 cursor-pointer rounded-sm outline-none data-disabled:cursor-not-allowed` + `inset-x-0` (whole) / `start-0 w-1/2` / `end-0 w-1/2` (halves).
 - Empty star: `absolute inset-0 size-full fill-none stroke-current stroke-[1.5] text-muted-foreground forced-colors:text-[CanvasText]`.
@@ -334,6 +334,10 @@ Server-safe, no dependency, no hooks. Every function is pure and unit-tested in 
   - The fill geometry tests read real pixels (an element screenshot, as Accordion's tests do): on the star's widest row the 30% and 50% fills end within 1.5px of 30% / 50% of the item from the left in LTR and start there from the right in RTL. They failed with the `rtl:` clip removed.
   - `required` with no value: a Base UI `Form` blocks the submit and focuses the first radio (tested). In a Field and Form there is one registered control and one FormData entry, with `allowHalf`'s ten radios (tested).
   - Reduced motion: the test checks `transition-property: none`, as in Task 3 (`motion-reduce:transition-none` leaves the duration class applied). The forced-colors preview test waits for the 150ms colour transition before reading the Highlight fill.
+- *Amended in Task 5 (fix round 1)*:
+  - A value change through the group (a key, Space or a click) clears the hover preview, so an arrow pressed while the mouse rests on a star shows the new value at once (tested). The preview comes back on the next `pointerenter` of a radio.
+  - Off-step values: an interactive value that matches no radio (a controlled 3.7, or 3.5 without `allowHalf`) shows its fractional fill and checks no radio, so Tab lands on the first radio and the first key or click replaces it with a step value. Documented on `value` and in the README; tested.
+  - A click on the Field label selects nothing and does not focus a radio: the radios' own `LabelableProvider` scope (above) means the Field label has no labelable control (without the scope the same click checks "1 star": mutation-checked). Pinned by a test; selecting "1 star" from a label click would be wrong for a rating.
 
 ## 4. Stepper (Task 6)
 

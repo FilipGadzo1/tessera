@@ -27,7 +27,11 @@ export type RatingSize = "sm" | "md" | "lg";
 
 export interface RatingProps
   extends Omit<ComponentProps<"div">, "defaultValue" | "onChange" | "children" | "ref"> {
-  /** The controlled value (`null`: no rating). */
+  /**
+   * The controlled value (`null`: no rating). A value that matches no radio (3.7, or 3.5 without
+   * `allowHalf`) shows its fractional fill but checks no radio, so Tab lands on the first star and
+   * the first key or click replaces it with a step value.
+   */
   value?: number | null;
   /** The initial value when uncontrolled. Default `null`. */
   defaultValue?: number | null;
@@ -217,7 +221,11 @@ export function Rating({
         {...props}
         ref={setRootRef}
         value={value}
-        onValueChange={(next) => setValue(next)}
+        onValueChange={(next) => {
+          // A key (or click) change shows the new value even while the mouse rests on a star.
+          setPreview(null);
+          setValue(next);
+        }}
         disabled={disabled}
         name={name}
         form={form}

@@ -359,6 +359,14 @@ DateRangeField test and the Tree position compare.
 ### Phase J notes
 - Kbd (Task 0): the keycap border (`border-border` on `bg-muted`) is almost invisible in dark mode.
 - Kbd (Task 0): the ↵ glyph renders small next to the other keys at `text-xs`.
+- Rating (Task 5): the arrow keys wrap at the ends (5 → 1, 1 → 5), as Base UI's RadioGroup does; it exposes no
+  option to stop. Clamping would need a ~10-line key-capture handler on the root (swallow the forward key on
+  the last radio and the backward key on the first, direction-aware) plus flipping the pinned wrap test.
+- Rating (Task 5): its focus ring (`outline-offset-2` round the item) touches the neighbouring star's outline
+  with the row's `gap-0.5` (cosmetic; screen `task5-focus.png`).
+- Radio (Phase B, found in Task 5): Base UI keeps a disabled RadioGroup's roving radio focusable
+  (`aria-disabled`), yet Tessera's `Radio` still fades with `data-disabled:opacity-50`. It should follow the
+  focusable-disabled convention (muted, GrayText in forced colors, opacity 1), as Rating does.
 
 ## Next components
 Follow the phases in the design-system spec §6

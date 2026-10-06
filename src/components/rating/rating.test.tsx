@@ -459,9 +459,38 @@ describe("Rating pointer", () => {
     expect(root().hasAttribute("data-preview")).toBe(false);
     expect(marked("data-filled")).toEqual([1, 2, 3]);
   });
+
+  it("a keyboard change while the mouse rests on a star shows the new value, not the preview", async () => {
+    await render(<Rating defaultValue={2} />);
+    await userEvent.tab();
+    expect(document.activeElement).toBe(radio("2 stars").element());
+    await userEvent.hover(radio("5 stars"));
+    await expect.poll(() => marked("data-filled")).toEqual([1, 2, 3, 4, 5]);
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.element(radio("3 stars")).toHaveAttribute("aria-checked", "true");
+    await expect.poll(() => root().hasAttribute("data-preview")).toBe(false);
+    expect(marked("data-filled")).toEqual([1, 2, 3]);
+  });
 });
 
 describe("Rating controlled and uncontrolled", () => {
+  it("an off-step value fills fractionally, checks no radio, and Tab lands on the first", async () => {
+    await render(
+      <>
+        <Rating aria-label="Controlled" value={3.7} />
+        <Rating aria-label="Whole steps" defaultValue={3.5} />
+      </>,
+    );
+    expect(checked()).toEqual([]);
+    expect(items()[3]?.style.getPropertyValue("--rating-fill")).toBe("70%");
+    expect(items()[8]?.style.getPropertyValue("--rating-fill")).toBe("50%");
+    await userEvent.tab();
+    expect(document.activeElement).toBe(
+      group("Controlled").element().querySelector('[role="radio"]'),
+    );
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("1 star");
+  });
+
   it("defaultValue seeds an uncontrolled rating that then follows its own changes", async () => {
     await render(<Rating defaultValue={2} />);
     expect(checked()).toEqual(["2 stars"]);
@@ -770,6 +799,23 @@ describe("Rating in a form", () => {
     );
     await expect.element(page.getByText("Rate at least two stars.")).toBeVisible();
     await expect.element(radio("1 star")).toHaveAttribute("data-invalid");
+  });
+
+  // Pinned: the radios sit in their own labelling scope, so a click on the Field label neither
+  // selects "1 star" (as a plain Base UI RadioGroup's first radio would) nor moves focus into it.
+  it("a click on the Field label selects nothing and does not focus a radio", async () => {
+    const onValueChange = vi.fn();
+    await render(
+      <Field>
+        <FieldLabel>Your rating</FieldLabel>
+        <Rating onValueChange={onValueChange} />
+      </Field>,
+    );
+    await userEvent.click(page.getByText("Your rating"));
+    await nextFrame();
+    expect(checked()).toEqual([]);
+    expect(onValueChange).not.toHaveBeenCalled();
+    expect(document.activeElement?.getAttribute("role")).not.toBe("radio");
   });
 });
 
