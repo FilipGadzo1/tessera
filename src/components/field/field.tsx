@@ -70,14 +70,16 @@ export function FieldDescription({ className, ...props }: FieldDescriptionProps)
 
 /**
  * Error message, rendered only while the Field is invalid: from `validate`, native constraints,
- * Form errors, or the Field's `invalid` prop. An explicit `match` takes precedence.
+ * Form errors, or the Field's `invalid` prop. An explicit `match` takes precedence. The `invalid`
+ * prop shows it only with children: it carries no message of its own, so a children-less
+ * FieldError would render an empty node.
  */
 export function FieldError({ className, match, ...props }: FieldErrorProps) {
   const fieldInvalid = useContext(FieldInvalidContext);
   return (
     <BaseField.Error
       {...props}
-      match={match ?? (fieldInvalid || undefined)}
+      match={match ?? (fieldInvalid && props.children != null ? true : undefined)}
       data-slot="field-error"
       className={mergeClassName("text-sm text-danger", className)}
     />

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { Checkbox } from "../checkbox";
+import { Form } from "../form";
 import { Input } from "../input";
 import {
   Field,
@@ -111,6 +112,43 @@ describe("Field", () => {
     );
     await expect.element(screen.getByRole("textbox", { name: "Email" })).toBeInTheDocument();
     expect(document.querySelector("[data-slot='field-error']")).toBeNull();
+  });
+
+  it("renders no empty FieldError for the invalid prop when it has no children", async () => {
+    const screen = await render(
+      <Field invalid>
+        <FieldLabel>Email</FieldLabel>
+        <Input />
+        <FieldError />
+      </Field>,
+    );
+    await expect.element(screen.getByRole("textbox", { name: "Email" })).toBeInTheDocument();
+    expect(document.querySelector("[data-slot='field-error']")).toBeNull();
+    await expect
+      .element(screen.getByRole("textbox", { name: "Email" }))
+      .not.toHaveAttribute("aria-describedby");
+  });
+
+  it("shows FieldError's children for the invalid prop", async () => {
+    const screen = await render(<EmailField invalid />);
+    await expect.element(screen.getByText(ERROR)).toBeVisible();
+    expect(document.querySelector("[data-slot='field-error']")?.textContent).toBe(ERROR);
+  });
+
+  it("a Form-reported error still shows in a FieldError with no children", async () => {
+    const screen = await render(
+      <Form errors={{ email: "Email is already taken" }}>
+        <Field name="email">
+          <FieldLabel>Email</FieldLabel>
+          <Input />
+          <FieldError />
+        </Field>
+      </Form>,
+    );
+    await expect.element(screen.getByText("Email is already taken")).toBeVisible();
+    expect(document.querySelector("[data-slot='field-error']")?.textContent).toBe(
+      "Email is already taken",
+    );
   });
 
   it("validates on blur and clears the error once the value is valid", async () => {
