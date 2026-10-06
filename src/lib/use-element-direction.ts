@@ -41,7 +41,9 @@ function subscribe(onDirChange: () => void): () => void {
  * changes somewhere in the document, so a commit per pointer move never forces a style read.
  *
  * Limits: a direction set only by a CSS `direction` rule (no `dir` attribute) is read on mount but
- * not observed, and moving a mounted element under a different `dir` ancestor is not observed.
+ * not observed; moving a mounted element under a different `dir` ancestor is not observed; and if
+ * `ref.current` switches to a different element with no `dir` mutation, the new element is not
+ * read until the next `dir` change.
  */
 export function useElementDirection(ref: RefObject<Element | null>): ElementDirection {
   const [direction, setDirection] = useState<ElementDirection>("ltr");

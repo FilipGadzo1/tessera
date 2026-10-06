@@ -17,6 +17,12 @@ export interface KbdShortcutProps extends Omit<KbdGroupProps, "children"> {
 
 const identity = (name: string) => name;
 
+/*
+ * U+00A0 NO-BREAK SPACE, the separator between keys (see below). Built from its code point so the
+ * source never holds a raw no-break space that reads like a plain one: do not "simplify" it to " ".
+ */
+const NO_BREAK_SPACE = String.fromCharCode(0xa0);
+
 /**
  * A shortcut labelled for the platform, one `Kbd` per key with no "+" between them: ⌘ K on a Mac,
  * Ctrl K elsewhere (the server and the hydration render say Ctrl). A symbol key shows its glyph to
@@ -44,7 +50,7 @@ export function KbdShortcut({
              * (flex items with no text between them can run together). Out of flow: no visual
              * change. A no-break space, since a plain one would collapse away.
              */}
-            {index > 0 && <span className="sr-only">{" "}</span>}
+            {index > 0 && <span className="sr-only">{NO_BREAK_SPACE}</span>}
             {glyph === name ? (
               <Kbd>{label}</Kbd>
             ) : (

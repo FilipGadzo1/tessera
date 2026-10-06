@@ -97,6 +97,8 @@ describe("useElementDirection", () => {
   });
 
   it("shares one observer and disconnects it after the last unmount", async () => {
+    // Assumes no subscriber leaks in from an earlier test (each test's render is unmounted after
+    // it), so the observer is created here, by the first Probe.
     const observe = vi.spyOn(MutationObserver.prototype, "observe");
     const disconnect = vi.spyOn(MutationObserver.prototype, "disconnect");
     const first = await render(<Probe label="a" />);
