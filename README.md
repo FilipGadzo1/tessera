@@ -651,6 +651,10 @@ source files automatically (build output + `"use client"` directive checks).
   `formatRgb` / `formatHsl` / `formatColor`; `rgbToHsv` / `hsvToRgb` / `rgbToHsl` / `hslToRgb`; WCAG
   `relativeLuminance`, `compositeOver`, `contrastRatio` (a translucent colour is composited first, with no
   rounding before the ratio), `wcagContrast` and `readableForeground`. Pure and server-safe)
+- [x] useElementDirection (`useElementDirection(ref)` is the resolved `"ltr"` / `"rtl"` of an element, from
+  `dir` on it or any ancestor, for feeding Base UI's `DirectionProvider`. `"ltr"` on the server and in the first
+  client render; it is read in a layout effect on mount, then again only when a `dir` attribute changes
+  (one shared MutationObserver, no style read per render). Client hook)
 
 Phase A (foundation), Phase B (forms), Phase C (overlays), Phase D (navigation and feedback),
 Phase E (data entry and display), Phase F (dates, toolbars and surfaces — Meter, ScrollArea,

@@ -671,4 +671,5 @@ export {
   wcagContrast,
 } from "./lib/color";
 export { type ToneColor, toneColors } from "./lib/tone";
+export { useElementDirection } from "./lib/use-element-direction";
 export { type ModifierKeyLabel, useModifierKeyLabel } from "./lib/use-modifier-key-label";
