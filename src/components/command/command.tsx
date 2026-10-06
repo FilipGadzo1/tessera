@@ -18,6 +18,7 @@ import {
 import { cn } from "../../lib/cn";
 import { SearchIcon } from "../../lib/icons";
 import { mergeClassName } from "../../lib/merge-class-name";
+import { isEditable, matchesShortcut, parseShortcut } from "../../lib/modifier-key";
 import { menuItemBase } from "../../lib/overlay-classes";
 import { claimEscape } from "../../lib/tooltip-escape";
 import { useControllableState } from "../../lib/use-controllable-state";
@@ -453,69 +454,6 @@ export function CommandLoading({
       {children}
     </BaseAutocomplete.Status>
   );
-}
-
-interface ParsedShortcut {
-  key: string;
-  mod: boolean;
-  ctrl: boolean;
-  meta: boolean;
-  shift: boolean;
-  alt: boolean;
-}
-
-function parseShortcut(shortcut: string): ParsedShortcut {
-  const parts = shortcut.toLowerCase().split("+");
-  const key = parts.pop() ?? "";
-  const has = (name: string) => parts.includes(name);
-  return {
-    key,
-    mod: has("mod"),
-    ctrl: has("ctrl"),
-    meta: has("meta") || has("cmd"),
-    shift: has("shift"),
-    alt: has("alt"),
-  };
-}
-
-function isApplePlatform() {
-  const platform =
-    (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform ??
-    navigator.platform;
-  return /mac|iphone|ipad|ipod/i.test(platform);
-}
-
-function matchesShortcut(event: globalThis.KeyboardEvent, shortcut: ParsedShortcut) {
-  const apple = isApplePlatform();
-  const ctrl = shortcut.ctrl || (shortcut.mod && !apple);
-  const meta = shortcut.meta || (shortcut.mod && apple);
-  if (event.ctrlKey !== ctrl || event.metaKey !== meta) return false;
-  if (event.shiftKey !== shortcut.shift || event.altKey !== shortcut.alt) return false;
-  const key = event.key.toLowerCase();
-  // With Alt (Option) held, `key` can be another character; fall back to the physical key.
-  return key === shortcut.key || event.code.toLowerCase() === `key${shortcut.key}`;
-}
-
-const nonTextInputTypes = new Set([
-  "button",
-  "checkbox",
-  "color",
-  "file",
-  "hidden",
-  "image",
-  "radio",
-  "range",
-  "reset",
-  "submit",
-]);
-
-/** Whether the target takes typing: a text input, textarea, select, contenteditable, or an ARIA textbox / combobox. */
-function isEditable(target: EventTarget | null) {
-  if (!(target instanceof HTMLElement)) return false;
-  if (target.isContentEditable) return true;
-  if (target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) return true;
-  if (target.matches("[role=textbox], [role=combobox]")) return true;
-  return target instanceof HTMLInputElement && !nonTextInputTypes.has(target.type);
 }
 
 export interface CommandDialogProps extends CommandProps {
