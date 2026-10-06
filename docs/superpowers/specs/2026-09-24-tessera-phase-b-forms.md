@@ -47,6 +47,7 @@
   - Focus: `outline-hidden outline-offset-2 outline-ring focus-visible:outline-2 focus-visible:outline-solid`.
   - Invalid: `data-invalid:border-danger` (the Switch track gets `data-invalid:outline-1 data-invalid:outline-solid data-invalid:outline-danger data-invalid:focus-visible:outline-2`, so while focused the ring keeps 2px width in the danger color).
   - Hover while unchecked (Checkbox and Radio; the Switch has its own track rule above): `not-data-disabled:not-data-checked:not-data-indeterminate:not-data-invalid:hover:border-field-border-hover` (never overrides checked, indeterminate or invalid borders).
+    - *Superseded by Phase J §0.2*: the hover rules (both this one and the Switch track's) also carry `not-data-readonly:`, and the three controls add `data-readonly:cursor-default`.
 - **Label / FieldLabel:** `text-sm font-medium leading-snug text-foreground`. FieldLabel adds `data-disabled:text-muted-foreground` (it reflects the Field's disabled state by dimming its text color, not its opacity, so a control nested in the label keeps its own 50% opacity instead of compounding to ~25%).
 - **FieldDescription:** `text-sm text-muted-foreground`.
 - **FieldError:** `text-sm text-danger`.

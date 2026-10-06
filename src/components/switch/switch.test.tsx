@@ -154,6 +154,22 @@ describe("Switch", () => {
     const bg = (el: Element) => getComputedStyle(el).backgroundColor;
 
     it.each([
+      ["Off", false],
+      ["On", true],
+    ])("read-only (%s): a default cursor and no hover fill", async (label, checked) => {
+      const screen = await render(<Labelled label={label} defaultChecked={checked} readOnly />);
+      const toggle = screen.getByRole("switch", { name: label });
+      await expect.element(toggle).toHaveAttribute("data-readonly");
+      const element = toggle.element();
+      expect(getComputedStyle(element).cursor).toBe("default");
+      const before = bg(element);
+      await userEvent.hover(toggle);
+      expect(element.matches(":hover")).toBe(true);
+      await expect.poll(() => element.getAnimations().length).toBe(0);
+      expect(bg(element)).toBe(before);
+    });
+
+    it.each([
       { label: "Off", checked: false, ref: "bg-field-border-hover" },
       { label: "On", checked: true, ref: "bg-primary-hover" },
     ])("fills the $label track with $ref on hover", async ({ label, checked, ref }) => {

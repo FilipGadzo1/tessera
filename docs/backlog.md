@@ -11,8 +11,6 @@ None block current use.
   in a server-safe component, so the documented pattern is `<CardTitle role="heading" aria-level={3}>`
   (see the Card stories). Revisit if Card gains a client part.
 - Button test: assert the loading spinner renders before the children.
-- FieldError renders an empty node when `<Field invalid>` has no FieldError children (fix: apply
-  the default `match` only when `children != null`).
 - FieldError has no live region — `onBlur` errors are not announced until the control is refocused
   (consider an optional `aria-live`).
 - Field blur-validation test should assert the error is absent before the Tab.
@@ -20,7 +18,6 @@ None block current use.
 - No `readOnly` styling test for the text fields (Input, Textarea).
 - `read-only:bg-muted` also matches disabled inputs; in dark mode fields shouldn't sit on muted.
 - Checkbox: the indicator may flash the check icon on an indeterminate→unchecked exit.
-- Checkbox / Switch / Radio: `readOnly` keeps `cursor-pointer`.
 - Switch (dark): unchecked hover thumb vs track ≈2.3–2.5:1 (hover-only; the track stays ≥3:1 vs the
   background).
 - Label story lacks an `htmlFor` + Input pairing.
@@ -311,8 +308,6 @@ phase; items fixed by a later commit are left out).
 - Drawer direction (Phase I Task 0): `start` / `end` read the direction once per open, before the panel
   mounts (an explicit `dir` on `DrawerContent`, else the portal container's). A runtime `dir` change while
   the drawer is open is not reflected until it is reopened, like the Sidebar direction note above.
-- Dialog / AlertDialog: the close button is still physical (`right-4`), as Drawer's was before Phase I
-  Task 0 made it `end-4`.
 - Command (Phase I Task 2): items filter by hiding the non-matching ones (not rendered), so Base UI's
   input carries `data-list-empty` (it has no `items` to count); nothing styles it.
 - Dashboard tests (Task 5): the keyboard flow still clicks in places (the segments, the Period trigger and
@@ -337,7 +332,6 @@ DateRangeField test and the Tree position compare.
   en-US dates plus the icon button need about 22rem at `lg`).
 - DateRangePicker (Task 1): `onValueChange` has two contracts, complete ranges only (button picker) vs
   partial pairs (editable, an end can be `null`). Decide before 1.0, e.g. a separate `onPartialValueChange`.
-- Dialog-wide (pre-existing, seen on CommandDialog in the Task 2 review): a double border in forced colors.
 - `claimEscape` (Task 2): no dedicated test with a DatePicker popup or the Sidebar Drawer around a Command
   (the Popover and Dialog cases are tested).
 - Tree (Task 3): a wrapper component that reorders its own items internally, without the tree

@@ -201,6 +201,19 @@ describe("Checkbox", () => {
     const settle = () => new Promise((resolve) => setTimeout(resolve, 250));
     const border = (el: Element) => getComputedStyle(el).borderTopColor;
 
+    it("read-only: a default cursor and no hover border", async () => {
+      const screen = await render(<Labelled label="Locked" readOnly />);
+      const checkbox = screen.getByRole("checkbox", { name: "Locked" });
+      await expect.element(checkbox).toHaveAttribute("data-readonly");
+      const element = checkbox.element();
+      expect(getComputedStyle(element).cursor).toBe("default");
+      const before = border(element);
+      await userEvent.hover(checkbox);
+      expect(element.matches(":hover")).toBe(true);
+      await expect.poll(() => element.getAnimations().length).toBe(0);
+      expect(border(element)).toBe(before);
+    });
+
     it("uses the hover border on an unchecked checkbox (control)", async () => {
       const screen = await render(
         <div>

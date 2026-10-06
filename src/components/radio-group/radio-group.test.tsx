@@ -186,6 +186,24 @@ describe("RadioGroup", () => {
     expect(cursor("Off A")).toBe("not-allowed");
   });
 
+  it("read-only: a default cursor and no hover border", async () => {
+    const screen = await render(
+      <RadioGroup aria-label="Locked" readOnly defaultValue="a">
+        <Radio value="a" aria-label="Locked A" />
+        <Radio value="b" aria-label="Locked B" />
+      </RadioGroup>,
+    );
+    const radio = screen.getByRole("radio", { name: "Locked B" });
+    await expect.element(radio).toHaveAttribute("data-readonly");
+    const element = radio.element();
+    expect(getComputedStyle(element).cursor).toBe("default");
+    const before = getComputedStyle(element).borderTopColor;
+    await userEvent.hover(radio);
+    expect(element.matches(":hover")).toBe(true);
+    await expect.poll(() => element.getAnimations().length).toBe(0);
+    expect(getComputedStyle(element).borderTopColor).toBe(before);
+  });
+
   it.each([
     { how: "the group's disabled prop", props: { disabled: true } },
     { how: "a disabled Fieldset", props: { fieldsetDisabled: true } },
