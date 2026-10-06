@@ -647,6 +647,10 @@ source files automatically (build output + `"use client"` directive checks).
   and put `aria-keyshortcuts={useModifierKeyLabel().aria("mod+k")}` on the control ("Meta+K" on a Mac, "Control+K"
   elsewhere). `CommandShortcut` and `MenuShortcut` take the same `shortcut` prop ("⌘B" / "Ctrl+B"). KbdShortcut
   is a client component)
+- [x] Colour helpers (`parseColor` reads hex, `rgb()` and `hsl()` into `{ r, g, b, a }`; `formatHex` /
+  `formatRgb` / `formatHsl` / `formatColor`; `rgbToHsv` / `hsvToRgb` / `rgbToHsl` / `hslToRgb`; WCAG
+  `relativeLuminance`, `compositeOver`, `contrastRatio` (a translucent colour is composited first, with no
+  rounding before the ratio), `wcagContrast` and `readableForeground`. Pure and server-safe)
 
 Phase A (foundation), Phase B (forms), Phase C (overlays), Phase D (navigation and feedback),
 Phase E (data entry and display), Phase F (dates, toolbars and surfaces — Meter, ScrollArea,

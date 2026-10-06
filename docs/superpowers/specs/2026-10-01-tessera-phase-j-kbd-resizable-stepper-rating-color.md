@@ -165,6 +165,7 @@ Server-safe, no dependency, no hooks. Every function is pure and unit-tested in 
 - conversions: the primaries, secondaries, white, black, a mid grey, and a fixed sample round-tripping HSV → RGB → HSV and HSL → RGB → HSL within 0.5;
 - contrast (values computed for this spec): `#000` / `#fff` = 21; `#777777` / `#ffffff` = 4.48; `#ffffff` on itself = 1; order does not matter; 50%-alpha black over white = 3.98 (the unrounded 127.5 grey; `#808080` would give 3.95, so the test proves no rounding); `#1d4ed8` / `#ffffff` = 6.7; `#ffff66` / `#ffffff` = 1.06; `#1d4ed8` / `#0f172a` = 2.66; `wcagContrast` at 2.99 / 3 / 4.49 / 4.5 / 7;
 - `readableForeground` on `#ffff00` (black) and `#1d4ed8` (white).
+- *Amended in Task 2*: `color.ts` is exported from the package (`src/index.ts`: the functions and the `RGBA` / `HSVA` / `HSLA` / `ColorFormat` types). Evidence: the build's only entry is `src/index.ts`, so a module nothing imports is not emitted, and the gate's `verify:consumer` failed with "missing dist/lib/color.d.ts (from src/lib/color.ts)" until Task 3 would import it. The ColorPicker's values are hex strings, so the parser, formatters and contrast helpers are also what a consumer needs to work with them (and what the Theme Studio's contrast badge, §6, shows). `formatHex`'s option is `{ alpha?: "auto" | "always" | "never" }`; `readableForeground` and the contrast functions take `RGBA` (a caller parses a string first).
 
 ## 2. ColorPicker (Tasks 2–4)
 

@@ -650,5 +650,25 @@ export {
   type TreeSelectionMode,
 } from "./components/tree";
 export { cn } from "./lib/cn";
+export {
+  type ColorFormat,
+  compositeOver,
+  contrastRatio,
+  formatColor,
+  formatHex,
+  formatHsl,
+  formatRgb,
+  type HSLA,
+  type HSVA,
+  hslToRgb,
+  hsvToRgb,
+  parseColor,
+  type RGBA,
+  readableForeground,
+  relativeLuminance,
+  rgbToHsl,
+  rgbToHsv,
+  wcagContrast,
+} from "./lib/color";
 export { type ToneColor, toneColors } from "./lib/tone";
 export { type ModifierKeyLabel, useModifierKeyLabel } from "./lib/use-modifier-key-label";
