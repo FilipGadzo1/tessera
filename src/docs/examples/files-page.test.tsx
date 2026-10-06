@@ -4,6 +4,7 @@ import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { resetEmulatedMedia } from "../../../test/emulation";
 import { auditOpenOverlay, waitForPopupSettled } from "../../../test/overlay";
+import { restorePlatform, stubMac, stubWindows } from "../../../test/platform";
 import { FilesPage } from "./files-page";
 
 const heading = () => page.getByRole("heading", { level: 1 });
@@ -54,12 +55,14 @@ beforeEach(async () => {
   // Only `Date` is faked: "today" for the calendar; React and userEvent keep real timers.
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date(2026, 8, 30, 12));
+  // Off Apple, whatever the host: the tests press Ctrl+K and read "Ctrl" hints.
+  stubWindows();
 });
 
 afterEach(async () => {
   vi.useRealTimers();
   document.documentElement.classList.remove("dark");
-  delete (navigator as { userAgentData?: unknown }).userAgentData;
+  restorePlatform();
   await resetEmulatedMedia();
 });
 
@@ -90,10 +93,7 @@ describe("FilesPage shortcut hints", () => {
   });
 
   it("under a macOS stub: Meta+K, a ⌘ hint and ⌘B", async () => {
-    Object.defineProperty(navigator, "userAgentData", {
-      value: { platform: "macOS" },
-      configurable: true,
-    });
+    stubMac();
     await render(<FilesPage />);
     await expect.element(commandsButton()).toHaveAttribute("aria-keyshortcuts", "Meta+K");
     const button = commandsButton().element() as HTMLElement;

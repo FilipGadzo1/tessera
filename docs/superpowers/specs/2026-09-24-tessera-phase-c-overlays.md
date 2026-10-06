@@ -74,6 +74,7 @@ Each overlay ships three kinds of part:
   - Separator: `-mx-1 my-1 h-px bg-border`.
   - GroupLabel: `px-2 py-1.5 text-xs font-medium text-muted-foreground`.
   - Shortcut: `ml-auto text-xs tracking-widest text-muted-foreground`, a plain `<span>` (no Base UI context). It always renders `aria-hidden="true"`, set after `{...props}` so a caller cannot un-hide it by accident: the hint stays out of the item's accessible name ("Rename…", not "Rename…F2"). When the app handles the key, put `aria-keyshortcuts` on the MenuItem (final review).
+    - *Superseded by Phase J §0.1*: `tracking-widest` is dropped and `MenuShortcut` gains `shortcut` (`docs/superpowers/specs/2026-10-01-tessera-phase-j-kbd-resizable-stepper-rating-color.md`).
 - **Submenu alignment:** `MenuSubContent` defaults to `alignOffset = -5`. At -5 the submenu's first item lines up with its trigger, which accounts for the popup's 1px border plus `p-1`. A test measures this.
 - **data-slot on every part:**
   - Tooltip: `tooltip-content`.

@@ -1,10 +1,11 @@
 "use client";
 
+import { Fragment } from "react";
 import { cn } from "../../lib/cn";
 import { useModifierKeyLabel } from "../../lib/use-modifier-key-label";
 import { Kbd, type KbdGroupProps, kbdGroupBase } from "./kbd";
 
-export interface KbdShortcutProps extends KbdGroupProps {
+export interface KbdShortcutProps extends Omit<KbdGroupProps, "children"> {
   /** The shortcut as `modifier+key` (`"mod+k"`; `mod` is ⌘ on Apple platforms, Ctrl elsewhere). */
   shortcut: string;
   /**
@@ -36,14 +37,25 @@ export function KbdShortcut({
         const label = keyName(name);
         // Keys are positional and the list never reorders.
         const key = `${index}-${glyph}`;
-        if (glyph === name) return <Kbd key={key}>{label}</Kbd>;
         return (
-          <Kbd key={key} title={label}>
-            <span aria-hidden="true" data-slot="kbd-glyph">
-              {glyph}
-            </span>
-            <span className="sr-only">{label}</span>
-          </Kbd>
+          <Fragment key={key}>
+            {/*
+             * A space in the text between keys, so the combination reads "Ctrl K", not "CtrlK"
+             * (flex items with no text between them can run together). Out of flow: no visual
+             * change. A no-break space, since a plain one would collapse away.
+             */}
+            {index > 0 && <span className="sr-only">{" "}</span>}
+            {glyph === name ? (
+              <Kbd>{label}</Kbd>
+            ) : (
+              <Kbd title={label}>
+                <span aria-hidden="true" data-slot="kbd-glyph">
+                  {glyph}
+                </span>
+                <span className="sr-only">{label}</span>
+              </Kbd>
+            )}
+          </Fragment>
         );
       })}
     </kbd>

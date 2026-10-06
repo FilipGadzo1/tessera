@@ -5,20 +5,13 @@ import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { emulateForcedColors, systemColor } from "../../../test/emulation";
+import { restorePlatform, stubMac, stubWindows } from "../../../test/platform";
 import { Kbd, KbdGroup } from "./kbd";
 import * as stories from "./kbd.stories";
 import { KbdShortcut } from "./kbd-shortcut";
 
-/** Makes `isApplePlatform()` true (Chromium here runs on Windows or Linux). Undone in `afterEach`. */
-function stubMac() {
-  Object.defineProperty(navigator, "userAgentData", {
-    value: { platform: "macOS" },
-    configurable: true,
-  });
-}
-
 afterEach(() => {
-  delete (navigator as { userAgentData?: unknown }).userAgentData;
+  restorePlatform();
 });
 
 function StoryView({ story }: { story: { args?: object; render?: unknown } }) {
@@ -69,6 +62,7 @@ describe("Kbd", () => {
 
 describe("KbdShortcut", () => {
   it("shows Ctrl and K as separate keys off Apple, with no plus", async () => {
+    stubWindows();
     const screen = await render(<KbdShortcut shortcut="mod+k" />);
     const root = screen.container.querySelector("[data-slot=kbd-shortcut]") as HTMLElement;
     expect(root.tagName).toBe("KBD");
@@ -79,6 +73,17 @@ describe("KbdShortcut", () => {
       expect(key.hasAttribute("title")).toBe(false);
     }
     expect(root.textContent).not.toContain("+");
+  });
+
+  it("separates the keys in the text (not 'CtrlK'), with no visible change", async () => {
+    stubWindows();
+    const screen = await render(<KbdShortcut shortcut="mod+shift+k" />);
+    const root = screen.container.querySelector("[data-slot=kbd-shortcut]") as HTMLElement;
+    expect(root.textContent).toMatch(/^Ctrl\sShift\sK$/);
+    // The separator takes no space: keys sit exactly one flex gap apart.
+    const [ctrl, shift] = shortcutKbds() as [HTMLElement, HTMLElement];
+    const gap = shift.getBoundingClientRect().left - ctrl.getBoundingClientRect().right;
+    expect(gap).toBeCloseTo(Number.parseFloat(getComputedStyle(root).columnGap), 3);
   });
 
   it("shows ⌘ with an sr-only name and title on Apple", async () => {
@@ -108,10 +113,17 @@ describe("KbdShortcut", () => {
   });
 
   it("keyName localises text keys off Apple", async () => {
+    stubWindows();
     await render(
       <KbdShortcut shortcut="mod+k" keyName={(name) => (name === "Ctrl" ? "Strg" : name)} />,
     );
     expect(shortcutKbds().map((key) => key.textContent)).toEqual(["Strg", "K"]);
+  });
+
+  it("takes no children (the keys come from shortcut)", () => {
+    // @ts-expect-error `children` is not a KbdShortcut prop.
+    const element = <KbdShortcut shortcut="mod+k">X</KbdShortcut>;
+    expect(element.props.shortcut).toBe("mod+k");
   });
 
   it("passes props through and merges className", async () => {
@@ -161,6 +173,7 @@ describe("Kbd stories", () => {
     ["dark", true],
   ] as const)("has no axe violations in the %s theme (macOS stub: %s)", async (theme, mac) => {
     if (mac) stubMac();
+    else stubWindows();
     const screen = await render(
       <div
         className={
@@ -212,6 +225,7 @@ describe("Kbd stories", () => {
   });
 
   it("In a Button: the hint is aria-hidden and the button carries aria-keyshortcuts", async () => {
+    stubWindows();
     const screen = await render(<StoryView story={stories.InAButton} />);
     const button = screen.getByRole("button").element() as HTMLElement;
     expect(button.getAttribute("aria-keyshortcuts")).toBe("Control+K");

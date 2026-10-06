@@ -1,9 +1,10 @@
 import { type ReactElement, useState } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { emulateForcedColors, resetEmulatedMedia, systemColor } from "../../../test/emulation";
 import { auditOpenOverlay, waitForPopupSettled } from "../../../test/overlay";
+import { restorePlatform, stubMac, stubWindows } from "../../../test/platform";
 import { Button } from "../button";
 import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from "../drawer";
 import { Popover, PopoverContent, PopoverTrigger } from "../popover";
@@ -122,7 +123,7 @@ async function openDialogByButton() {
 
 afterEach(async () => {
   document.documentElement.classList.remove("dark");
-  delete (navigator as { userAgentData?: unknown }).userAgentData;
+  restorePlatform();
   await resetEmulatedMedia();
 });
 
@@ -130,16 +131,14 @@ describe("CommandShortcut shortcut", () => {
   const hint = () => document.querySelector("[data-slot=command-shortcut]");
 
   it("reads Ctrl+B off Apple", async () => {
+    stubWindows();
     await render(<CommandShortcut shortcut="mod+b" />);
     expect(hint()?.textContent).toBe("Ctrl+B");
     expect(hint()?.getAttribute("aria-hidden")).toBe("true");
   });
 
   it("reads ⌘B under a macOS stub", async () => {
-    Object.defineProperty(navigator, "userAgentData", {
-      value: { platform: "macOS" },
-      configurable: true,
-    });
+    stubMac();
     await render(<CommandShortcut shortcut="mod+b" />);
     expect(hint()?.textContent).toBe("⌘B");
   });
@@ -507,6 +506,11 @@ describe("Command inside an overlay", () => {
 });
 
 describe("CommandDialog", () => {
+  // The tests press Ctrl+K / Ctrl+Shift+P: `mod` is Ctrl off Apple.
+  beforeEach(() => {
+    stubWindows();
+  });
+
   it("opens with the shortcut, names the dialog and focuses the input", async () => {
     await render(<DialogPalette />);
     await userEvent.click(page.getByRole("button", { name: "Open palette" }));

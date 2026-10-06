@@ -4,6 +4,7 @@ import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { resetEmulatedMedia } from "../../../test/emulation";
 import { auditOpenOverlay, waitForPopupSettled } from "../../../test/overlay";
+import { restorePlatform, stubMac, stubWindows } from "../../../test/platform";
 import { DashboardPage } from "./dashboard-page";
 
 const trigger = () => page.getByRole("button", { name: "Toggle sidebar" });
@@ -30,12 +31,14 @@ beforeEach(async () => {
   await page.viewport(1280, 800);
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date(2026, 8, 30, 12));
+  // Off Apple, whatever the host: the tests press Ctrl+K and read "Ctrl" hints.
+  stubWindows();
 });
 
 afterEach(async () => {
   vi.useRealTimers();
   document.documentElement.classList.remove("dark");
-  delete (navigator as { userAgentData?: unknown }).userAgentData;
+  restorePlatform();
   await resetEmulatedMedia();
 });
 
@@ -59,10 +62,7 @@ describe("DashboardPage shortcut hint", () => {
   });
 
   it("under a macOS stub: Meta+K and a ⌘ hint", async () => {
-    Object.defineProperty(navigator, "userAgentData", {
-      value: { platform: "macOS" },
-      configurable: true,
-    });
+    stubMac();
     await render(<DashboardPage />);
     await expect.element(searchButton()).toHaveAttribute("aria-keyshortcuts", "Meta+K");
     const button = searchButton().element() as HTMLElement;

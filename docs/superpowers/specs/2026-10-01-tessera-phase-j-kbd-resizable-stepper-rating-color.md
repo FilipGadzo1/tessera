@@ -95,6 +95,8 @@
 - *Amended in Task 0*: `useModifierKeyLabel` (and its `ModifierKeyLabel` type) is exported from the package, since `KbdShortcut`'s documented pattern for a hint inside a control needs `aria(shortcut)`. `react-dom/client` joins vitest's `optimizeDeps` (the hydration test imports `hydrateRoot`; without it Vite reloads mid-run).
 - *Amended in Task 0*: the Command `Dialog` story's "Open command menu" button had the same per-platform bug as the examples (a hard-coded `aria-keyshortcuts="Control+K"` and a literal "Ctrl K" hint), so it gets the same fix: `aria("mod+k")` and an `aria-hidden` `KbdShortcut`. With `children`, `CommandShortcut` / `MenuShortcut` show the children and ignore `shortcut`.
 - *Amended in Task 0*: `CommandShortcut` and `MenuShortcut` drop `tracking-widest` (Phase C §Menu's class string). It was tuned for "⌘E"; the visual check showed the Windows/Linux labels it now renders letter-spaced as "C t r l + P". Without it both "Ctrl+P" and "⌘P" read normally (screens `task0-command-dialog-*.png`).
+- *Amended in Task 1*: `KbdShortcut` puts an `sr-only` no-break space between its keys, so its text is "Ctrl K", not "CtrlK" (flex-item `<kbd>`s with no text between them can be read as one word). It is out of flow, so the keys still sit one flex gap apart (tested); a plain `{" "}` would be a whitespace-only flex child, which is not rendered. `KbdShortcutProps` is `Omit<KbdGroupProps, "children">` (the keys come from `shortcut`).
+- *Amended in Task 1*: the platform stubs live in `test/platform.ts` (`stubMac`, `stubWindows`, `restorePlatform`). Every test that assumes a non-Apple platform (a "Ctrl" label, `Control+K`, pressing Ctrl+K) calls `stubWindows()`, so the suite also passes on a Mac.
 
 ### 0.2 Small carry-overs (Task 1)
 

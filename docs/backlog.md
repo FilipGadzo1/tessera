@@ -361,6 +361,10 @@ DateRangeField test and the Tree position compare.
   - Its keyboard test opens the image preview with a click on the Tree (the Tree's own keyboard flow is
     tested separately); the mobile test covers the Drawer at 390px only.
 
+### Phase J notes
+- Kbd (Task 0): the keycap border (`border-border` on `bg-muted`) is almost invisible in dark mode.
+- Kbd (Task 0): the ↵ glyph renders small next to the other keys at `text-xs`.
+
 ## Next components
 Follow the phases in the design-system spec §6
 (`docs/superpowers/specs/2026-09-23-tessera-design-system-v2.md`): Phase B forms (Label, Field, Input,

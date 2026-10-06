@@ -4,6 +4,7 @@ import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { emulateForcedColors, resetEmulatedMedia, systemColor } from "../../../test/emulation";
 import { auditOpenOverlay, waitForPopupSettled } from "../../../test/overlay";
+import { restorePlatform, stubMac, stubWindows } from "../../../test/platform";
 import { Button, buttonVariants } from "../button";
 import {
   Menu,
@@ -120,23 +121,21 @@ afterEach(async () => {
 
 afterEach(() => {
   document.documentElement.classList.remove("dark");
-  delete (navigator as { userAgentData?: unknown }).userAgentData;
+  restorePlatform();
 });
 
 describe("MenuShortcut shortcut", () => {
   const hint = () => document.querySelector("[data-slot=menu-shortcut]");
 
   it("reads Ctrl+B off Apple", async () => {
+    stubWindows();
     await render(<MenuShortcut shortcut="mod+b" />);
     expect(hint()?.textContent).toBe("Ctrl+B");
     expect(hint()?.getAttribute("aria-hidden")).toBe("true");
   });
 
   it("reads ⌘B under a macOS stub", async () => {
-    Object.defineProperty(navigator, "userAgentData", {
-      value: { platform: "macOS" },
-      configurable: true,
-    });
+    stubMac();
     await render(<MenuShortcut shortcut="mod+b" />);
     expect(hint()?.textContent).toBe("⌘B");
   });

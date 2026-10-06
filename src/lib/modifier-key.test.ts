@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { restorePlatform, stubWindows } from "../../test/platform";
 import {
   ariaKeyShortcuts,
   formatShortcut,
@@ -21,11 +22,12 @@ function keydown(key: string, init: KeyboardEventInit = {}) {
   return new KeyboardEvent("keydown", { key, ...init });
 }
 
-describe("isApplePlatform", () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
+afterEach(() => {
+  vi.unstubAllGlobals();
+  restorePlatform();
+});
 
+describe("isApplePlatform", () => {
   it.each([
     ["MacIntel", undefined, true],
     ["iPhone", undefined, true],
@@ -42,7 +44,7 @@ describe("isApplePlatform", () => {
   });
 
   it("reads the global navigator by default", () => {
-    // Chromium here runs on Windows or Linux.
+    stubWindows();
     expect(isApplePlatform()).toBe(false);
     vi.stubGlobal("navigator", fakeNavigator("MacIntel"));
     expect(isApplePlatform()).toBe(true);
@@ -84,6 +86,7 @@ describe("matchesShortcut", () => {
   });
 
   it("defaults to the current platform", () => {
+    stubWindows();
     expect(matchesShortcut(keydown("k", { ctrlKey: true }), parseShortcut("mod+k"))).toBe(true);
   });
 

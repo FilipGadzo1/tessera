@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { auditOpenOverlay, waitForPopupSettled } from "../../../test/overlay";
+import { restorePlatform, stubMac, stubWindows } from "../../../test/platform";
 import { ProjectCard } from "./project-card";
 
 const menuTrigger = () => page.getByRole("button", { name: "Project actions" });
@@ -20,7 +21,7 @@ function highlighted() {
 
 afterEach(() => {
   document.documentElement.classList.remove("dark");
-  delete (navigator as { userAgentData?: unknown }).userAgentData;
+  restorePlatform();
 });
 
 describe("ProjectCard shortcut hints", () => {
@@ -30,6 +31,7 @@ describe("ProjectCard shortcut hints", () => {
     );
 
   it("Copy link reads Ctrl+L off Apple; F2 stays", async () => {
+    stubWindows();
     await render(<ProjectCard />);
     await userEvent.click(menuTrigger());
     await waitForPopupSettled(page.getByRole("menu").element());
@@ -37,10 +39,7 @@ describe("ProjectCard shortcut hints", () => {
   });
 
   it("Copy link reads ⌘L under a macOS stub", async () => {
-    Object.defineProperty(navigator, "userAgentData", {
-      value: { platform: "macOS" },
-      configurable: true,
-    });
+    stubMac();
     await render(<ProjectCard />);
     await userEvent.click(menuTrigger());
     await waitForPopupSettled(page.getByRole("menu").element());
