@@ -12,6 +12,7 @@ import {
   popupSurface,
 } from "../../lib/overlay-classes";
 import { useLayeredEscape } from "../../lib/tooltip-escape";
+import { useModifierKeyLabel } from "../../lib/use-modifier-key-label";
 
 const menuContentBase = cn("min-w-(--anchor-width)", menuContentClasses);
 /**
@@ -30,7 +31,7 @@ const menuSubTriggerBase = "data-popup-open:bg-accent";
 const menuSubTriggerChevron = "ml-auto";
 const menuSeparatorBase = "-mx-1 my-1 h-px bg-border forced-colors:bg-[CanvasText]";
 const menuGroupLabelBase = "px-2 py-1.5 text-xs font-medium text-muted-foreground";
-const menuShortcutBase = "ml-auto text-xs tracking-widest text-muted-foreground";
+const menuShortcutBase = "ml-auto text-xs text-muted-foreground";
 
 export type MenuProps = BaseMenu.Root.Props;
 
@@ -300,21 +301,31 @@ export function MenuSubContent({
   );
 }
 
-export type MenuShortcutProps = ComponentProps<"span">;
+export interface MenuShortcutProps extends ComponentProps<"span"> {
+  /**
+   * A `modifier+key` shortcut (`"mod+e"`) shown for the platform when there are no `children`:
+   * "⌘E" on Apple platforms, "Ctrl+E" elsewhere (and in server HTML).
+   */
+  shortcut?: string;
+}
 
 /**
- * A keyboard hint at the end of an item (plain `<span>`, no behaviour): `<MenuShortcut>⌘E</MenuShortcut>`.
+ * A keyboard hint at the end of an item (plain `<span>`, no behaviour): `<MenuShortcut shortcut="mod+e" />`
+ * ("⌘E" on a Mac, "Ctrl+E" elsewhere) or literal text, `<MenuShortcut>F2</MenuShortcut>`.
  * It is always `aria-hidden` so the hint stays out of the item's accessible name ("Rename…", not
  * "Rename…F2"). When the app really handles the key, expose it on the item instead:
  * `<MenuItem aria-keyshortcuts="F2">Rename…<MenuShortcut>F2</MenuShortcut></MenuItem>`.
  */
-export function MenuShortcut({ className, ...props }: MenuShortcutProps) {
+export function MenuShortcut({ shortcut, className, children, ...props }: MenuShortcutProps) {
+  const { format } = useModifierKeyLabel();
   return (
     <span
       {...props}
       aria-hidden="true"
       data-slot="menu-shortcut"
       className={cn(menuShortcutBase, className)}
-    />
+    >
+      {children ?? (shortcut === undefined ? null : format(shortcut))}
+    </span>
   );
 }

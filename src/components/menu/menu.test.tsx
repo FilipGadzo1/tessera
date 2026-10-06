@@ -120,6 +120,31 @@ afterEach(async () => {
 
 afterEach(() => {
   document.documentElement.classList.remove("dark");
+  delete (navigator as { userAgentData?: unknown }).userAgentData;
+});
+
+describe("MenuShortcut shortcut", () => {
+  const hint = () => document.querySelector("[data-slot=menu-shortcut]");
+
+  it("reads Ctrl+B off Apple", async () => {
+    await render(<MenuShortcut shortcut="mod+b" />);
+    expect(hint()?.textContent).toBe("Ctrl+B");
+    expect(hint()?.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  it("reads ⌘B under a macOS stub", async () => {
+    Object.defineProperty(navigator, "userAgentData", {
+      value: { platform: "macOS" },
+      configurable: true,
+    });
+    await render(<MenuShortcut shortcut="mod+b" />);
+    expect(hint()?.textContent).toBe("⌘B");
+  });
+
+  it("children win over shortcut", async () => {
+    await render(<MenuShortcut shortcut="mod+b">F2</MenuShortcut>);
+    expect(hint()?.textContent).toBe("F2");
+  });
 });
 
 describe("Menu", () => {
@@ -426,9 +451,7 @@ describe("Menu", () => {
       "-mx-1 my-1 h-px bg-border forced-colors:bg-[CanvasText]",
     );
     expect(slot("menu-shortcut").tagName).toBe("SPAN");
-    expect(slot("menu-shortcut").className).toBe(
-      "ml-auto text-xs tracking-widest text-muted-foreground",
-    );
+    expect(slot("menu-shortcut").className).toBe("ml-auto text-xs text-muted-foreground");
   });
 
   it("sets data-slots on checkbox, radio and sub-trigger items", async () => {

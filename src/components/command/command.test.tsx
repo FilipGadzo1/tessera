@@ -122,7 +122,32 @@ async function openDialogByButton() {
 
 afterEach(async () => {
   document.documentElement.classList.remove("dark");
+  delete (navigator as { userAgentData?: unknown }).userAgentData;
   await resetEmulatedMedia();
+});
+
+describe("CommandShortcut shortcut", () => {
+  const hint = () => document.querySelector("[data-slot=command-shortcut]");
+
+  it("reads Ctrl+B off Apple", async () => {
+    await render(<CommandShortcut shortcut="mod+b" />);
+    expect(hint()?.textContent).toBe("Ctrl+B");
+    expect(hint()?.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  it("reads ⌘B under a macOS stub", async () => {
+    Object.defineProperty(navigator, "userAgentData", {
+      value: { platform: "macOS" },
+      configurable: true,
+    });
+    await render(<CommandShortcut shortcut="mod+b" />);
+    expect(hint()?.textContent).toBe("⌘B");
+  });
+
+  it("children win over shortcut", async () => {
+    await render(<CommandShortcut shortcut="mod+b">F2</CommandShortcut>);
+    expect(hint()?.textContent).toBe("F2");
+  });
 });
 
 describe("Command", () => {

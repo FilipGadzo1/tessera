@@ -38,15 +38,15 @@ export const ApplicationMenubar: Story = {
         <MenuContent>
           <MenuItem>
             New
-            <MenuShortcut>⌘N</MenuShortcut>
+            <MenuShortcut shortcut="mod+n" />
           </MenuItem>
           <MenuItem>
             Open…
-            <MenuShortcut>⌘O</MenuShortcut>
+            <MenuShortcut shortcut="mod+o" />
           </MenuItem>
           <MenuItem>
             Save
-            <MenuShortcut>⌘S</MenuShortcut>
+            <MenuShortcut shortcut="mod+s" />
           </MenuItem>
           <MenuSeparator />
           <MenuItem variant="danger">Close window</MenuItem>
@@ -57,11 +57,11 @@ export const ApplicationMenubar: Story = {
         <MenuContent>
           <MenuItem>
             Undo
-            <MenuShortcut>⌘Z</MenuShortcut>
+            <MenuShortcut shortcut="mod+z" />
           </MenuItem>
           <MenuItem>
             Redo
-            <MenuShortcut>⇧⌘Z</MenuShortcut>
+            <MenuShortcut shortcut="mod+shift+z" />
           </MenuItem>
           <MenuSeparator />
           <MenuItem>Cut</MenuItem>

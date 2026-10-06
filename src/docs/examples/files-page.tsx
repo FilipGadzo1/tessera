@@ -25,6 +25,7 @@ import {
 import { DateRangePicker } from "../../components/date-picker";
 import { Field, FieldLabel } from "../../components/field";
 import { Form } from "../../components/form";
+import { KbdShortcut } from "../../components/kbd";
 import {
   Sidebar,
   SidebarContent,
@@ -49,6 +50,7 @@ import {
 } from "../../components/table";
 import { Tree, TreeItem, TreeItemContent, TreeItemIcon } from "../../components/tree";
 import { FolderIcon, PanelLeftIcon, PlusIcon, SearchIcon } from "../../lib/icons";
+import { useModifierKeyLabel } from "../../lib/use-modifier-key-label";
 import {
   type Art,
   artByName,
@@ -224,7 +226,7 @@ function FilesCommand({
               <CommandItem onSelect={toggleSidebar}>
                 <PanelLeftIcon />
                 Toggle sidebar
-                <CommandShortcut>⌘B</CommandShortcut>
+                <CommandShortcut shortcut="mod+b" />
               </CommandItem>
             </CommandGroup>
           </>
@@ -356,6 +358,7 @@ export function FilesPage({ onFilter, onOpenFolder }: FilesPageProps) {
   const [expanded, setExpanded] = useState<string[]>([]);
   const [filter, setFilter] = useState<FilesFilter["modified"] | null>(null);
   const [commandOpen, setCommandOpen] = useState(false);
+  const { aria } = useModifierKeyLabel();
 
   const openFolder = (id: string, list = folders) => {
     setCurrent(id);
@@ -403,14 +406,12 @@ export function FilesPage({ onFilter, onOpenFolder }: FilesPageProps) {
             color="neutral"
             size="sm"
             className="ms-auto"
-            aria-keyshortcuts="Control+K Meta+K"
+            aria-keyshortcuts={aria("mod+k")}
             onClick={() => setCommandOpen(true)}
           >
             <SearchIcon aria-hidden="true" />
             Commands
-            <span aria-hidden="true" className="text-xs text-muted-foreground">
-              ⌘K
-            </span>
+            <KbdShortcut aria-hidden shortcut="mod+k" />
           </Button>
         </header>
         <div className="flex min-w-0 flex-col gap-6 p-4 md:p-6">

@@ -93,6 +93,8 @@
 - *Amended in Task 0*: `keyName` also applies to text keys (their shown text is their name, e.g. "Ctrl" → "Strg"), so one function localises the whole shortcut.
 - *Amended in Task 0*: axe cannot rate the contrast of a symbol-only glyph (⌘, ⇧, ↵) and reports `color-contrast` "needs review" with `nonBmp` ("Element content contains only non-text characters") on each `[data-slot=kbd-glyph]`. The Kbd axe test allows exactly those entries and checks instead that each glyph has the same colour and keycap background as a text key that axe does rate. Every other violation and incomplete must be `[]`.
 - *Amended in Task 0*: `useModifierKeyLabel` (and its `ModifierKeyLabel` type) is exported from the package, since `KbdShortcut`'s documented pattern for a hint inside a control needs `aria(shortcut)`. `react-dom/client` joins vitest's `optimizeDeps` (the hydration test imports `hydrateRoot`; without it Vite reloads mid-run).
+- *Amended in Task 0*: the Command `Dialog` story's "Open command menu" button had the same per-platform bug as the examples (a hard-coded `aria-keyshortcuts="Control+K"` and a literal "Ctrl K" hint), so it gets the same fix: `aria("mod+k")` and an `aria-hidden` `KbdShortcut`. With `children`, `CommandShortcut` / `MenuShortcut` show the children and ignore `shortcut`.
+- *Amended in Task 0*: `CommandShortcut` and `MenuShortcut` drop `tracking-widest` (Phase C §Menu's class string). It was tuned for "⌘E"; the visual check showed the Windows/Linux labels it now renders letter-spaced as "C t r l + P". Without it both "Ctrl+P" and "⌘P" read normally (screens `task0-command-dialog-*.png`).
 
 ### 0.2 Small carry-overs (Task 1)
 

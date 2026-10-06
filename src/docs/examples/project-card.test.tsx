@@ -20,6 +20,32 @@ function highlighted() {
 
 afterEach(() => {
   document.documentElement.classList.remove("dark");
+  delete (navigator as { userAgentData?: unknown }).userAgentData;
+});
+
+describe("ProjectCard shortcut hints", () => {
+  const hints = () =>
+    Array.from(document.querySelectorAll("[data-slot=menu-shortcut]")).map(
+      (hint) => hint.textContent,
+    );
+
+  it("Copy link reads Ctrl+L off Apple; F2 stays", async () => {
+    await render(<ProjectCard />);
+    await userEvent.click(menuTrigger());
+    await waitForPopupSettled(page.getByRole("menu").element());
+    expect(hints()).toEqual(["Ctrl+L", "F2"]);
+  });
+
+  it("Copy link reads ⌘L under a macOS stub", async () => {
+    Object.defineProperty(navigator, "userAgentData", {
+      value: { platform: "macOS" },
+      configurable: true,
+    });
+    await render(<ProjectCard />);
+    await userEvent.click(menuTrigger());
+    await waitForPopupSettled(page.getByRole("menu").element());
+    expect(hints()).toEqual(["⌘L", "F2"]);
+  });
 });
 
 describe("ProjectCard example", () => {

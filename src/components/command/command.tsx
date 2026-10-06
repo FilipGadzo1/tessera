@@ -22,6 +22,7 @@ import { isEditable, matchesShortcut, parseShortcut } from "../../lib/modifier-k
 import { menuItemBase } from "../../lib/overlay-classes";
 import { claimEscape } from "../../lib/tooltip-escape";
 import { useControllableState } from "../../lib/use-controllable-state";
+import { useModifierKeyLabel } from "../../lib/use-modifier-key-label";
 import {
   comboboxEmptyBase,
   comboboxGroupLabelBase,
@@ -45,7 +46,7 @@ const commandListBase = "max-h-80 overflow-y-auto p-1";
 const commandItemBase =
   "forced-colors:data-highlighted:bg-[Highlight] forced-colors:data-highlighted:text-[HighlightText] forced-colors:data-highlighted:forced-color-adjust-none";
 const commandShortcutBase =
-  "ms-auto text-xs tracking-widest text-muted-foreground forced-colors:in-data-highlighted:text-[HighlightText]";
+  "ms-auto text-xs text-muted-foreground forced-colors:in-data-highlighted:text-[HighlightText]";
 
 /** Matches an item against the query: its text (`value`), the query, and its `keywords`. */
 export type CommandFilter = (value: string, query: string, keywords: readonly string[]) => boolean;
@@ -344,20 +345,30 @@ export function CommandItem({
   );
 }
 
-export type CommandShortcutProps = ComponentProps<"span">;
+export interface CommandShortcutProps extends ComponentProps<"span"> {
+  /**
+   * A `modifier+key` shortcut (`"mod+b"`) shown for the platform when there are no `children`:
+   * "⌘B" on Apple platforms, "Ctrl+B" elsewhere (and in server HTML).
+   */
+  shortcut?: string;
+}
 
 /**
  * A key hint at the end of an item (plain `<span>`, `aria-hidden`, no behaviour), as
- * `MenuShortcut`. It is not part of the filter text.
+ * `MenuShortcut`. It is not part of the filter text. Pass `shortcut="mod+b"` for a
+ * platform-aware hint, or `children` for literal text.
  */
-export function CommandShortcut({ className, ...props }: CommandShortcutProps) {
+export function CommandShortcut({ shortcut, className, children, ...props }: CommandShortcutProps) {
+  const { format } = useModifierKeyLabel();
   return (
     <span
       {...props}
       aria-hidden="true"
       data-slot="command-shortcut"
       className={cn(commandShortcutBase, className)}
-    />
+    >
+      {children ?? (shortcut === undefined ? null : format(shortcut))}
+    </span>
   );
 }
 

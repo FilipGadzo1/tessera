@@ -287,7 +287,7 @@ export function ProjectCard({ defaultName = "Mosaic", tooltipDelay }: ProjectCar
                 <MenuContent align="end">
                   <MenuItem onClick={copyFromMenu}>
                     Copy link
-                    <MenuShortcut>⌘L</MenuShortcut>
+                    <MenuShortcut shortcut="mod+l" />
                   </MenuItem>
                   <MenuItem onClick={openRename}>
                     Rename…

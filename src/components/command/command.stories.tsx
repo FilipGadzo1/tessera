@@ -1,7 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useEffect, useState } from "react";
 import { CalendarIcon, PlusIcon, SearchIcon } from "../../lib/icons";
+import { useModifierKeyLabel } from "../../lib/use-modifier-key-label";
 import { Button } from "../button";
+import { KbdShortcut } from "../kbd";
 import {
   Command,
   CommandDialog,
@@ -50,15 +52,15 @@ const meta = {
           <CommandGroupLabel>Settings</CommandGroupLabel>
           <CommandItem>
             Profile
-            <CommandShortcut>⌘P</CommandShortcut>
+            <CommandShortcut shortcut="mod+p" />
           </CommandItem>
           <CommandItem keywords={["invoices", "payment"]}>
             Billing
-            <CommandShortcut>⌘B</CommandShortcut>
+            <CommandShortcut shortcut="mod+b" />
           </CommandItem>
           <CommandItem>
             Toggle sidebar
-            <CommandShortcut>⌘S</CommandShortcut>
+            <CommandShortcut shortcut="mod+s" />
           </CommandItem>
         </CommandGroup>
       </CommandList>
@@ -81,13 +83,12 @@ function DialogDemo() {
   const [open, setOpen] = useState(false);
   const [ran, setRan] = useState<string | null>(null);
   const run = (name: string) => () => setRan(name);
+  const { aria } = useModifierKeyLabel();
   return (
     <div className="flex flex-col items-start gap-3">
-      <Button variant="outline" aria-keyshortcuts="Control+K" onClick={() => setOpen(true)}>
+      <Button variant="outline" aria-keyshortcuts={aria("mod+k")} onClick={() => setOpen(true)}>
         Open command menu
-        <span aria-hidden="true" className="ms-2 text-xs text-muted-foreground">
-          Ctrl K
-        </span>
+        <KbdShortcut aria-hidden shortcut="mod+k" className="ms-2" />
       </Button>
       <CommandDialog
         open={open}
@@ -109,7 +110,7 @@ function DialogDemo() {
             <CommandGroupLabel>Account</CommandGroupLabel>
             <CommandItem onSelect={run("Edit profile")}>
               Edit profile
-              <CommandShortcut>⌘P</CommandShortcut>
+              <CommandShortcut shortcut="mod+p" />
             </CommandItem>
             <CommandItem
               keywords={["invoices"]}
@@ -120,7 +121,7 @@ function DialogDemo() {
               }}
             >
               Billing
-              <CommandShortcut>⌘B</CommandShortcut>
+              <CommandShortcut shortcut="mod+b" />
             </CommandItem>
           </CommandGroup>
         </CommandList>

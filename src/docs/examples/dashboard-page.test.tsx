@@ -35,11 +35,40 @@ beforeEach(async () => {
 afterEach(async () => {
   vi.useRealTimers();
   document.documentElement.classList.remove("dark");
+  delete (navigator as { userAgentData?: unknown }).userAgentData;
   await resetEmulatedMedia();
 });
 
 afterAll(async () => {
   await page.viewport(414, 896);
+});
+
+describe("DashboardPage shortcut hint", () => {
+  const searchButton = () => page.getByRole("button", { name: "Search" });
+
+  it("Search: Control+K, an aria-hidden Ctrl K hint, no Ctrl in the name", async () => {
+    await render(<DashboardPage />);
+    const button = searchButton().element() as HTMLElement;
+    expect(button.getAttribute("aria-keyshortcuts")).toBe("Control+K");
+    const hint = button.querySelector<HTMLElement>("[data-slot=kbd-shortcut]");
+    expect(hint?.getAttribute("aria-hidden")).toBe("true");
+    expect(
+      Array.from(hint?.querySelectorAll(":scope > kbd") ?? []).map((key) => key.textContent),
+    ).toEqual(["Ctrl", "K"]);
+    await expect.element(searchButton()).toHaveAccessibleName("Search");
+  });
+
+  it("under a macOS stub: Meta+K and a ⌘ hint", async () => {
+    Object.defineProperty(navigator, "userAgentData", {
+      value: { platform: "macOS" },
+      configurable: true,
+    });
+    await render(<DashboardPage />);
+    await expect.element(searchButton()).toHaveAttribute("aria-keyshortcuts", "Meta+K");
+    const button = searchButton().element() as HTMLElement;
+    expect(button.querySelector("[data-slot=kbd-glyph]")?.textContent).toBe("⌘");
+    await expect.element(searchButton()).toHaveAccessibleName("Search");
+  });
 });
 
 describe("DashboardPage example", () => {

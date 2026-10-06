@@ -645,7 +645,8 @@ source files automatically (build output + `"use client"` directive checks).
   "Command") and as a `title`, and `keyName` localises the names. The server and hydration render say "Ctrl"
   and a Mac switches to ⌘ right after hydration, with no mismatch. Inside a control, make the hint `aria-hidden`
   and put `aria-keyshortcuts={useModifierKeyLabel().aria("mod+k")}` on the control ("Meta+K" on a Mac, "Control+K"
-  elsewhere). KbdShortcut is a client component)
+  elsewhere). `CommandShortcut` and `MenuShortcut` take the same `shortcut` prop ("⌘B" / "Ctrl+B"). KbdShortcut
+  is a client component)
 
 Phase A (foundation), Phase B (forms), Phase C (overlays), Phase D (navigation and feedback),
 Phase E (data entry and display), Phase F (dates, toolbars and surfaces — Meter, ScrollArea,

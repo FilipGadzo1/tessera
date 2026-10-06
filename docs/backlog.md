@@ -29,7 +29,7 @@ None block current use.
 - `toneClass` is not exported publicly — export it when a consumer needs toned custom components.
 - Project card example: member avatars are initials in tinted `<span>`s (and the Card width is set
   with a class) until an Avatar component lands (Phase D).
-- Project card example: `MenuShortcut` hints (⌘L, F2) are decorative — no key handler is wired.
+- Project card example: `MenuShortcut` hints (Ctrl+L / ⌘L, F2) are decorative — no key handler is wired.
 - Overlays: no Tessera helper for dialogs opened from a Menu item; each call site controls `open` and
   passes `finalFocus` (consider a documented pattern or a `DialogTrigger`-less helper).
 - Tooltip: no `TooltipArrow` part (the spec chose no arrow); add one if a design needs it.
@@ -354,9 +354,6 @@ DateRangeField test and the Tree position compare.
   are handled (final review).
 - Carousel (Task 4): a programmatic `.focus()` into a rotating carousel stops rotation (it counts as
   keyboard focus). Manual: a screen-reader pass that `aria-live` announces the slide that turns non-inert.
-- Shortcut hints: ⌘ is shown on every platform (the Files example's ⌘K / ⌘B; the shortcuts are Ctrl on
-  Windows and Linux). Phase J: a `Kbd` / `useModifierKeyLabel` helper built on `command.tsx`'s
-  `isApplePlatform`.
 - Files example (Task 5):
   - Folders created with "New folder" are local state only, and new folders are always empty. There is
     no rename or delete.

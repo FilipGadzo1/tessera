@@ -59,11 +59,51 @@ beforeEach(async () => {
 afterEach(async () => {
   vi.useRealTimers();
   document.documentElement.classList.remove("dark");
+  delete (navigator as { userAgentData?: unknown }).userAgentData;
   await resetEmulatedMedia();
 });
 
 afterAll(async () => {
   await page.viewport(414, 896);
+});
+
+describe("FilesPage shortcut hints", () => {
+  const commandsButton = () => page.getByRole("button", { name: "Commands" });
+  const toggleHint = () =>
+    page
+      .getByRole("option", { name: "Toggle sidebar" })
+      .element()
+      .querySelector("[data-slot=command-shortcut]")?.textContent;
+
+  it("Commands: Control+K, an aria-hidden Ctrl K hint, no Ctrl in the name; Toggle sidebar reads Ctrl+B", async () => {
+    await render(<FilesPage />);
+    const button = commandsButton().element() as HTMLElement;
+    expect(button.getAttribute("aria-keyshortcuts")).toBe("Control+K");
+    const hint = button.querySelector<HTMLElement>("[data-slot=kbd-shortcut]");
+    expect(hint?.getAttribute("aria-hidden")).toBe("true");
+    expect(
+      Array.from(hint?.querySelectorAll(":scope > kbd") ?? []).map((key) => key.textContent),
+    ).toEqual(["Ctrl", "K"]);
+    await expect.element(commandsButton()).toHaveAccessibleName("Commands");
+    await openCommand();
+    expect(toggleHint()).toBe("Ctrl+B");
+  });
+
+  it("under a macOS stub: Meta+K, a ⌘ hint and ⌘B", async () => {
+    Object.defineProperty(navigator, "userAgentData", {
+      value: { platform: "macOS" },
+      configurable: true,
+    });
+    await render(<FilesPage />);
+    await expect.element(commandsButton()).toHaveAttribute("aria-keyshortcuts", "Meta+K");
+    const button = commandsButton().element() as HTMLElement;
+    expect(button.querySelector("[data-slot=kbd-glyph]")?.textContent).toBe("⌘");
+    await expect.element(commandsButton()).toHaveAccessibleName("Commands");
+    await userEvent.click(commandsButton());
+    await expect.element(commandDialog()).toBeVisible();
+    await waitForPopupSettled(commandDialog().element());
+    expect(toggleHint()).toBe("⌘B");
+  });
 });
 
 describe("FilesPage example", () => {

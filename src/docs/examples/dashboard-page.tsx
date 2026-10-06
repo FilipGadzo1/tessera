@@ -27,6 +27,7 @@ import {
 import { DatePicker, DateRangePicker } from "../../components/date-picker";
 import { Field, FieldLabel } from "../../components/field";
 import { Form } from "../../components/form";
+import { KbdShortcut } from "../../components/kbd";
 import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from "../../components/menu";
 import { Meter, MeterLabel, MeterValue } from "../../components/meter";
 import { Progress, ProgressLabel, ProgressValue } from "../../components/progress";
@@ -61,6 +62,7 @@ import {
   TableRow,
 } from "../../components/table";
 import { SearchIcon } from "../../lib/icons";
+import { useModifierKeyLabel } from "../../lib/use-modifier-key-label";
 
 type PageId = "overview" | "orders" | "customers" | "products";
 
@@ -447,6 +449,7 @@ export function DashboardPage({ defaultOpen = true }: DashboardPageProps) {
   const [workspace, setWorkspace] = useState(workspaces[0] ?? "Acme Inc.");
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [applied, setApplied] = useState<Applied | null>(null);
+  const { aria } = useModifierKeyLabel();
 
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
@@ -474,11 +477,12 @@ export function DashboardPage({ defaultOpen = true }: DashboardPageProps) {
             variant="outline"
             color="neutral"
             size="sm"
-            aria-keyshortcuts="Control+K Meta+K"
+            aria-keyshortcuts={aria("mod+k")}
             onClick={() => setPaletteOpen(true)}
           >
             <SearchIcon aria-hidden="true" />
             Search
+            <KbdShortcut aria-hidden shortcut="mod+k" />
           </Button>
         </header>
         <div className="flex flex-col gap-6 p-4 md:p-6">

@@ -34,11 +34,11 @@ const meta = {
       <MenuContent {...args}>
         <MenuItem>
           Edit
-          <MenuShortcut>⌘E</MenuShortcut>
+          <MenuShortcut shortcut="mod+e" />
         </MenuItem>
         <MenuItem>
           Duplicate
-          <MenuShortcut>⌘D</MenuShortcut>
+          <MenuShortcut shortcut="mod+d" />
         </MenuItem>
         <MenuSeparator />
         <MenuItem>Archive</MenuItem>
@@ -116,7 +116,7 @@ export const WithSubmenu: Story = {
       <MenuContent {...args}>
         <MenuItem>
           New file
-          <MenuShortcut>⌘N</MenuShortcut>
+          <MenuShortcut shortcut="mod+n" />
         </MenuItem>
         <MenuItem>Open…</MenuItem>
         <MenuSeparator />
