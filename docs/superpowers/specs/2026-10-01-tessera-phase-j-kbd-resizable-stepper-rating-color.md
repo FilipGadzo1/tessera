@@ -109,6 +109,7 @@
 - `src/lib/direction.ts`'s `isRtl` doc is amended: it now names `useElementDirection` as the shared client read, alongside Drawer's render-time read.
 - Sidebar's own read is not migrated (no behaviour change wanted).
 - Tests: `"rtl"` after mount under `dir="rtl"`; an ancestor's `dir` change is seen (`expect.poll`); a re-render with no `dir` change does not call `getComputedStyle` (spy); the observer is disconnected when the last user unmounts.
+- *Amended in Task 1*: the "no style read on re-render" test spies on `isRtl` (`vi.mock("./direction", { spy: true })`) and counts only the calls for the test's element, not a global `getComputedStyle` spy (Base UI and floating-ui call it too). The observer test spies on `MutationObserver.prototype.observe` / `disconnect` and follows the one instance that observes `dir` on `document.documentElement` (two users share it; it is disconnected only after the second unmounts). The hook keeps the last direction in a ref and calls `setState` only when it differs.
 
 **Dialog-wide forced-colors double border** (backlog, Phase I):
 - Cause: Tailwind v4's `outline-hidden` is `outline-style: none` normally but, under `@media (forced-colors: active)`, `outline: 2px solid transparent; outline-offset: 2px`, which Chromium paints in CanvasText. On a surface that also has `border border-border` (forced to CanvasText), that draws a second frame 2px outside the first.
