@@ -146,6 +146,23 @@ describe("ColorPickerPopover popup", () => {
     expect(slot("color-picker-form-control")?.getAttribute("name")).toBe("accent");
   });
 
+  it.each([
+    ["the area thumb", () => areaThumb().element()],
+    ["the hue thumb", () => page.getByRole("slider", { name: "Hue" }).element()],
+    ["a swatch", () => page.getByRole("button", { name: "#ff0000" }).element()],
+  ] as const)("one Escape from %s closes at once and returns focus", async (_, target) => {
+    const onValueChange = vi.fn();
+    await render(<Picker swatches={["#1d4ed8", "#ff0000"]} onValueChange={onValueChange} />);
+    await open();
+    (target() as HTMLElement).focus();
+    expect(document.activeElement).toBe(target());
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => triggerEl().getAttribute("aria-expanded")).toBe("false");
+    await expect.poll(popup).toBeNull();
+    await expect.poll(() => document.activeElement).toBe(triggerEl());
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+
   it("title names the popup", async () => {
     await render(<Picker title="Farbwähler" />);
     await open();
@@ -288,6 +305,20 @@ describe("ColorPickerPopover controlled and uncontrolled", () => {
     await render(<Picker value="tomato" />);
     expect(triggerEl().textContent).toBe("#000000");
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("tomato"));
+  });
+
+  it("an unparsable defaultValue falls back to #000000 with one warning on mount", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await render(<Picker defaultValue="tomato" />);
+    expect(triggerEl().textContent).toBe("#000000");
+    await expect.poll(() => warn.mock.calls.length).toBe(1);
+    expect(warn.mock.calls[0]?.[0]).toContain('defaultValue "tomato"');
+    // Later renders (open, a change) do not warn again.
+    await open();
+    await expect.poll(() => document.activeElement).toBe(areaThumb().element());
+    await userEvent.keyboard("{PageUp}");
+    expect(triggerEl().textContent).not.toBe("#000000");
+    expect(warn).toHaveBeenCalledTimes(1);
   });
 
   it("alpha off drops an incoming alpha; alpha on keeps it", async () => {
@@ -441,6 +472,55 @@ describe("ColorPickerPopover in a form", () => {
     await userEvent.tab();
     expect(document.activeElement).toBe(page.getByRole("button", { name: "After" }).element());
     await expect.poll(() => field.hasAttribute("data-touched")).toBe(true);
+  });
+
+  it("pointer: a click inside the popup keeps the Field focused; a click outside blurs it once", async () => {
+    removeEyeDropper();
+    await render(
+      // The outside button sits above the Field, so the popup (below the trigger) never covers it.
+      <Form aria-label="Theme">
+        <Button type="button">Outside</Button>
+        <Field name="primary">
+          <FieldLabel>Primary color</FieldLabel>
+          <ColorPickerPopover defaultValue="#1d4ed8" />
+        </Field>
+      </Form>,
+    );
+    const field = slot("field") as HTMLElement;
+    const changes = { touched: 0, blurred: 0 };
+    let state = { touched: false, focused: false };
+    const observer = new MutationObserver(() => {
+      const next = {
+        touched: field.hasAttribute("data-touched"),
+        focused: field.hasAttribute("data-focused"),
+      };
+      if (next.touched && !state.touched) changes.touched += 1;
+      if (!next.focused && state.focused) changes.blurred += 1;
+      state = next;
+    });
+    observer.observe(field, {
+      attributes: true,
+      attributeFilter: ["data-touched", "data-focused"],
+    });
+    try {
+      const element = await open();
+      await expect.poll(() => field.hasAttribute("data-focused")).toBe(true);
+      // Inside the popup: the area, then the popup's own padding.
+      const area = element.querySelector("[data-slot=color-area]") as HTMLElement;
+      await userEvent.click(page.elementLocator(area));
+      await userEvent.click(page.elementLocator(element), { position: { x: 4, y: 4 } });
+      expect(popup()).not.toBeNull();
+      await frames();
+      expect(changes).toEqual({ touched: 0, blurred: 0 });
+      // Outside: the popup closes and the Field is touched, once.
+      await userEvent.click(page.getByRole("button", { name: "Outside" }));
+      await expect.poll(popup).toBeNull();
+      await expect.poll(() => field.hasAttribute("data-touched")).toBe(true);
+      await frames();
+      expect(changes).toEqual({ touched: 1, blurred: 1 });
+    } finally {
+      observer.disconnect();
+    }
   });
 
   it("a disabled Field disables the trigger", async () => {

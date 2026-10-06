@@ -392,7 +392,12 @@ describe("ColorPicker pointer", () => {
   it("a drag past the top-right corner clamps to saturation 100, brightness 100", async () => {
     const onValueChange = vi.fn();
     const onValueCommitted = vi.fn();
-    await render(<ColorPicker onValueChange={onValueChange} onValueCommitted={onValueCommitted} />);
+    // Padded, so the target past the corner still lies inside the test frame.
+    await render(
+      <div className="p-16">
+        <ColorPicker onValueChange={onValueChange} onValueCommitted={onValueCommitted} />
+      </div>,
+    );
     const area = slot("color-area") as HTMLElement;
     const seen = { dragging: false };
     const observer = new MutationObserver(() => {
@@ -460,35 +465,37 @@ describe("ColorPicker pointer", () => {
     const track = slot("color-hue-slider") as HTMLElement;
     const rect = track.getBoundingClientRect();
     await drag(track, { x: 2, y: rect.height / 2 }, { x: rect.width / 2, y: rect.height / 2 });
-    await expect.poll(() => valueNow(hueThumb())).toBeGreaterThanOrEqual(178);
-    expect(valueNow(hueThumb())).toBeLessThanOrEqual(182);
+    // The track's midpoint is hue 180; ±3° allows about two pixels (~1.4° each) of rounding.
+    await expect.poll(() => valueNow(hueThumb())).toBeGreaterThanOrEqual(177);
+    expect(valueNow(hueThumb())).toBeLessThanOrEqual(183);
     expect(document.activeElement).toBe(hueThumb().element());
     expect(onValueCommitted).toHaveBeenCalledTimes(1);
   });
 
   it("the hue survives a grey: hue 210, saturation 0, then back up", async () => {
-    await render(<ColorPicker defaultValue="#ff0000" />);
-    const track = slot("color-hue-slider") as HTMLElement;
-    const trackRect = track.getBoundingClientRect();
-    await drag(
-      track,
-      { x: 2, y: trackRect.height / 2 },
-      { x: (trackRect.width * 210) / 360, y: trackRect.height / 2 },
+    // Padded, so every drag target lies inside the test frame.
+    await render(
+      <div className="p-16">
+        <ColorPicker defaultValue="#ff0000" />
+      </div>,
     );
-    await expect.poll(() => valueNow(hueThumb())).toBeGreaterThan(200);
-    const hue = valueNow(hueThumb());
-    expect(Math.abs(hue - 210)).toBeLessThanOrEqual(2);
+    // Hue 210 exactly, from the keyboard (a pointer position is only ~1.4° per pixel).
+    hueThumb().element().focus();
+    await userEvent.keyboard("{Home}");
+    for (let step = 0; step < 14; step++) await userEvent.keyboard("{PageUp}");
+    await expect.element(hueThumb()).toHaveAttribute("aria-valuenow", "210");
     const area = slot("color-area") as HTMLElement;
     const rect = area.getBoundingClientRect();
-    // Saturation 0 (dragged past the top-left corner): white, whose hex has no hue.
-    await drag(area, { x: rect.width - 2, y: 2 }, { x: -20, y: -20 });
+    // Saturation 0 (the top-left corner): white, whose hex has no hue.
+    await drag(area, { x: rect.width - 2, y: 2 }, { x: 0, y: 0 });
     await expect.element(areaThumb()).toHaveAttribute("aria-valuenow", "0");
     await expect.element(textInput()).toHaveValue("#ffffff");
-    expect(valueNow(hueThumb())).toBe(hue);
-    // Back up: the colour has the same hue again.
-    await drag(area, { x: 2, y: 2 }, { x: rect.width + 20, y: -20 });
+    expect(valueNow(hueThumb())).toBe(210);
+    // Back up (the top-right corner): the colour has the same hue again.
+    await drag(area, { x: 2, y: 2 }, { x: rect.width, y: 0 });
     await expect.element(areaThumb()).toHaveAttribute("aria-valuenow", "100");
-    expect(valueNow(hueThumb())).toBe(hue);
+    expect(valueNow(hueThumb())).toBe(210);
+    await expect.element(textInput()).toHaveValue(hexOf(210, 100, 100));
   });
 
   it("a typed grey keeps the hue", async () => {
@@ -693,7 +700,9 @@ describe("ColorPicker swatches", () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("tomato"));
   });
 
-  it("warns once per unparsable swatch value, not on every render", async () => {
+  // Regression guard: it passes on the old `[rgba, value]` deps too (a bad value's `rgba` is `null`
+  // on every render, and `Object.is(null, null)`), so it pins the behaviour, not the fix.
+  it("warns once per unparsable swatch value, not on every render (regression guard)", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     function Swatches() {
       const [bad, setBad] = useState("tomato");

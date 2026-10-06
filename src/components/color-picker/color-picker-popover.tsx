@@ -123,13 +123,28 @@ export function ColorPickerPopover({
   const [stored, setStored] = useState(() => toHex(value ?? defaultValue, alpha) ?? "#000000");
   const controlledHex = value === undefined ? null : toHex(value, alpha);
   if (controlledHex !== null && controlledHex !== stored) setStored(controlledHex);
-  const hex = controlledHex ?? toHex(stored, alpha) ?? stored;
+  // `stored` is always a lowercase hex the picker formatted; only a later `alpha={false}` can leave
+  // it 8 digits, so dropping its alpha is a slice, not a re-parse.
+  const hex = controlledHex ?? (alpha ? stored : stored.slice(0, 7));
 
   useEffect(() => {
     if (process.env.NODE_ENV !== "production" && value !== undefined && !parseColor(value)) {
       console.warn(`ColorPickerPopover: ignoring the unparsable value "${value}".`);
     }
   }, [value]);
+  // An uncontrolled picker's `defaultValue` is read once, on mount: warn once if it is unreadable.
+  const [initialDefault] = useState(() => (value === undefined ? defaultValue : undefined));
+  useEffect(() => {
+    if (
+      process.env.NODE_ENV !== "production" &&
+      initialDefault !== undefined &&
+      !parseColor(initialDefault)
+    ) {
+      console.warn(
+        `ColorPickerPopover: ignoring the unparsable defaultValue "${initialDefault}"; using #000000.`,
+      );
+    }
+  }, [initialDefault]);
 
   // Owned here, so the popup's picker (mounted only while open) keeps the format across openings.
   const [format, setFormat] = useControllableState(formatProp, defaultFormat, onFormatChange);
