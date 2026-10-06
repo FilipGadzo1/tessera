@@ -672,6 +672,16 @@ source files automatically (build output + `"use client"` directive checks).
   `form`) submit the hex through a hidden input, `onFormSubmit` reports it under the Field's name, Field
   `validate` gets the hex and an invalid submit focuses the area thumb. In forced colors the colour surfaces keep
   their colours inside CanvasText frames and the pressed swatch has a Highlight border. Client component)
+- [x] ColorPickerPopover (an outline button showing a swatch and the hex that opens the ColorPicker in a
+  popover. It takes the picker's props (`value` / `defaultValue` / `onValueChange` / `onValueCommitted`, `alpha`,
+  `swatches`, `format`, `disabled`, `name`, `form`) plus `triggerLabel(hex)` (the trigger's name, default
+  "Choose color: #1d4ed8"; after a `Field` label it reads "Primary color Choose color: #1d4ed8"), `title` (the
+  popup's hidden title, default "Color picker"), `side` / `align` (default `"start"`), `contentClassName` and
+  `children` (the popup's composition). Focus moves to the area thumb on open and back to the trigger on close;
+  an Escape that reverts an edit in the text field leaves the popover open, the next one closes it. In a `Field`
+  and `Form` the trigger is the one control: the hidden input carries the hex (also while closed), an invalid
+  submit focuses the trigger, and moving focus between the trigger and the popup does not blur the Field. In
+  forced colors the trigger swatch keeps its colour inside a CanvasText border. Client component)
 
 Phase A (foundation), Phase B (forms), Phase C (overlays), Phase D (navigation and feedback),
 Phase E (data entry and display), Phase F (dates, toolbars and surfaces — Meter, ScrollArea,

@@ -19,3 +19,4 @@ export {
   type ColorSwatchOption,
   type ColorSwatchProps,
 } from "./color-picker";
+export { ColorPickerPopover, type ColorPickerPopoverProps } from "./color-picker-popover";

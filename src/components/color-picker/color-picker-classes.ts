@@ -46,5 +46,18 @@ export const colorAreaThumbClasses = thumbBase;
 /** A channel thumb (positioned by `left`, centred on the track). */
 export const colorSliderThumbClasses = `top-1/2 ${thumbBase}`;
 
+/** `ColorPickerPopover`'s trigger, on top of an outline neutral Button. */
+export const colorPickerTriggerClasses = "justify-start gap-2 font-mono";
+
+/**
+ * The trigger's swatch: the swatches' rim (`border-foreground/25`, visible on both themes), and its
+ * colour kept in forced colors inside a CanvasText border.
+ */
+export const colorPickerTriggerSwatchClasses =
+  "relative size-4 shrink-0 rounded-sm border border-foreground/25 forced-color-adjust-none forced-colors:border-[CanvasText]";
+
+/** The popup: room for the thumbs' 8px overhang at the area's and tracks' ends (never overflow-hidden). */
+export const colorPickerPopupClasses = "w-auto p-3";
+
 /** One swatch button. */
 export const colorSwatchClasses = `relative size-6 cursor-pointer rounded-md border border-foreground/25 forced-color-adjust-none ${toggleFocusClasses} forced-colors:border-[CanvasText] forced-colors:focus-visible:outline-[Highlight] data-pressed:border-2 data-pressed:border-foreground forced-colors:data-pressed:border-[Highlight] data-disabled:cursor-not-allowed transition-[border-color,outline-color] duration-150 ease-out motion-reduce:transition-none`;

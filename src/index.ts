@@ -161,6 +161,8 @@ export {
   ColorInput,
   type ColorInputProps,
   ColorPicker,
+  ColorPickerPopover,
+  type ColorPickerPopoverProps,
   type ColorPickerProps,
   ColorSwatch,
   ColorSwatches,

@@ -957,11 +957,12 @@ export interface ColorSwatchProps extends Omit<BaseToggle.Props, "value" | "chil
 export function ColorSwatch({ value, label, className, style, ...props }: ColorSwatchProps) {
   const picker = useColorPicker("ColorSwatch");
   const rgba = parseColor(value);
+  // Keyed by the string only: `rgba` is a new object every render.
   useEffect(() => {
-    if (process.env.NODE_ENV !== "production" && !rgba) {
+    if (process.env.NODE_ENV !== "production" && !parseColor(value)) {
       console.warn(`ColorSwatch: skipping the unparsable colour "${value}".`);
     }
-  }, [rgba, value]);
+  }, [value]);
   // A swatch that could never set a colour is left out rather than shown doing nothing.
   if (!rgba) return null;
   const hex = formatHex(rgba, { alpha: picker.alpha ? "auto" : "never" });

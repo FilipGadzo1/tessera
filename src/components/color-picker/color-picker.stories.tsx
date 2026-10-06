@@ -13,6 +13,7 @@ import {
   ColorPicker,
   ColorSwatches,
 } from "./color-picker";
+import { ColorPickerPopover } from "./color-picker-popover";
 
 const meta = {
   title: "Components/ColorPicker",
@@ -102,6 +103,51 @@ export const InAForm: Story = {
 
 export const Disabled: Story = {
   args: { disabled: true, alpha: true, swatches: palette },
+};
+
+/** The trigger + popover variant: a button showing the colour opens the picker. */
+export const Popover: Story = {
+  render: function Render() {
+    const [value, setValue] = useState("#1d4ed8");
+    return (
+      <div className="flex flex-col items-start gap-3">
+        <ColorPickerPopover value={value} onValueChange={setValue} swatches={palette} />
+        <p className="text-sm text-muted-foreground">
+          Value: <code className="font-mono">{value}</code>
+        </p>
+        <ColorPickerPopover alpha defaultValue="#7c3aed99" />
+        <ColorPickerPopover disabled defaultValue="#16a34a" />
+      </div>
+    );
+  },
+};
+
+/** The popover in a Field and Form: the trigger is the one control; the hex submits under the Field's name. */
+export const PopoverInAForm: Story = {
+  render: function Render() {
+    const [submitted, setSubmitted] = useState<Record<string, unknown> | null>(null);
+    return (
+      <Form aria-label="Theme" onFormSubmit={setSubmitted} className="flex flex-col gap-4">
+        <Field
+          name="surface"
+          validate={(value) => (value === "#000000" ? "Pick a lighter surface." : null)}
+        >
+          <FieldLabel>Surface color</FieldLabel>
+          <ColorPickerPopover defaultValue="#f8fafc" swatches={palette} />
+          <FieldDescription>The page background.</FieldDescription>
+          <FieldError />
+        </Field>
+        <Button type="submit" className="self-start">
+          Save
+        </Button>
+        {submitted && (
+          <p className="text-sm text-muted-foreground">
+            Submitted: <code className="font-mono">{JSON.stringify(submitted)}</code>
+          </p>
+        )}
+      </Form>
+    );
+  },
 };
 
 /** Localised part names and format labels through composition. */

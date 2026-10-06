@@ -693,6 +693,33 @@ describe("ColorPicker swatches", () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("tomato"));
   });
 
+  it("warns once per unparsable swatch value, not on every render", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    function Swatches() {
+      const [bad, setBad] = useState("tomato");
+      return (
+        <>
+          <ColorPicker defaultValue="#ff0000" swatches={["#ff0000", bad]} />
+          <button type="button" onClick={() => setBad("teal")}>
+            Change
+          </button>
+        </>
+      );
+    }
+    await render(<Swatches />);
+    await userEvent.click(areaThumb());
+    for (const key of ["{ArrowLeft}", "{ArrowLeft}", "{ArrowDown}"]) {
+      await userEvent.keyboard(key);
+    }
+    await expect.element(textInput()).not.toHaveValue("#ff0000");
+    expect(warn.mock.calls.filter(([message]) => String(message).includes("tomato"))).toHaveLength(
+      1,
+    );
+    await userEvent.click(page.getByRole("button", { name: "Change" }));
+    await expect.poll(() => warn.mock.calls.length).toBe(2);
+    expect(warn.mock.calls[1]?.[0]).toContain("teal");
+  });
+
   it("a value matching a swatch (normalised) presses it", async () => {
     await render(<ColorPicker defaultValue="#1D4ED8" swatches={swatches} />);
     await expect
