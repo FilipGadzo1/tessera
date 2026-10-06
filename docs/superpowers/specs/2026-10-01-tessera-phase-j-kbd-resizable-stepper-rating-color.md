@@ -89,6 +89,10 @@
   - The Files and Dashboard buttons have `aria-keyshortcuts="Control+K"` under the default Chromium platform (Windows or Linux) and `"Meta+K"` under the stub; their `KbdShortcut` is `aria-hidden`; the button's accessible name does not contain "Ctrl".
   - The Files and Project card tests read "Ctrl+B" / "Ctrl+L" under the default platform; a macOS-stub case reads ⌘.
   - axe light and dark on the Kbd stories (including the standalone `KbdShortcut` under the macOS stub); forced colors: the `Kbd` border is CanvasText.
+- *Amended in Task 0*: `KbdShortcut` renders its own `<kbd>` with `KbdGroup`'s classes (the exported `kbdGroupBase`), not a `KbdGroup` element: `KbdGroup` sets `data-slot` after `{...props}`, so a `KbdGroup` could not carry `data-slot="kbd-shortcut"`.
+- *Amended in Task 0*: `keyName` also applies to text keys (their shown text is their name, e.g. "Ctrl" → "Strg"), so one function localises the whole shortcut.
+- *Amended in Task 0*: axe cannot rate the contrast of a symbol-only glyph (⌘, ⇧, ↵) and reports `color-contrast` "needs review" with `nonBmp` ("Element content contains only non-text characters") on each `[data-slot=kbd-glyph]`. The Kbd axe test allows exactly those entries and checks instead that each glyph has the same colour and keycap background as a text key that axe does rate. Every other violation and incomplete must be `[]`.
+- *Amended in Task 0*: `useModifierKeyLabel` (and its `ModifierKeyLabel` type) is exported from the package, since `KbdShortcut`'s documented pattern for a hint inside a control needs `aria(shortcut)`. `react-dom/client` joins vitest's `optimizeDeps` (the hydration test imports `hydrateRoot`; without it Vite reloads mid-run).
 
 ### 0.2 Small carry-overs (Task 1)
 

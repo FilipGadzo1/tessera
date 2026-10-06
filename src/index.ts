@@ -311,6 +311,14 @@ export {
   inputDefaults,
   inputVariants,
 } from "./components/input";
+export {
+  Kbd,
+  KbdGroup,
+  type KbdGroupProps,
+  type KbdProps,
+  KbdShortcut,
+  type KbdShortcutProps,
+} from "./components/kbd";
 export { Label, type LabelProps } from "./components/label";
 export {
   Menu,
@@ -643,3 +651,4 @@ export {
 } from "./components/tree";
 export { cn } from "./lib/cn";
 export { type ToneColor, toneColors } from "./lib/tone";
+export { type ModifierKeyLabel, useModifierKeyLabel } from "./lib/use-modifier-key-label";

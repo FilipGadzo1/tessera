@@ -638,6 +638,14 @@ source files automatically (build output + `"use client"` directive checks).
   Keyboard focus anywhere in the carousel stops it until the user activates `CarouselPlayPause` ("Stop / Start
   slide rotation", localisable; APG); hover, pointer focus inside and a hidden tab pause it; it does not start
   under reduced motion and stops if reduced motion turns on. Scrolling is smooth, instant under reduced motion. Client component)
+- [x] Kbd, KbdGroup, KbdShortcut, useModifierKeyLabel (keycaps. `Kbd` is one key (`<kbd>`), `KbdGroup` a
+  combination (nested `<kbd>`s separated by a gap, no "+"); both are server-safe plain elements with a CanvasText
+  border in forced colors. `<KbdShortcut shortcut="mod+k" />` labels a `modifier+key` shortcut for the platform:
+  ⌘ K on macOS and iOS, Ctrl K elsewhere. Symbol keys (⌘ ⇧ ⌥ ⌃ ↵) carry their names for screen readers (sr-only
+  "Command") and as a `title`, and `keyName` localises the names. The server and hydration render say "Ctrl"
+  and a Mac switches to ⌘ right after hydration, with no mismatch. Inside a control, make the hint `aria-hidden`
+  and put `aria-keyshortcuts={useModifierKeyLabel().aria("mod+k")}` on the control ("Meta+K" on a Mac, "Control+K"
+  elsewhere). KbdShortcut is a client component)
 
 Phase A (foundation), Phase B (forms), Phase C (overlays), Phase D (navigation and feedback),
 Phase E (data entry and display), Phase F (dates, toolbars and surfaces — Meter, ScrollArea,
