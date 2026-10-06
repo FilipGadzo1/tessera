@@ -19,6 +19,7 @@ import {
   PlayIcon,
   PlusIcon,
   SearchIcon,
+  StarIcon,
 } from "./icons";
 
 const icons = {
@@ -40,6 +41,7 @@ const icons = {
   PlayIcon,
   PlusIcon,
   SearchIcon,
+  StarIcon,
 };
 
 describe("icons", () => {

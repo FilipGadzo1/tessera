@@ -143,6 +143,15 @@ export function PlayIcon(props: ComponentProps<"svg">) {
   );
 }
 
+/** A five-point star (Rating). Callers restyle its fill and stroke with classes. */
+export function StarIcon(props: ComponentProps<"svg">) {
+  return (
+    <StrokeIcon {...props}>
+      <path d="M12 3l2.94 5.96 6.57.95-4.75 4.64 1.12 6.54L12 18l-5.88 3.09 1.12-6.54-4.75-4.64 6.57-.95Z" />
+    </StrokeIcon>
+  );
+}
+
 export function SearchIcon(props: ComponentProps<"svg">) {
   return (
     <StrokeIcon {...props}>

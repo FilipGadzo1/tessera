@@ -481,6 +481,7 @@ export {
   type ProgressValueProps,
 } from "./components/progress";
 export { Radio, RadioGroup, type RadioGroupProps, type RadioProps } from "./components/radio-group";
+export { Rating, type RatingProps, type RatingSize } from "./components/rating";
 export {
   ScrollArea,
   ScrollAreaContent,

@@ -682,6 +682,16 @@ source files automatically (build output + `"use client"` directive checks).
   and `Form` the trigger is the one control: the hidden input carries the hex (also while closed), an invalid
   submit focuses the trigger, and moving focus between the trigger and the popup does not blur the Field. In
   forced colors the trigger swatch keeps its colour inside a CanvasText border. Client component)
+- [x] Rating (a star rating on Base UI's RadioGroup: one radio per star named "1 star" … "5 stars", or two
+  per star with `allowHalf` ("0.5 stars" … "5 stars"), so the arrows step through the values (← is "next" in
+  RTL) and wrap at the ends, as a radio group does. `value` / `defaultValue` (`number | null`) /
+  `onValueChange`, `max` (5), `clearable` (choosing the checked star again, by click or Space, clears to
+  `null`), `size` (`sm` / `md` / `lg`: 16 / 20 / 24px stars), `disabled` (stays focusable, muted, ignores
+  input). A mouse or pen hover previews the value; touch does not. In a `Field` and `Form` it is one control:
+  the Field label names the group, `name` / `form` / `required` submit the number. `readOnly` is a display, not
+  an input: an image named "4.3 out of 5 stars" with fractional fills, no Tab stop and no form value.
+  `itemLabel(value, max)` and `valueLabel(value, max)` localise the names. Filled stars are solid and empty
+  ones outlined, so forced colors keep the difference. Client component)
 
 Phase A (foundation), Phase B (forms), Phase C (overlays), Phase D (navigation and feedback),
 Phase E (data entry and display), Phase F (dates, toolbars and surfaces — Meter, ScrollArea,
