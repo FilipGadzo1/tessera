@@ -57,6 +57,64 @@ afterEach(() => {
   document.documentElement.classList.remove("dark");
 });
 
+describe("Popover direction", () => {
+  afterEach(() => {
+    document.documentElement.removeAttribute("dir");
+  });
+
+  // An RTL page (`dir` on <html>): Floating UI resolves `start` / `end` from the popup's own
+  // computed direction, which a portalled popup takes from its container (spec §7, portal note).
+  // `w-40` fits on either side of the trigger, so no collision flip can line the edges up.
+  it.each([
+    ["ltr", "left"],
+    ["rtl", "right"],
+  ] as const)(
+    "%s page: align start lines the popup up with the trigger's %s edge",
+    async (dir, edge) => {
+      document.documentElement.setAttribute("dir", dir);
+      await render(<Basic align="start" className="w-40" />);
+      const popup = await openByClick();
+      await waitForPopupSettled(popup);
+      const t = trigger().element().getBoundingClientRect();
+      expect(popup.getBoundingClientRect().width).toBeGreaterThan(t.width + 20);
+      expect(Math.abs(popup.getBoundingClientRect()[edge] - t[edge])).toBeLessThanOrEqual(1);
+    },
+  );
+
+  it.each(["ltr", "rtl"] as const)(
+    "%s: side inline-end places the popup after the trigger in the reading order",
+    async (dir) => {
+      await render(
+        <div dir={dir} className="flex justify-center">
+          <Basic side="inline-end" className="w-32" />
+        </div>,
+      );
+      const popup = await openByClick();
+      await waitForPopupSettled(popup);
+      const t = trigger().element().getBoundingClientRect();
+      const p = popup.getBoundingClientRect();
+      if (dir === "rtl") expect(p.right).toBeLessThanOrEqual(t.left);
+      else expect(p.left).toBeGreaterThanOrEqual(t.right);
+    },
+  );
+
+  it("follows a dir change on an ancestor after mount", async () => {
+    await render(
+      <div data-testid="host" className="flex justify-center">
+        <Basic side="inline-end" className="w-32" />
+      </div>,
+    );
+    page.getByTestId("host").element().setAttribute("dir", "rtl");
+    const popup = await openByClick();
+    await expect
+      .poll(
+        () =>
+          popup.getBoundingClientRect().right - trigger().element().getBoundingClientRect().left,
+      )
+      .toBeLessThanOrEqual(0);
+  });
+});
+
 describe("Popover", () => {
   it("opens on click as role=dialog, named by the title and described by the description", async () => {
     await render(<Basic />);

@@ -1,6 +1,7 @@
 "use client";
 
 import { Autocomplete as BaseAutocomplete } from "@base-ui/react/autocomplete";
+import { DirectionProvider } from "@base-ui/react/direction-provider";
 import {
   Children,
   type ComponentProps,
@@ -22,6 +23,8 @@ import { isEditable, matchesShortcut, parseShortcut } from "../../lib/modifier-k
 import { menuItemBase } from "../../lib/overlay-classes";
 import { claimEscape } from "../../lib/tooltip-escape";
 import { useControllableState } from "../../lib/use-controllable-state";
+import { useElementDirection } from "../../lib/use-element-direction";
+import { useMergedRefs } from "../../lib/use-merged-refs";
 import { useModifierKeyLabel } from "../../lib/use-modifier-key-label";
 import {
   comboboxEmptyBase,
@@ -156,8 +159,12 @@ export function Command({
   label = "Command menu",
   className,
   children,
+  ref,
   ...props
 }: CommandProps) {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const setRootRef = useMergedRefs(rootRef, ref);
+  const direction = useElementDirection(rootRef);
   const [query, setQuery] = useControllableState(value, defaultValue, onValueChange);
   const { contains } = BaseAutocomplete.useFilter();
   const filter: CommandFilter =
@@ -171,20 +178,27 @@ export function Command({
   const context: CommandContextValue = { query, setQuery, filter, label, store };
   return (
     <CommandContext.Provider value={context}>
-      <BaseAutocomplete.Root
-        open
-        inline
-        filter={null}
-        autoHighlight="always"
-        keepHighlight
-        loopFocus={loop}
-        value={query}
-        onValueChange={(next) => setQuery(next)}
-      >
-        <div {...props} data-slot="command" className={cn(commandBase, className)}>
-          {children}
-        </div>
-      </BaseAutocomplete.Root>
+      <DirectionProvider direction={direction}>
+        <BaseAutocomplete.Root
+          open
+          inline
+          filter={null}
+          autoHighlight="always"
+          keepHighlight
+          loopFocus={loop}
+          value={query}
+          onValueChange={(next) => setQuery(next)}
+        >
+          <div
+            {...props}
+            ref={setRootRef}
+            data-slot="command"
+            className={cn(commandBase, className)}
+          >
+            {children}
+          </div>
+        </BaseAutocomplete.Root>
+      </DirectionProvider>
     </CommandContext.Provider>
   );
 }

@@ -86,6 +86,53 @@ afterEach(async () => {
   document.documentElement.classList.remove("dark");
 });
 
+describe("Menubar direction", () => {
+  it("under dir=rtl, ← moves to the next trigger (visually left) and → back", async () => {
+    await render(
+      <div dir="rtl">
+        <AppMenubar />
+      </div>,
+    );
+    expect(trigger("Edit").element().getBoundingClientRect().left).toBeLessThan(
+      trigger("File").element().getBoundingClientRect().left,
+    );
+    (trigger("File").element() as HTMLElement).focus();
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(trigger("Edit").element());
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(trigger("File").element());
+  });
+
+  it("under dir=rtl, ← opens the File menu's submenu, to the left of its trigger item", async () => {
+    await render(
+      <div dir="rtl">
+        <AppMenubar />
+      </div>,
+    );
+    await openByClick("File");
+    await userEvent.keyboard("{End}");
+    await expect.poll(() => item("Export").element().hasAttribute("data-highlighted")).toBe(true);
+    await userEvent.keyboard("{ArrowLeft}");
+    await expect.poll(() => menus().length).toBe(2);
+    const sub = menus()[1] as HTMLElement;
+    await waitForPopupSettled(sub);
+    const anchor = item("Export").element().getBoundingClientRect();
+    expect(sub.getBoundingClientRect().right).toBeLessThanOrEqual(anchor.left + 1);
+  });
+
+  it("follows a dir change on an ancestor after mount", async () => {
+    await render(
+      <div data-testid="host">
+        <AppMenubar />
+      </div>,
+    );
+    page.getByTestId("host").element().setAttribute("dir", "rtl");
+    (trigger("File").element() as HTMLElement).focus();
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(trigger("Edit").element());
+  });
+});
+
 describe("Menubar", () => {
   it("renders role=menubar with menuitem triggers that reuse the Menu parts", async () => {
     await render(<AppMenubar />);

@@ -7,6 +7,7 @@ import { ChevronDownIcon, CloseIcon } from "../../lib/icons";
 import { mergeClassName } from "../../lib/merge-class-name";
 import { menuItemBase, popupMotion, popupSurface } from "../../lib/overlay-classes";
 import { useLayeredEscape } from "../../lib/tooltip-escape";
+import { createTriggerDirection } from "../../lib/trigger-direction";
 import {
   type ComboboxInputGroupVariantProps,
   comboboxButtonBase,
@@ -20,6 +21,9 @@ import {
   comboboxSeparatorBase,
   comboboxStatusBase,
 } from "../combobox/combobox-variants";
+
+/** The list's placement and the input's Home/End scrolling follow the input's DOM direction. */
+const { TriggerDirectionProvider, useTriggerDirectionRef } = createTriggerDirection();
 
 /**
  * Base UI Autocomplete.Root props: `items` (the suggestions to filter: strings, `{ value, label }`
@@ -44,7 +48,11 @@ export function Autocomplete<ItemValue = unknown>({
   // Base UI overloads the root on flat vs grouped `items`; the union prop type matches neither
   // alone, so call it through its single-props signature.
   const Root = BaseAutocomplete.Root as (props: AutocompleteProps<ItemValue>) => ReactElement;
-  return <Root {...props} onOpenChange={handleOpenChange} />;
+  return (
+    <TriggerDirectionProvider>
+      <Root {...props} onOpenChange={handleOpenChange} />
+    </TriggerDirectionProvider>
+  );
 }
 
 export interface AutocompleteInputProps
@@ -71,8 +79,10 @@ export function AutocompleteInput({
   showClear = false,
   groupClassName,
   className,
+  ref,
   ...props
 }: AutocompleteInputProps) {
+  const inputRef = useTriggerDirectionRef(ref);
   return (
     <BaseAutocomplete.InputGroup
       data-slot="autocomplete-input-group"
@@ -81,6 +91,7 @@ export function AutocompleteInput({
     >
       <BaseAutocomplete.Input
         {...props}
+        ref={inputRef}
         data-slot="autocomplete-input"
         className={mergeClassName(comboboxInputBase, className)}
       />

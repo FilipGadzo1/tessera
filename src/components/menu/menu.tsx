@@ -12,7 +12,11 @@ import {
   popupSurface,
 } from "../../lib/overlay-classes";
 import { useLayeredEscape } from "../../lib/tooltip-escape";
+import { createTriggerDirection } from "../../lib/trigger-direction";
 import { useModifierKeyLabel } from "../../lib/use-modifier-key-label";
+
+/** The menu (placement, ←/→ for submenus) follows the trigger's DOM direction. */
+const { TriggerDirectionProvider, useTriggerDirectionRef } = createTriggerDirection();
 
 const menuContentBase = cn("min-w-(--anchor-width)", menuContentClasses);
 /**
@@ -41,17 +45,23 @@ export type MenuProps = BaseMenu.Root.Props;
  */
 export function Menu({ onOpenChange, ...props }: MenuProps) {
   const handleOpenChange = useLayeredEscape(onOpenChange);
-  return <BaseMenu.Root {...props} onOpenChange={handleOpenChange} />;
+  return (
+    <TriggerDirectionProvider>
+      <BaseMenu.Root {...props} onOpenChange={handleOpenChange} />
+    </TriggerDirectionProvider>
+  );
 }
 
 export type MenuTriggerProps = BaseMenu.Trigger.Props;
 
 /**
  * Opens the menu on click, Enter, Space or ArrowDown. Renders a `<button>` with no classes;
- * compose a styled trigger with `render={<Button variant="outline" />}`.
+ * compose a styled trigger with `render={<Button variant="outline" />}`. Its DOM direction is the
+ * menu's (placement, and ←/→ for submenus).
  */
-export function MenuTrigger(props: MenuTriggerProps) {
-  return <BaseMenu.Trigger {...props} />;
+export function MenuTrigger({ ref, ...props }: MenuTriggerProps) {
+  const triggerRef = useTriggerDirectionRef(ref);
+  return <BaseMenu.Trigger {...props} ref={triggerRef} />;
 }
 
 type PositionerProps = BaseMenu.Positioner.Props;
@@ -250,7 +260,10 @@ export function MenuSeparator({ className, ...props }: MenuSeparatorProps) {
 
 export type MenuSubProps = BaseMenu.SubmenuRoot.Props;
 
-/** Groups a `MenuSubTrigger` and its `MenuSubContent`. Renders no element. */
+/**
+ * Groups a `MenuSubTrigger` and its `MenuSubContent`. Renders no element. It takes the direction
+ * of its `Menu` (the root trigger's), not of the portalled popup it sits in.
+ */
 export function MenuSub({ onOpenChange, ...props }: MenuSubProps) {
   const handleOpenChange = useLayeredEscape(onOpenChange);
   return <BaseMenu.SubmenuRoot {...props} onOpenChange={handleOpenChange} />;

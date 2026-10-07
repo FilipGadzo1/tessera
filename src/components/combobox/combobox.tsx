@@ -7,6 +7,7 @@ import { CheckIcon, ChevronDownIcon } from "../../lib/icons";
 import { mergeClassName } from "../../lib/merge-class-name";
 import { menuItemBase, popupMotion, popupSurface } from "../../lib/overlay-classes";
 import { useLayeredEscape } from "../../lib/tooltip-escape";
+import { createTriggerDirection } from "../../lib/trigger-direction";
 import { useMergedRefs } from "../../lib/use-merged-refs";
 import {
   type ComboboxInputGroupVariantProps,
@@ -45,6 +46,9 @@ interface ChipsAnchor {
 const ChipsAnchorContext = createContext<ChipsAnchor | null>(null);
 const InsideChipsContext = createContext(false);
 
+/** The list's placement and the chips' ←/→ follow the input's DOM direction. */
+const { TriggerDirectionProvider, useTriggerDirectionRef } = createTriggerDirection();
+
 /**
  * Base UI Combobox.Root props: `items` (the list to filter — strings, `{ value, label }` objects,
  * or groups `{ value, items }`), `value` / `defaultValue` + `onValueChange`, `multiple`,
@@ -74,7 +78,9 @@ export function Combobox<Value, Multiple extends boolean | undefined = false, It
   );
   return (
     <ChipsAnchorContext.Provider value={anchor}>
-      <BaseCombobox.Root {...props} onOpenChange={handleOpenChange} />
+      <TriggerDirectionProvider>
+        <BaseCombobox.Root {...props} onOpenChange={handleOpenChange} />
+      </TriggerDirectionProvider>
     </ChipsAnchorContext.Provider>
   );
 }
@@ -104,13 +110,16 @@ export function ComboboxInput({
   showClear = false,
   groupClassName,
   className,
+  ref,
   ...props
 }: ComboboxInputProps) {
   const insideChips = useContext(InsideChipsContext);
+  const inputRef = useTriggerDirectionRef(ref);
   if (insideChips) {
     return (
       <BaseCombobox.Input
         {...props}
+        ref={inputRef}
         data-slot="combobox-input"
         className={mergeClassName(comboboxChipsInputBase, className)}
       />
@@ -124,6 +133,7 @@ export function ComboboxInput({
     >
       <BaseCombobox.Input
         {...props}
+        ref={inputRef}
         data-slot="combobox-input"
         className={mergeClassName(comboboxInputBase, className)}
       />

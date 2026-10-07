@@ -1,6 +1,6 @@
 import axe from "axe-core";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { userEvent } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { emulateForcedColors, resetEmulatedMedia, systemColor } from "../../../test/emulation";
 import { Field, FieldLabel } from "../field";
@@ -302,5 +302,114 @@ describe("Slider", () => {
     const results = await axe.run(screen.container);
     expect(results.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
     expect(results.incomplete.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+  });
+});
+
+describe("Slider direction", () => {
+  const thumbCentre = (root: Element) => {
+    const rect = (thumbsOf(root)[0] as HTMLElement).getBoundingClientRect();
+    return rect.left + rect.width / 2;
+  };
+
+  // Base UI's SliderThumb.js: in a horizontal RTL slider → steps by -1 and ← by +1, so → moves
+  // the thumb right, towards the lower values (the minimum sits at the inline start, the right).
+  it("under dir=rtl, → lowers the value and ← raises it; the thumb sits from the right edge", async () => {
+    const screen = await render(
+      <div dir="rtl">
+        <Slider defaultValue={30} aria-label="Level" className="w-80" />
+      </div>,
+    );
+    const thumb = screen.getByRole("slider", { name: "Level" });
+    const root = thumb.element().closest('[data-slot="slider"]') as HTMLElement;
+    const track = trackOf(root).getBoundingClientRect();
+    await expect
+      .poll(() => Math.abs(thumbCentre(root) - (track.right - track.width * 0.3)))
+      .toBeLessThanOrEqual(1);
+    const indicator = indicatorOf(root).getBoundingClientRect();
+    expect(Math.abs(indicator.right - track.right)).toBeLessThanOrEqual(1);
+    (thumb.element() as HTMLElement).focus();
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.element(thumb).toHaveAttribute("aria-valuenow", "29");
+    await userEvent.keyboard("{ArrowLeft}");
+    await expect.element(thumb).toHaveAttribute("aria-valuenow", "30");
+  });
+
+  it("under dir=rtl, dragging the thumb to the left raises the value and keeps it under the pointer", async () => {
+    const onValueCommitted = vi.fn();
+    const screen = await render(
+      <div dir="rtl" className="p-8">
+        <Slider
+          defaultValue={30}
+          aria-label="Level"
+          className="w-80"
+          onValueCommitted={onValueCommitted}
+        />
+      </div>,
+    );
+    const thumb = screen.getByRole("slider", { name: "Level" });
+    const root = thumb.element().closest('[data-slot="slider"]') as HTMLElement;
+    const control = root.querySelector('[data-slot="slider-control"]') as HTMLElement;
+    const rect = control.getBoundingClientRect();
+    // 20% from the left edge is 80% of the way from the inline start (the right edge).
+    const targetX = rect.width * 0.2;
+    await userEvent.dragAndDrop(
+      page.elementLocator(thumbsOf(root)[0] as HTMLElement),
+      page.elementLocator(control),
+      { force: true, targetPosition: { x: targetX, y: rect.height / 2 }, steps: 12 } as Parameters<
+        typeof userEvent.dragAndDrop
+      >[2],
+    );
+    await expect.poll(() => onValueCommitted.mock.calls.length).toBeGreaterThan(0);
+    const value = Number(thumb.element().getAttribute("aria-valuenow"));
+    expect(Math.abs(value - 80)).toBeLessThanOrEqual(1);
+    expect(Math.abs(thumbCentre(root) - (rect.left + targetX))).toBeLessThanOrEqual(2);
+  });
+
+  it("LTR is unchanged: dragging to 20% from the left gives 20", async () => {
+    const onValueCommitted = vi.fn();
+    const screen = await render(
+      <div className="p-8">
+        <Slider
+          defaultValue={30}
+          aria-label="Level"
+          className="w-80"
+          onValueCommitted={onValueCommitted}
+        />
+      </div>,
+    );
+    const thumb = screen.getByRole("slider", { name: "Level" });
+    const root = thumb.element().closest('[data-slot="slider"]') as HTMLElement;
+    const control = root.querySelector('[data-slot="slider-control"]') as HTMLElement;
+    const rect = control.getBoundingClientRect();
+    await userEvent.dragAndDrop(
+      page.elementLocator(thumbsOf(root)[0] as HTMLElement),
+      page.elementLocator(control),
+      {
+        force: true,
+        targetPosition: { x: rect.width * 0.2, y: rect.height / 2 },
+        steps: 12,
+      } as Parameters<typeof userEvent.dragAndDrop>[2],
+    );
+    await expect.poll(() => onValueCommitted.mock.calls.length).toBeGreaterThan(0);
+    const value = Number(thumb.element().getAttribute("aria-valuenow"));
+    expect(Math.abs(value - 20)).toBeLessThanOrEqual(1);
+  });
+
+  it("follows a dir change on an ancestor after mount", async () => {
+    const screen = await render(
+      <div data-testid="host">
+        <Slider defaultValue={30} aria-label="Level" className="w-80" />
+      </div>,
+    );
+    const thumb = screen.getByRole("slider", { name: "Level" });
+    const root = thumb.element().closest('[data-slot="slider"]') as HTMLElement;
+    screen.getByTestId("host").element().setAttribute("dir", "rtl");
+    const track = trackOf(root).getBoundingClientRect();
+    await expect
+      .poll(() => Math.abs(thumbCentre(root) - (track.right - track.width * 0.3)))
+      .toBeLessThanOrEqual(1);
+    (thumb.element() as HTMLElement).focus();
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.element(thumb).toHaveAttribute("aria-valuenow", "29");
   });
 });

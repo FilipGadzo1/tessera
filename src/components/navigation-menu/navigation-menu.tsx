@@ -1,5 +1,6 @@
 "use client";
 
+import { DirectionProvider } from "@base-ui/react/direction-provider";
 import { NavigationMenu as BaseNavigationMenu } from "@base-ui/react/navigation-menu";
 import { createContext, useCallback, useContext, useMemo, useRef } from "react";
 import { barTriggerClasses } from "../../lib/bar-classes";
@@ -9,6 +10,8 @@ import { ChevronDownIcon } from "../../lib/icons";
 import { mergeClassName } from "../../lib/merge-class-name";
 import { popupSurface } from "../../lib/overlay-classes";
 import { yieldEscapeToTooltip } from "../../lib/tooltip-escape";
+import { useElementDirection } from "../../lib/use-element-direction";
+import { useMergedRefs } from "../../lib/use-merged-refs";
 
 /**
  * Set by each NavigationMenu for its parts: whether its list is vertical (a vertical list stacks and
@@ -29,7 +32,7 @@ const PATIENT_CLICK_MS = 500;
  * travel from the trigger into the panel without leaving the hover area.
  */
 const positionerClasses =
-  "z-(--z-overlay) h-(--positioner-height) w-(--positioner-width) max-w-(--available-width) transition-[top,left,right,bottom] duration-200 ease-out data-instant:transition-none motion-reduce:transition-none before:absolute before:content-[''] data-[side=bottom]:before:inset-x-0 data-[side=bottom]:before:-top-2 data-[side=bottom]:before:h-2 data-[side=right]:before:inset-y-0 data-[side=right]:before:-left-2 data-[side=right]:before:w-2";
+  "z-(--z-overlay) h-(--positioner-height) w-(--positioner-width) max-w-(--available-width) transition-[top,left,right,bottom] duration-200 ease-out data-instant:transition-none motion-reduce:transition-none before:absolute before:content-[''] data-[side=bottom]:before:inset-x-0 data-[side=bottom]:before:-top-2 data-[side=bottom]:before:h-2 data-[side=right]:before:inset-y-0 data-[side=right]:before:-left-2 data-[side=right]:before:w-2 data-[side=left]:before:inset-y-0 data-[side=left]:before:-right-2 data-[side=left]:before:w-2";
 
 /**
  * `popupSurface` sized by Base UI's `--popup-width` / `--popup-height`, so switching panels
@@ -76,8 +79,12 @@ export function NavigationMenu({
   container,
   className,
   children,
+  ref,
   ...props
 }: NavigationMenuProps) {
+  const rootRef = useRef<HTMLElement | null>(null);
+  const setRootRef = useMergedRefs(rootRef, ref);
+  const direction = useElementDirection(rootRef);
   const nested = useContext(MenuContext) != null;
   const vertical = props.orientation === "vertical";
   const menuContext = useMemo(() => ({ vertical, nested }), [vertical, nested]);
@@ -103,44 +110,49 @@ export function NavigationMenu({
     [onValueChange],
   );
   return (
-    <BaseNavigationMenu.Root
-      {...props}
-      onValueChange={handleValueChange}
-      data-slot="navigation-menu"
-      className={mergeClassName(
-        cn(
-          "relative",
-          nested &&
-            (vertical ? "grid grid-cols-[auto_minmax(0,1fr)] gap-2" : "flex flex-col gap-2"),
-        ),
-        className,
-      )}
-    >
-      <MenuContext.Provider value={menuContext}>{children}</MenuContext.Provider>
-      {nested ? (
-        <BaseNavigationMenu.Viewport
-          data-slot="navigation-menu-viewport"
-          className={inlineViewportClasses}
-        />
-      ) : (
-        <BaseNavigationMenu.Portal container={container}>
-          <BaseNavigationMenu.Positioner
-            side={vertical ? "right" : "bottom"}
-            sideOffset={8}
-            collisionPadding={16}
-            data-slot="navigation-menu-positioner"
-            className={positionerClasses}
-          >
-            <BaseNavigationMenu.Popup data-slot="navigation-menu-popup" className={popupClasses}>
-              <BaseNavigationMenu.Viewport
-                data-slot="navigation-menu-viewport"
-                className={viewportClasses}
-              />
-            </BaseNavigationMenu.Popup>
-          </BaseNavigationMenu.Positioner>
-        </BaseNavigationMenu.Portal>
-      )}
-    </BaseNavigationMenu.Root>
+    <DirectionProvider direction={direction}>
+      <BaseNavigationMenu.Root
+        {...props}
+        ref={setRootRef}
+        onValueChange={handleValueChange}
+        data-slot="navigation-menu"
+        className={mergeClassName(
+          cn(
+            "relative",
+            nested &&
+              (vertical ? "grid grid-cols-[auto_minmax(0,1fr)] gap-2" : "flex flex-col gap-2"),
+          ),
+          className,
+        )}
+      >
+        <MenuContext.Provider value={menuContext}>{children}</MenuContext.Provider>
+        {nested ? (
+          <BaseNavigationMenu.Viewport
+            data-slot="navigation-menu-viewport"
+            className={inlineViewportClasses}
+          />
+        ) : (
+          <BaseNavigationMenu.Portal container={container}>
+            <BaseNavigationMenu.Positioner
+              // Physical sides keep `data-side` (and the hover bridge) physical in the portal, whose
+              // CSS direction is the container's; a vertical menu opens towards its inline end.
+              side={vertical ? (direction === "rtl" ? "left" : "right") : "bottom"}
+              sideOffset={8}
+              collisionPadding={16}
+              data-slot="navigation-menu-positioner"
+              className={positionerClasses}
+            >
+              <BaseNavigationMenu.Popup data-slot="navigation-menu-popup" className={popupClasses}>
+                <BaseNavigationMenu.Viewport
+                  data-slot="navigation-menu-viewport"
+                  className={viewportClasses}
+                />
+              </BaseNavigationMenu.Popup>
+            </BaseNavigationMenu.Positioner>
+          </BaseNavigationMenu.Portal>
+        )}
+      </BaseNavigationMenu.Root>
+    </DirectionProvider>
   );
 }
 
@@ -195,7 +207,7 @@ export function NavigationMenuTrigger({
         data-slot="navigation-menu-icon"
         className={cn(
           "flex transition-transform duration-200 ease-out motion-reduce:transition-none",
-          vertical ? "-rotate-90" : "data-popup-open:rotate-180",
+          vertical ? "-rotate-90 rtl:rotate-90" : "data-popup-open:rotate-180",
         )}
       >
         <ChevronDownIcon className="size-4" />

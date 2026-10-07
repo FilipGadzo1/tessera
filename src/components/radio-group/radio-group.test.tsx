@@ -399,3 +399,42 @@ describe("RadioGroup", () => {
     expect(results.incomplete.map((v) => `${v.id}: ${v.nodes.map((n) => n.target)}`)).toEqual([]);
   });
 });
+
+describe("RadioGroup direction", () => {
+  function Sizes({ dir }: { dir?: "ltr" | "rtl" }) {
+    return (
+      <div dir={dir} data-testid="host">
+        <RadioGroup aria-label="Size" defaultValue="s" className="flex-row">
+          {["s", "m", "l"].map((value) => (
+            <Label key={value} className="flex items-center gap-2">
+              <Radio value={value} aria-label={value.toUpperCase()} />
+            </Label>
+          ))}
+        </RadioGroup>
+      </div>
+    );
+  }
+  const radio = (name: string) =>
+    document.querySelector(`[role="radio"][aria-label="${name}"]`) as HTMLElement;
+
+  it("under dir=rtl, ← moves to the next radio (visually left) and → back", async () => {
+    await render(<Sizes dir="rtl" />);
+    expect(radio("M").getBoundingClientRect().left).toBeLessThan(
+      radio("S").getBoundingClientRect().left,
+    );
+    await userEvent.tab();
+    expect(document.activeElement).toBe(radio("S"));
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(radio("M"));
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(radio("S"));
+  });
+
+  it("follows a dir change on an ancestor after mount", async () => {
+    const screen = await render(<Sizes />);
+    screen.getByTestId("host").element().setAttribute("dir", "rtl");
+    await userEvent.tab();
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(radio("M"));
+  });
+});

@@ -177,6 +177,38 @@ describe("OTPField", () => {
     expect(document.activeElement).toBe(inputs[1]);
   });
 
+  it("under dir=rtl, ← moves to the next slot (visually left) and → back", async () => {
+    const screen = await render(
+      <div dir="rtl">
+        <OTPField length={4} defaultValue="1234" aria-label="Code" />
+      </div>,
+    );
+    const inputs = slots(screen.container);
+    expect((inputs[1] as HTMLElement).getBoundingClientRect().left).toBeLessThan(
+      (inputs[0] as HTMLElement).getBoundingClientRect().left,
+    );
+    inputs[0]?.focus();
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(inputs[1]);
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(inputs[2]);
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(inputs[1]);
+  });
+
+  it("follows a dir change on an ancestor after mount", async () => {
+    const screen = await render(
+      <div data-testid="host">
+        <OTPField length={4} defaultValue="1234" aria-label="Code" />
+      </div>,
+    );
+    screen.getByTestId("host").element().setAttribute("dir", "rtl");
+    const inputs = slots(screen.container);
+    inputs[0]?.focus();
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(inputs[1]);
+  });
+
   it("pasting a code fills every slot and completes", async () => {
     const onValueComplete = vi.fn();
     const screen = await render(

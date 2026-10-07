@@ -447,3 +447,45 @@ describe("Tabs", () => {
     }
   });
 });
+
+describe("Tabs direction", () => {
+  it("under dir=rtl, ← moves to the next tab (visually left) and → back; the indicator follows", async () => {
+    const screen = await render(
+      <div dir="rtl">
+        <Account />
+      </div>,
+    );
+    const profile = screen.getByRole("tab", { name: "Profile" }).element();
+    const notifications = screen.getByRole("tab", { name: "Notifications" }).element();
+    expect(notifications.getBoundingClientRect().left).toBeLessThan(
+      profile.getBoundingClientRect().left,
+    );
+    await userEvent.tab();
+    expect(document.activeElement).toBe(profile);
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(notifications);
+    await userEvent.keyboard("{Enter}");
+    await expect.element(notifications).toHaveAttribute("aria-selected", "true");
+    const list = screen.getByRole("tablist").element();
+    const indicator = await settledIndicator(list, notifications);
+    const a = indicator?.getBoundingClientRect();
+    const b = notifications.getBoundingClientRect();
+    expect(Math.abs((a?.left ?? 0) - b.left)).toBeLessThanOrEqual(1);
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(profile);
+  });
+
+  it("follows a dir change on an ancestor after mount", async () => {
+    const screen = await render(
+      <div data-testid="host">
+        <Account />
+      </div>,
+    );
+    screen.getByTestId("host").element().setAttribute("dir", "rtl");
+    await userEvent.tab();
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(
+      screen.getByRole("tab", { name: "Notifications" }).element(),
+    );
+  });
+});

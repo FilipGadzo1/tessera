@@ -5,6 +5,10 @@ import { cn } from "../../lib/cn";
 import { mergeClassName } from "../../lib/merge-class-name";
 import { popupMotion, popupSurface } from "../../lib/overlay-classes";
 import { useLayeredEscape } from "../../lib/tooltip-escape";
+import { createTriggerDirection } from "../../lib/trigger-direction";
+
+/** The popover's placement follows the trigger's DOM direction. */
+const { TriggerDirectionProvider, useTriggerDirectionRef } = createTriggerDirection();
 
 const popoverContentBase = "w-72 p-4 flex flex-col gap-2";
 const popoverTitleBase = "text-base font-semibold leading-snug";
@@ -15,17 +19,23 @@ export type PopoverProps = BasePopover.Root.Props;
 /** Groups a trigger and its content. Renders no element. Controlled via `open` / `onOpenChange`. */
 export function Popover({ onOpenChange, ...props }: PopoverProps) {
   const handleOpenChange = useLayeredEscape(onOpenChange);
-  return <BasePopover.Root {...props} onOpenChange={handleOpenChange} />;
+  return (
+    <TriggerDirectionProvider>
+      <BasePopover.Root {...props} onOpenChange={handleOpenChange} />
+    </TriggerDirectionProvider>
+  );
 }
 
 export type PopoverTriggerProps = BasePopover.Trigger.Props;
 
 /**
  * Toggles the popover on click, Enter or Space. Renders a `<button>` with no classes; compose a
- * styled trigger with `render={<Button variant="outline" />}`.
+ * styled trigger with `render={<Button variant="outline" />}`. Its DOM direction is the popover's
+ * (placement of `inline-start` / `inline-end` sides).
  */
-export function PopoverTrigger(props: PopoverTriggerProps) {
-  return <BasePopover.Trigger {...props} />;
+export function PopoverTrigger({ ref, ...props }: PopoverTriggerProps) {
+  const triggerRef = useTriggerDirectionRef(ref);
+  return <BasePopover.Trigger {...props} ref={triggerRef} />;
 }
 
 type PositionerProps = BasePopover.Positioner.Props;

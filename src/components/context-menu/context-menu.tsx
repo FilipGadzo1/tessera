@@ -5,6 +5,10 @@ import { cn } from "../../lib/cn";
 import { mergeClassName } from "../../lib/merge-class-name";
 import { menuContentClasses, popupMotion, popupSurface } from "../../lib/overlay-classes";
 import { useLayeredEscape } from "../../lib/tooltip-escape";
+import { createTriggerDirection } from "../../lib/trigger-direction";
+
+/** The menu (placement, ←/→ for submenus) follows the trigger area's DOM direction. */
+const { TriggerDirectionProvider, useTriggerDirectionRef } = createTriggerDirection();
 
 /**
  * The trigger has no single anchor item (the whole area opens the menu), so a fixed floor replaces
@@ -20,7 +24,11 @@ export type ContextMenuProps = BaseContextMenu.Root.Props;
  */
 export function ContextMenu({ onOpenChange, ...props }: ContextMenuProps) {
   const handleOpenChange = useLayeredEscape(onOpenChange);
-  return <BaseContextMenu.Root {...props} onOpenChange={handleOpenChange} />;
+  return (
+    <TriggerDirectionProvider>
+      <BaseContextMenu.Root {...props} onOpenChange={handleOpenChange} />
+    </TriggerDirectionProvider>
+  );
 }
 
 export type ContextMenuTriggerProps = BaseContextMenu.Trigger.Props;
@@ -31,8 +39,9 @@ export type ContextMenuTriggerProps = BaseContextMenu.Trigger.Props;
  * it, e.g. a highlighted drop-zone). Base UI 1.8 has no keyboard opening for it (checked the
  * source: only `onContextMenu` / `onTouchStart` / `onTouchMove` are wired) — *Amended in Task 3*.
  */
-export function ContextMenuTrigger(props: ContextMenuTriggerProps) {
-  return <BaseContextMenu.Trigger {...props} data-slot="context-menu-trigger" />;
+export function ContextMenuTrigger({ ref, ...props }: ContextMenuTriggerProps) {
+  const triggerRef = useTriggerDirectionRef(ref);
+  return <BaseContextMenu.Trigger {...props} ref={triggerRef} data-slot="context-menu-trigger" />;
 }
 
 type PositionerProps = BaseContextMenu.Positioner.Props;

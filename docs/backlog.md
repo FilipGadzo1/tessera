@@ -382,6 +382,13 @@ DateRangeField test and the Tree position compare.
     `ColorPickerPopover` trigger shows "ffffff#" (its `color-picker-value` span), and the `ColorInput`
     would too. A hex is LTR text; `dir="ltr"` on the value span (and `dir="ltr"` or `dir="auto"` on the
     input, against the spec's "the input follows the page" ruling) would fix it.
+- RTL styling of menu-like items (found in Task 9): `MenuCheckboxItem` / `MenuRadioItem`, `SelectItem` and
+  `ComboboxItem` place their indicator with physical classes (`absolute left-2`, `pl-8`), `MenuShortcut` and
+  the submenu chevron use `ml-auto`, and the chevron always points right. In an RTL page the keys and the
+  submenu side follow the direction (Task 9), but these do not mirror: switch them to `start-2` / `ps-8` /
+  `ms-auto` and flip the chevron with `rtl:rotate-180`.
+- Combobox direction (Task 9): the root takes its direction from `ComboboxInput`; an input rendered inside the
+  popup (the "input inside popup" pattern, unused in Tessera) would report the portal's direction instead.
 - Theme Studio example (Task 8):
   - The contrast Badge measures only the primary colour as text on the surface (spec §6). The preview's
     other pairs (the soft Button, the Badge, the muted text) are derived with `color-mix` and are not

@@ -6,11 +6,15 @@ import { CheckIcon, ChevronDownIcon } from "../../lib/icons";
 import { mergeClassName } from "../../lib/merge-class-name";
 import { menuItemBase, popupMotion, popupSurface } from "../../lib/overlay-classes";
 import { useLayeredEscape } from "../../lib/tooltip-escape";
+import { createTriggerDirection } from "../../lib/trigger-direction";
 import {
   type SelectTriggerVariantProps,
   selectDefaults,
   selectTriggerVariants,
 } from "./select-variants";
+
+/** The list's placement follows the trigger's DOM direction. */
+const { TriggerDirectionProvider, useTriggerDirectionRef } = createTriggerDirection();
 
 /*
  * `min-w-0 truncate` is not in the spec string: without it a long value pushes the chevron out
@@ -43,7 +47,11 @@ export function Select<Value, Multiple extends boolean | undefined = false>({
   ...props
 }: SelectProps<Value, Multiple>) {
   const handleOpenChange = useLayeredEscape(onOpenChange);
-  return <BaseSelect.Root {...props} onOpenChange={handleOpenChange} />;
+  return (
+    <TriggerDirectionProvider>
+      <BaseSelect.Root {...props} onOpenChange={handleOpenChange} />
+    </TriggerDirectionProvider>
+  );
 }
 
 export interface SelectTriggerProps extends BaseSelect.Trigger.Props, SelectTriggerVariantProps {}
@@ -54,10 +62,12 @@ export interface SelectTriggerProps extends BaseSelect.Trigger.Props, SelectTrig
  * Opens on click, Enter, Space or ArrowDown. Inside a `Field`, the `FieldLabel` names it and an
  * invalid Field gives it the danger border.
  */
-export function SelectTrigger({ size, className, children, ...props }: SelectTriggerProps) {
+export function SelectTrigger({ size, className, children, ref, ...props }: SelectTriggerProps) {
+  const triggerRef = useTriggerDirectionRef(ref);
   return (
     <BaseSelect.Trigger
       {...props}
+      ref={triggerRef}
       data-slot="select-trigger"
       data-size={size ?? selectDefaults.size}
       className={mergeClassName(selectTriggerVariants({ size }), className)}

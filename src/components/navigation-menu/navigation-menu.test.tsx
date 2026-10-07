@@ -108,6 +108,79 @@ afterEach(async () => {
   if (window.location.hash) history.replaceState(null, "", window.location.pathname);
 });
 
+describe("NavigationMenu direction", () => {
+  function SideMenu() {
+    return (
+      <NavigationMenu
+        aria-label="Side"
+        orientation="vertical"
+        delay={0}
+        closeDelay={0}
+        className="w-28"
+      >
+        <NavigationMenuList>
+          <NavigationMenuItem>
+            <NavigationMenuTrigger>Products</NavigationMenuTrigger>
+            <NavigationMenuContent>
+              <NavigationMenuLink href="#a">Analytics</NavigationMenuLink>
+            </NavigationMenuContent>
+          </NavigationMenuItem>
+          <NavigationMenuItem>
+            <NavigationMenuLink href="#orders">Orders</NavigationMenuLink>
+          </NavigationMenuItem>
+        </NavigationMenuList>
+      </NavigationMenu>
+    );
+  }
+
+  it("under dir=rtl, ← moves to the next trigger (visually left) and → back", async () => {
+    await render(
+      <div dir="rtl">
+        <SiteHeader />
+      </div>,
+    );
+    expect(trigger("Company").element().getBoundingClientRect().left).toBeLessThan(
+      trigger("Products").element().getBoundingClientRect().left,
+    );
+    (trigger("Products").element() as HTMLElement).focus();
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(trigger("Company").element());
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(trigger("Products").element());
+  });
+
+  it("under dir=rtl, a vertical menu opens its panel with ←, on the left, its chevron pointing left", async () => {
+    await render(
+      <div dir="rtl" className="p-4">
+        <SideMenu />
+      </div>,
+    );
+    const products = trigger("Products").element() as HTMLElement;
+    const icon = products.querySelector("[data-slot=navigation-menu-icon]") as HTMLElement;
+    expect(getComputedStyle(icon).rotate).toBe("90deg");
+    products.focus();
+    await userEvent.keyboard("{ArrowLeft}");
+    await expect.poll(() => popup()).not.toBeNull();
+    const element = popup() as HTMLElement;
+    await waitForPopupSettled(element);
+    expect(element.getBoundingClientRect().right).toBeLessThanOrEqual(
+      products.getBoundingClientRect().left,
+    );
+  });
+
+  it("follows a dir change on an ancestor after mount", async () => {
+    await render(
+      <div data-testid="host">
+        <SiteHeader />
+      </div>,
+    );
+    page.getByTestId("host").element().setAttribute("dir", "rtl");
+    (trigger("Products").element() as HTMLElement).focus();
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(trigger("Company").element());
+  });
+});
+
 describe("NavigationMenu", () => {
   it("renders a labelled nav with a list of items; content opens in a portalled popup", async () => {
     const screen = await render(<SiteHeader />);

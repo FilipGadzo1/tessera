@@ -1,8 +1,11 @@
 "use client";
 
+import { DirectionProvider } from "@base-ui/react/direction-provider";
 import { OTPField as BaseOTPField } from "@base-ui/react/otp-field";
 import { createContext, Fragment, useContext, useEffect, useRef } from "react";
 import { mergeClassName } from "../../lib/merge-class-name";
+import { useElementDirection } from "../../lib/use-element-direction";
+import { useMergedRefs } from "../../lib/use-merged-refs";
 import {
   type OTPFieldVariantProps,
   otpFieldDefaults,
@@ -31,19 +34,33 @@ export interface OTPFieldProps extends BaseOTPField.Root.Props, OTPFieldVariantP
  * takes the label from a surrounding `Field`, the others are named "Character N of L". Pass
  * children (`OTPFieldInput`, `OTPFieldSeparator`) for a custom layout.
  */
-export function OTPField({ size, groups, className, children, length, ...props }: OTPFieldProps) {
+export function OTPField({
+  size,
+  groups,
+  className,
+  children,
+  length,
+  ref,
+  ...props
+}: OTPFieldProps) {
   const resolvedSize = size ?? otpFieldDefaults.size;
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const setRootRef = useMergedRefs(rootRef, ref);
+  const direction = useElementDirection(rootRef);
   return (
     <OTPFieldSizeContext.Provider value={resolvedSize}>
-      <BaseOTPField.Root
-        {...props}
-        length={length}
-        data-slot="otp-field"
-        data-size={resolvedSize}
-        className={mergeClassName("flex items-center gap-2", className)}
-      >
-        {children ?? <DefaultSlots length={length} groups={groups} />}
-      </BaseOTPField.Root>
+      <DirectionProvider direction={direction}>
+        <BaseOTPField.Root
+          {...props}
+          ref={setRootRef}
+          length={length}
+          data-slot="otp-field"
+          data-size={resolvedSize}
+          className={mergeClassName("flex items-center gap-2", className)}
+        >
+          {children ?? <DefaultSlots length={length} groups={groups} />}
+        </BaseOTPField.Root>
+      </DirectionProvider>
     </OTPFieldSizeContext.Provider>
   );
 }

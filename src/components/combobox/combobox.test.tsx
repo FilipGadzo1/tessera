@@ -127,6 +127,39 @@ afterEach(async () => {
   await resetEmulatedMedia();
 });
 
+describe("Combobox direction", () => {
+  const chips = () => [...document.querySelectorAll<HTMLElement>("[data-slot=combobox-chip]")];
+
+  it("under dir=rtl, → from the empty input moves onto the last chip (visually right), ← back towards the input", async () => {
+    await render(
+      <div dir="rtl">
+        <Toppings defaultValue={["Cheese", "Olives"]} />
+      </div>,
+    );
+    const [first, last] = chips() as [HTMLElement, HTMLElement];
+    expect(last.getBoundingClientRect().left).toBeLessThan(first.getBoundingClientRect().left);
+    await userEvent.tab();
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(() => document.activeElement).toBe(last);
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(() => document.activeElement).toBe(first);
+    await userEvent.keyboard("{ArrowLeft}");
+    await expect.poll(() => document.activeElement).toBe(last);
+  });
+
+  it("follows a dir change on an ancestor after mount", async () => {
+    const screen = await render(
+      <div data-testid="host">
+        <Toppings defaultValue={["Cheese", "Olives"]} />
+      </div>,
+    );
+    screen.getByTestId("host").element().setAttribute("dir", "rtl");
+    await userEvent.tab();
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(() => document.activeElement).toBe(chips()[1]);
+  });
+});
+
 describe("Combobox", () => {
   describe("filtering and selecting", () => {
     it("wires aria-expanded / aria-controls and opens the listbox as the user types", async () => {

@@ -1,8 +1,11 @@
 "use client";
 
+import { DirectionProvider } from "@base-ui/react/direction-provider";
 import { Tabs as BaseTabs } from "@base-ui/react/tabs";
-import { createContext, useContext } from "react";
+import { createContext, useContext, useRef } from "react";
 import { mergeClassName } from "../../lib/merge-class-name";
+import { useElementDirection } from "../../lib/use-element-direction";
+import { useMergedRefs } from "../../lib/use-merged-refs";
 import {
   type TabsVariant,
   tabsDefaults,
@@ -24,13 +27,19 @@ const TabsVariantContext = createContext<TabsVariant>(tabsDefaults.variant);
 export type TabsProps = BaseTabs.Root.Props;
 
 /** Groups a TabsList and its TabsPanels. `orientation="vertical"` puts the list beside the panels. */
-export function Tabs({ className, ...props }: TabsProps) {
+export function Tabs({ className, ref, ...props }: TabsProps) {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const setRootRef = useMergedRefs(rootRef, ref);
+  const direction = useElementDirection(rootRef);
   return (
-    <BaseTabs.Root
-      {...props}
-      data-slot="tabs"
-      className={mergeClassName(tabsRootClasses, className)}
-    />
+    <DirectionProvider direction={direction}>
+      <BaseTabs.Root
+        {...props}
+        ref={setRootRef}
+        data-slot="tabs"
+        className={mergeClassName(tabsRootClasses, className)}
+      />
+    </DirectionProvider>
   );
 }
 

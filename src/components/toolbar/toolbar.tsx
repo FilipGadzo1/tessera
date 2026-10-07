@@ -1,8 +1,12 @@
 "use client";
 
+import { DirectionProvider } from "@base-ui/react/direction-provider";
 import { Toolbar as BaseToolbar } from "@base-ui/react/toolbar";
+import { useRef } from "react";
 import { toggleFocusClasses } from "../../lib/focus-classes";
 import { mergeClassName } from "../../lib/merge-class-name";
+import { useElementDirection } from "../../lib/use-element-direction";
+import { useMergedRefs } from "../../lib/use-merged-refs";
 import { type ButtonVariantProps, buttonVariants } from "../button/button-variants";
 import { inputVariants } from "../input/input-variants";
 
@@ -12,16 +16,22 @@ export interface ToolbarProps extends BaseToolbar.Root.Props {}
  * A container grouping buttons, toggle groups, links and menus (Base UI `Toolbar.Root`) with a
  * single roving Tab stop. Needs an accessible name (`aria-label`).
  */
-export function Toolbar({ className, ...props }: ToolbarProps) {
+export function Toolbar({ className, ref, ...props }: ToolbarProps) {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const setRootRef = useMergedRefs(rootRef, ref);
+  const direction = useElementDirection(rootRef);
   return (
-    <BaseToolbar.Root
-      {...props}
-      data-slot="toolbar"
-      className={mergeClassName(
-        "flex items-center gap-1 rounded-lg border border-border bg-background p-1 data-[orientation=vertical]:flex-col",
-        className,
-      )}
-    />
+    <DirectionProvider direction={direction}>
+      <BaseToolbar.Root
+        {...props}
+        ref={setRootRef}
+        data-slot="toolbar"
+        className={mergeClassName(
+          "flex items-center gap-1 rounded-lg border border-border bg-background p-1 data-[orientation=vertical]:flex-col",
+          className,
+        )}
+      />
+    </DirectionProvider>
   );
 }
 

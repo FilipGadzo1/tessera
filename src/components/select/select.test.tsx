@@ -96,6 +96,45 @@ afterEach(async () => {
   await resetEmulatedMedia();
 });
 
+describe("Select direction", () => {
+  const sideways = {
+    triggerProps: { "aria-label": "Fruit", className: "w-28" },
+    contentProps: { side: "inline-end", className: "w-32" },
+  } as const;
+
+  it.each(["ltr", "rtl"] as const)(
+    "%s: side inline-end places the list after the trigger in the reading order",
+    async (dir) => {
+      await render(
+        <div dir={dir} className="flex justify-center">
+          <Fruit {...sideways} />
+        </div>,
+      );
+      const element = await openByClick();
+      const t = trigger().element().getBoundingClientRect();
+      const p = element.getBoundingClientRect();
+      if (dir === "rtl") expect(p.right).toBeLessThanOrEqual(t.left);
+      else expect(p.left).toBeGreaterThanOrEqual(t.right);
+    },
+  );
+
+  it("follows a dir change on an ancestor after mount", async () => {
+    await render(
+      <div data-testid="host" className="flex justify-center">
+        <Fruit {...sideways} />
+      </div>,
+    );
+    page.getByTestId("host").element().setAttribute("dir", "rtl");
+    const element = await openByClick();
+    await expect
+      .poll(
+        () =>
+          element.getBoundingClientRect().right - trigger().element().getBoundingClientRect().left,
+      )
+      .toBeLessThanOrEqual(0);
+  });
+});
+
 describe("Select", () => {
   describe("opening", () => {
     it("opens a listbox on click, wired to the trigger", async () => {

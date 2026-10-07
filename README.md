@@ -737,8 +737,15 @@ Autocomplete, Menubar and NavigationMenu), Phase H (DateField, editable DatePick
 for the date controls, and the Sidebar app shell) and Phase I (DateRangeField and the editable
 DateRangePicker, the Command palette, Tree and Carousel) are complete. Phase J's components (Kbd and
 platform-aware shortcut labels, the colour helpers, useElementDirection, ColorPicker and
-ColorPickerPopover, Rating, Stepper and Resizable) and its Theme Studio example are complete; the
-phase's last task, the RTL direction fix for the older Base UI composites, follows.
+ColorPickerPopover, Rating, Stepper and Resizable), its Theme Studio example and the RTL direction fix
+for the older Base UI composites are complete.
+
+RTL: the DOM `dir` (on the component's element or any ancestor) is the source of truth. Every Tessera
+component on a direction-aware Base UI part feeds it to Base UI's `DirectionProvider` (keys, slider
+drags, scroll offsets, `inline-start` / `inline-end` sides); a root without an element (Popover, Menu,
+ContextMenu, Tooltip, PreviewCard, Select, Combobox, Autocomplete) takes its trigger's or input's direction.
+A portalled popup's text and `start` / `end` alignment follow its portal container (the document), as
+for Drawer: a `dir` on an inner wrapper does not reach it unless `container` points inside that wrapper.
 
 Composition: when a part is rendered through another (`<Fieldset render={<RadioGroup className=…/>}>`),
 the outer part's own classes win over conflicting classes on the render element (Base UI merges the
@@ -839,9 +846,8 @@ panel; both work while typing, call `preventDefault`, and show `aria-hidden` `Kb
 
 ## Roadmap
 
-Phase J's components are complete; its last task, the RTL direction fix for the older Base UI
-composites (RadioGroup, ToggleGroup, Toolbar, Tabs, Slider, ScrollArea, the menus and the positioned
-popups), is next. Then Phase K; candidates:
+Phase J is complete, including the RTL direction fix for the older Base UI composites. Next is
+Phase K; candidates:
 
 - data-grid pieces: column visibility, sorting and multi-sort state, row selection and pagination
   state (a headless `useDataTable` over Table);

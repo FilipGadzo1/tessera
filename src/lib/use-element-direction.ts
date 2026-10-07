@@ -3,7 +3,7 @@
 import { type RefObject, useLayoutEffect, useRef, useState } from "react";
 import { isRtl } from "./direction";
 
-type ElementDirection = "ltr" | "rtl";
+export type ElementDirection = "ltr" | "rtl";
 
 /*
  * One MutationObserver for every user: it watches `dir` attributes anywhere in the document, is

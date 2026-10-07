@@ -227,3 +227,37 @@ describe("Toolbar", () => {
     expect(style.backgroundColor).not.toBe(systemColor("Canvas"));
   });
 });
+
+describe("Toolbar direction", () => {
+  it("under dir=rtl, ← moves to the next item (visually left), into the next group, and → back", async () => {
+    const screen = await render(
+      <div dir="rtl">
+        <Editor />
+      </div>,
+    );
+    const bold = screen.getByRole("button", { name: "Bold" }).element() as HTMLElement;
+    const italic = screen.getByRole("button", { name: "Italic" }).element();
+    const undo = screen.getByRole("button", { name: "Undo" }).element();
+    expect(italic.getBoundingClientRect().left).toBeLessThan(bold.getBoundingClientRect().left);
+    bold.focus();
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(italic);
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(undo);
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(italic);
+  });
+
+  it("follows a dir change on an ancestor after mount", async () => {
+    const screen = await render(
+      <div data-testid="host">
+        <Editor />
+      </div>,
+    );
+    screen.getByTestId("host").element().setAttribute("dir", "rtl");
+    const bold = screen.getByRole("button", { name: "Bold" }).element() as HTMLElement;
+    await userEvent.click(bold);
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Italic" }).element());
+  });
+});

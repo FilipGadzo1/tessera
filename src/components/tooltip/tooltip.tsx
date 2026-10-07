@@ -19,6 +19,10 @@ import { mergeClassName } from "../../lib/merge-class-name";
 import { mergeRefs } from "../../lib/merge-refs";
 import { popupMotion } from "../../lib/overlay-classes";
 import { registerOpenTooltip } from "../../lib/tooltip-escape";
+import { createTriggerDirection } from "../../lib/trigger-direction";
+
+/** The tooltip's placement follows the trigger's DOM direction. */
+const { TriggerDirectionProvider, useTriggerDirectionRef } = createTriggerDirection();
 
 /**
  * `--tooltip-border` is transparent in light mode (invisible normally, but painted in a system
@@ -93,7 +97,9 @@ export function Tooltip({ onOpenChange, ...props }: TooltipProps) {
 
   return (
     <TooltipDescriptionContext.Provider value={context}>
-      <BaseTooltip.Root {...props} onOpenChange={handleOpenChange} />
+      <TriggerDirectionProvider>
+        <BaseTooltip.Root {...props} onOpenChange={handleOpenChange} />
+      </TriggerDirectionProvider>
     </TooltipDescriptionContext.Provider>
   );
 }
@@ -104,7 +110,8 @@ export type TooltipTriggerProps = BaseTooltip.Trigger.Props;
  * The element the tooltip describes. Renders a `<button>` with no classes; compose a styled
  * trigger with `render={<Button … />}`. Set `delay` (default 600 ms) and `closeDelay` here.
  */
-export function TooltipTrigger({ render, ...props }: TooltipTriggerProps) {
+export function TooltipTrigger({ render, ref, ...props }: TooltipTriggerProps) {
+  const triggerRef = useTriggerDirectionRef(ref);
   const describedBy = useContext(TooltipDescriptionContext)?.describedBy;
   // An element `render` (e.g. `<Button aria-describedby="hint" />`) wins over the trigger's own
   // props when Base UI merges them, so read its aria-describedby too and write the merged list back.
@@ -117,6 +124,7 @@ export function TooltipTrigger({ render, ...props }: TooltipTriggerProps) {
   return (
     <BaseTooltip.Trigger
       {...props}
+      ref={triggerRef}
       {...(ariaDescribedBy !== undefined && { "aria-describedby": ariaDescribedBy })}
       render={
         renderElement && ariaDescribedBy !== undefined

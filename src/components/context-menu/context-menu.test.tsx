@@ -86,6 +86,67 @@ describe("ContextMenu", () => {
     expect(Math.abs(rect.top - 180)).toBeLessThanOrEqual(2);
   });
 
+  it("under dir=rtl, opens with the popup's top-right at the pointer (within 2px)", async () => {
+    await render(
+      <div dir="rtl">
+        <Area />
+      </div>,
+    );
+    const box = area().element().getBoundingClientRect();
+    const x = box.left + 200;
+    const popup = await openAt(x, box.top + 40);
+    const rect = popup.getBoundingClientRect();
+    expect(Math.abs(rect.right - x)).toBeLessThanOrEqual(2);
+    expect(Math.abs(rect.top - (box.top + 40))).toBeLessThanOrEqual(2);
+  });
+
+  it("under dir=rtl, ← opens a submenu to the left of its trigger item", async () => {
+    await render(
+      <div dir="rtl">
+        <Area>
+          <MenuSub>
+            <MenuSubTrigger>Share</MenuSubTrigger>
+            <MenuSubContent>
+              <MenuItem>Email</MenuItem>
+            </MenuSubContent>
+          </MenuSub>
+        </Area>
+      </div>,
+    );
+    const box = area().element().getBoundingClientRect();
+    await openAt(box.left + 200, box.top + 20);
+    await userEvent.keyboard("{End}");
+    await expect.poll(() => item("Share").element().hasAttribute("data-highlighted")).toBe(true);
+    await userEvent.keyboard("{ArrowLeft}");
+    await expect.poll(() => menus().length).toBe(2);
+    const sub = menus()[1] as HTMLElement;
+    await waitForPopupSettled(sub);
+    const share = item("Share").element().getBoundingClientRect();
+    expect(sub.getBoundingClientRect().right).toBeLessThanOrEqual(share.left + 1);
+  });
+
+  it("follows a dir change on an ancestor after mount", async () => {
+    await render(
+      <div data-testid="host">
+        <Area>
+          <MenuSub>
+            <MenuSubTrigger>Share</MenuSubTrigger>
+            <MenuSubContent>
+              <MenuItem>Email</MenuItem>
+            </MenuSubContent>
+          </MenuSub>
+        </Area>
+      </div>,
+    );
+    page.getByTestId("host").element().setAttribute("dir", "rtl");
+    const box = area().element().getBoundingClientRect();
+    await openAt(box.left + 200, box.top + 20);
+    await userEvent.keyboard("{End}");
+    await expect.poll(() => item("Share").element().hasAttribute("data-highlighted")).toBe(true);
+    await userEvent.keyboard("{ArrowLeft}");
+    await expect.poll(() => menus().length).toBe(2);
+  });
+
   it("reuses the Menu items unchanged: MenuItem, danger variant and click both fire and close", async () => {
     const onDelete = vi.fn();
     await render(<Area onDelete={onDelete} />);

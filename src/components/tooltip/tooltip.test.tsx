@@ -39,6 +39,42 @@ afterEach(() => {
   document.documentElement.classList.remove("dark");
 });
 
+describe("Tooltip direction", () => {
+  it.each(["ltr", "rtl"] as const)(
+    "%s: side inline-end places the tooltip after the trigger in the reading order",
+    async (dir) => {
+      await render(
+        <div dir={dir} className="flex justify-center">
+          <Basic side="inline-end" />
+        </div>,
+      );
+      const trigger = page.getByRole("button", { name: "Save" });
+      const popup = await openByHover(trigger);
+      await waitForPopupSettled(popup);
+      const t = trigger.element().getBoundingClientRect();
+      const p = popup.getBoundingClientRect();
+      if (dir === "rtl") expect(p.right).toBeLessThanOrEqual(t.left);
+      else expect(p.left).toBeGreaterThanOrEqual(t.right);
+    },
+  );
+
+  it("follows a dir change on an ancestor after mount", async () => {
+    await render(
+      <div data-testid="host" className="flex justify-center">
+        <Basic side="inline-end" />
+      </div>,
+    );
+    page.getByTestId("host").element().setAttribute("dir", "rtl");
+    const trigger = page.getByRole("button", { name: "Save" });
+    const popup = await openByHover(trigger);
+    await expect
+      .poll(
+        () => popup.getBoundingClientRect().right - trigger.element().getBoundingClientRect().left,
+      )
+      .toBeLessThanOrEqual(0);
+  });
+});
+
 describe("Tooltip", () => {
   it("opens on hover with role=tooltip, and the trigger is described by it", async () => {
     await render(<Basic />);

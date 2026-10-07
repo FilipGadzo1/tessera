@@ -249,3 +249,63 @@ describe("ScrollArea", () => {
     expect(style.backgroundColor).not.toBe(canvas);
   });
 });
+
+describe("ScrollArea direction", () => {
+  /** Scrolls the viewport to its inline end (RTL scrollLeft runs from 0 down to -max). */
+  function scrollToInlineEnd(viewport: HTMLElement, rtl: boolean) {
+    const max = viewport.scrollWidth - viewport.clientWidth;
+    viewport.scrollLeft = rtl ? -max : max;
+  }
+  const edges = (root: Element) => ({
+    start: root.hasAttribute("data-overflow-x-start"),
+    end: root.hasAttribute("data-overflow-x-end"),
+  });
+
+  it.each(["ltr", "rtl"] as const)(
+    "%s: the thumb starts at the inline start, the overflow edges follow scrolling to the inline end",
+    async (dir) => {
+      const screen = await render(
+        <div dir={dir} data-testid="host">
+          <WideGallery />
+        </div>,
+      );
+      const root = screen.container.querySelector('[data-slot="scroll-area"]') as HTMLElement;
+      const viewport = viewportOf(root);
+      const scrollbar = scrollbarOf(root, "horizontal");
+      const thumb = thumbOf(scrollbar);
+      const rtl = dir === "rtl";
+      // The inline start edge of the bar (inside its 2px padding) and of the thumb.
+      const startGap = () => {
+        const bar = scrollbar.getBoundingClientRect();
+        const t = thumb.getBoundingClientRect();
+        return rtl ? bar.right - t.right : t.left - bar.left;
+      };
+      const endGap = () => {
+        const bar = scrollbar.getBoundingClientRect();
+        const t = thumb.getBoundingClientRect();
+        return rtl ? t.left - bar.left : bar.right - t.right;
+      };
+      await expect.poll(() => edges(root)).toEqual({ start: false, end: true });
+      await expect.poll(startGap).toBeLessThanOrEqual(3);
+      expect(endGap()).toBeGreaterThan(20);
+      scrollToInlineEnd(viewport, rtl);
+      await expect.poll(() => edges(root)).toEqual({ start: true, end: false });
+      await expect.poll(endGap).toBeLessThanOrEqual(3);
+      expect(startGap()).toBeGreaterThan(20);
+    },
+  );
+
+  it("follows a dir change on an ancestor after mount", async () => {
+    const screen = await render(
+      <div data-testid="host">
+        <WideGallery />
+      </div>,
+    );
+    const root = screen.container.querySelector('[data-slot="scroll-area"]') as HTMLElement;
+    screen.getByTestId("host").element().setAttribute("dir", "rtl");
+    const viewport = viewportOf(root);
+    await expect.poll(() => getComputedStyle(viewport).direction).toBe("rtl");
+    scrollToInlineEnd(viewport, true);
+    await expect.poll(() => edges(root)).toEqual({ start: true, end: false });
+  });
+});

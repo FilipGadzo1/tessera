@@ -5,6 +5,10 @@ import { cn } from "../../lib/cn";
 import { mergeClassName } from "../../lib/merge-class-name";
 import { popupMotion, popupSurface } from "../../lib/overlay-classes";
 import { useLayeredEscape } from "../../lib/tooltip-escape";
+import { createTriggerDirection } from "../../lib/trigger-direction";
+
+/** The card's placement follows the trigger's DOM direction. */
+const { TriggerDirectionProvider, useTriggerDirectionRef } = createTriggerDirection();
 
 const previewCardContentBase = "w-72 p-4 text-sm";
 
@@ -20,7 +24,11 @@ export type PreviewCardProps = BasePreviewCard.Root.Props;
  */
 export function PreviewCard({ onOpenChange, ...props }: PreviewCardProps) {
   const handleOpenChange = useLayeredEscape(onOpenChange);
-  return <BasePreviewCard.Root {...props} onOpenChange={handleOpenChange} />;
+  return (
+    <TriggerDirectionProvider>
+      <BasePreviewCard.Root {...props} onOpenChange={handleOpenChange} />
+    </TriggerDirectionProvider>
+  );
 }
 
 export type PreviewCardTriggerProps = BasePreviewCard.Trigger.Props;
@@ -31,8 +39,9 @@ export type PreviewCardTriggerProps = BasePreviewCard.Trigger.Props;
  * 600ms) and on keyboard focus; closes after `closeDelay` (default 300ms) on unhover, or
  * immediately on blur / Escape.
  */
-export function PreviewCardTrigger(props: PreviewCardTriggerProps) {
-  return <BasePreviewCard.Trigger {...props} />;
+export function PreviewCardTrigger({ ref, ...props }: PreviewCardTriggerProps) {
+  const triggerRef = useTriggerDirectionRef(ref);
+  return <BasePreviewCard.Trigger {...props} ref={triggerRef} />;
 }
 
 type PositionerProps = BasePreviewCard.Positioner.Props;

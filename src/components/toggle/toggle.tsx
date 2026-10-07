@@ -1,10 +1,13 @@
 "use client";
 
+import { DirectionProvider } from "@base-ui/react/direction-provider";
 import { Toggle as BaseToggle } from "@base-ui/react/toggle";
 import { ToggleGroup as BaseToggleGroup } from "@base-ui/react/toggle-group";
-import { createContext, useContext, useMemo } from "react";
+import { createContext, useContext, useMemo, useRef } from "react";
 import { cn } from "../../lib/cn";
 import { mergeClassName } from "../../lib/merge-class-name";
+import { useElementDirection } from "../../lib/use-element-direction";
+import { useMergedRefs } from "../../lib/use-merged-refs";
 import { type ToggleVariantProps, toggleDefaults, toggleVariants } from "./toggle-variants";
 
 export interface ToggleProps extends BaseToggle.Props {
@@ -73,26 +76,33 @@ export function ToggleGroup({
   size = toggleDefaults.size,
   orientation = "horizontal",
   className,
+  ref,
   ...props
 }: ToggleGroupProps) {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const setRootRef = useMergedRefs(rootRef, ref);
+  const direction = useElementDirection(rootRef);
   const contextValue = useMemo<ToggleGroupItemContextValue>(
     () => ({ variant, size, orientation, attached: variant === "outline" }),
     [variant, size, orientation],
   );
   return (
     <ToggleGroupItemContext.Provider value={contextValue}>
-      <BaseToggleGroup
-        {...props}
-        orientation={orientation}
-        data-slot="toggle-group"
-        className={mergeClassName(
-          cn(
-            "flex items-center gap-1 data-[orientation=vertical]:flex-col",
-            variant === "outline" && "gap-0",
-          ),
-          className,
-        )}
-      />
+      <DirectionProvider direction={direction}>
+        <BaseToggleGroup
+          {...props}
+          ref={setRootRef}
+          orientation={orientation}
+          data-slot="toggle-group"
+          className={mergeClassName(
+            cn(
+              "flex items-center gap-1 data-[orientation=vertical]:flex-col",
+              variant === "outline" && "gap-0",
+            ),
+            className,
+          )}
+        />
+      </DirectionProvider>
     </ToggleGroupItemContext.Provider>
   );
 }

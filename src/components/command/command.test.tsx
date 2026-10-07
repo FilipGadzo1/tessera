@@ -311,6 +311,23 @@ describe("Command", () => {
       await expect.poll(highlighted).toBe("Calendar");
     });
 
+    it("under dir=rtl, End scrolls an overflowing query to its inline end (the left)", async () => {
+      await render(
+        <div dir="rtl">
+          <Palette defaultValue={"calendar emoji profile billing settings ".repeat(4)} />
+        </div>,
+      );
+      const element = input();
+      expect(element.scrollWidth).toBeGreaterThan(element.clientWidth);
+      element.focus();
+      await userEvent.keyboard("{Home}");
+      await expect.poll(() => element.scrollLeft).toBe(0);
+      await userEvent.keyboard("{End}");
+      await expect
+        .poll(() => element.scrollLeft)
+        .toBeLessThanOrEqual(-(element.scrollWidth - element.clientWidth - 1));
+    });
+
     it("Home / End move within the filtered items", async () => {
       await render(<Palette />);
       await userEvent.click(input());

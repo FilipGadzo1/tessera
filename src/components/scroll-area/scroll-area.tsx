@@ -1,8 +1,12 @@
 "use client";
 
+import { DirectionProvider } from "@base-ui/react/direction-provider";
 import { ScrollArea as BaseScrollArea } from "@base-ui/react/scroll-area";
+import { useRef } from "react";
 import { cn } from "../../lib/cn";
 import { mergeClassName } from "../../lib/merge-class-name";
+import { useElementDirection } from "../../lib/use-element-direction";
+import { useMergedRefs } from "../../lib/use-merged-refs";
 
 export type ScrollAreaOrientation = "vertical" | "horizontal" | "both";
 
@@ -56,13 +60,19 @@ export type ScrollAreaRootProps = BaseScrollArea.Root.Props;
  * consumer's own, different copy of Base UI's `ScrollArea.Root` would not share context with
  * Tessera's `ScrollBar` / `ScrollAreaViewport` / `ScrollAreaContent`.
  */
-export function ScrollAreaRoot({ className, ...props }: ScrollAreaRootProps) {
+export function ScrollAreaRoot({ className, ref, ...props }: ScrollAreaRootProps) {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const setRootRef = useMergedRefs(rootRef, ref);
+  const direction = useElementDirection(rootRef);
   return (
-    <BaseScrollArea.Root
-      {...props}
-      data-slot="scroll-area"
-      className={mergeClassName("relative overflow-hidden", className)}
-    />
+    <DirectionProvider direction={direction}>
+      <BaseScrollArea.Root
+        {...props}
+        ref={setRootRef}
+        data-slot="scroll-area"
+        className={mergeClassName("relative overflow-hidden", className)}
+      />
+    </DirectionProvider>
   );
 }
 

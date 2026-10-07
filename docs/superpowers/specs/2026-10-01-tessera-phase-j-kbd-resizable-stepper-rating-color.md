@@ -573,3 +573,33 @@ Base UI reads the text direction from its `DirectionProvider` context only (defa
   - every existing suite stays green.
 - **Docs.** README: one line in the RTL notes (the DOM `dir` rule and the portal note). Backlog: remove the RTL-composites entry if one exists.
 - Commit `fix(rtl): Base UI composites follow the element direction`.
+- *Amended in Task 9*: the audit (re-grepped: `useDirection` is read in `CompositeRoot`, `MenuRoot`, `SliderControl`, `SliderThumb`, `ScrollAreaViewport`, `ScrollAreaScrollbar`, `useAnchorPositioning`, `SelectPopup`, `NavigationMenuPopup`, `NavigationMenuTrigger`, `OTPFieldInput`, `AriaCombobox`, `ComboboxInput`, `ComboboxChip` and `usePopupViewport`; nothing else in `@base-ui/react` 1.8):
+
+  | Tessera component | Base UI reader(s) | Result |
+  |---|---|---|
+  | RadioGroup | CompositeRoot (←/→) | wrapped, own element |
+  | ToggleGroup | CompositeRoot (inside a Toolbar it renders a plain group and the Toolbar's composite rules) | wrapped, own element |
+  | Toolbar | CompositeRoot | wrapped, own element |
+  | Tabs | CompositeRoot (TabsList) | wrapped at the `Tabs` root element |
+  | Slider | SliderThumb (keys, thumb translate), SliderControl (drag maths) | wrapped, own element |
+  | ScrollArea / ScrollAreaRoot | ScrollAreaViewport, ScrollAreaScrollbar | wrapped at `ScrollAreaRoot` (`ScrollArea` renders it) |
+  | Menubar | CompositeRoot | wrapped, own element |
+  | NavigationMenu | CompositeRoot, NavigationMenuTrigger (vertical open key), NavigationMenuPopup, anchor positioning | wrapped, own `<nav>`; a nested menu reads its own element (inside the portalled panel) |
+  | OTPField | OTPFieldInput (←/→) | wrapped, own element |
+  | Command | AriaCombobox, ComboboxInput (Home/End scrolling of an overflowing query) | wrapped, own element |
+  | Menu (+ MenuSub, MenubarTrigger) | MenuRoot (submenu ←/→), anchor positioning | element-less root: `MenuTrigger`'s element; `MenuSub` inherits its `Menu`'s provider (its trigger sits in the portalled popup) |
+  | ContextMenu | MenuRoot, anchor positioning | element-less root: `ContextMenuTrigger`'s element |
+  | Popover, Tooltip, PreviewCard | anchor positioning (`inline-start` / `inline-end` sides), usePopupViewport (Tessera renders no Viewport) | element-less roots: their trigger's element |
+  | Select | anchor positioning, SelectPopup (`alignItemWithTrigger`) | element-less root: `SelectTrigger`'s element |
+  | Combobox | AriaCombobox, ComboboxInput, ComboboxChip (chip ←/→, Home/End), anchor positioning | element-less root: `ComboboxInput`'s `<input>` |
+  | Autocomplete | AriaCombobox, ComboboxInput, anchor positioning | element-less root: `AutocompleteInput`'s `<input>` |
+  | Accordion | none (AccordionTrigger handles no arrow keys in 1.8; no CompositeRoot) | verified not affected, not wrapped |
+  | CheckboxGroup | none (no keys, no composite) | verified not affected, not wrapped |
+  | Toast | ToastPositioner only (anchored toasts; Tessera's Toaster renders none) | verified not affected |
+  | Carousel, Tree, Sidebar, Calendar, DateField | hand-built; already read `isRtl` themselves (Phase H/I) | unchanged |
+  | Rating, ColorPicker, Resizable | already wrapped (Phase J) | unchanged; ColorPicker's ToggleGroups now also wrap themselves (harmless) |
+- *Amended in Task 9*: the element-less mechanism is `createTriggerDirection()` (`src/lib/trigger-direction.tsx`), one pair per overlay kind: the root renders a `TriggerDirectionProvider` (state + Base UI `DirectionProvider`, LTR until a trigger reports), and the trigger part calls `useTriggerDirectionRef(ref)`, which reads its own element with `useElementDirection` and reports it in a layout effect (before paint). A per-kind context means a trigger reaches the nearest root of its own kind, so `TooltipTrigger render={<PopoverTrigger />}` reports to both roots. A trigger that mounts after the root (or a second trigger) reports when it mounts; the last report wins.
+- *Amended in Task 9*: Floating UI resolves `align` `start` / `end` from the popup's own computed direction (`platform.isRTL(floating)`), not from Base UI's context, so a portalled popup's alignment follows its portal container, like its text. The spec's "RTL Popover with `align="start"` aligns to the trigger's right edge" therefore holds in an RTL page (`dir` on `<html>`) and is a guard (it passes before and after the fix); with only a wrapper `dir`, a wide popup could line up by a collision flip, which proved nothing, so the test uses `<html dir="rtl">` and a popup that fits on either side. What Base UI's direction does change for popups is the logical side: `side="inline-end"` opens on the left in RTL (RED-tested for Popover, Tooltip, PreviewCard and Select), and a MenuSub (Base UI's default side `inline-end`) opens to the left with ← (Menu, Menubar, ContextMenu). The README's portal note covers both.
+- *Amended in Task 9*: a vertical NavigationMenu passes a physical side, `left` in RTL and `right` in LTR (from its element's direction), instead of `right` always, so its panel opens towards the inline end, where Base UI's RTL open key (←) points; `data-side` stays physical in the portal, and the positioner's hover bridge gains the `data-[side=left]` mirror. Its vertical chevron is `-rotate-90 rtl:rotate-90`.
+- *Amended in Task 9*: tests. Each affected component has a `<Name> direction` block (or tests in its existing block): RTL keys follow the visual order, an ancestor `dir` set after mount is followed, and the existing LTR key tests stay as they were. Slider pins → as −1 in a horizontal RTL slider (`SliderThumb.js`; Base UI's DirectionProvider docs use an RTL slider), places the thumb from the right edge, and an RTL drag to 20% from the left gives 80 with the thumb under the pointer (LTR: 20). ScrollArea checks the horizontal thumb at the inline start and the `data-overflow-x-start` / `-end` edges before and after scrolling to the inline end, LTR and RTL. Combobox chips: → from the empty input highlights the last chip in RTL. Autocomplete and Command: End scrolls an overflowing RTL input to `scrollLeft = -max`. No existing test changed its expectation in this commit.
+- *Amended in Task 9*: limits. A Combobox whose `ComboboxInput` sits inside the popup would report the portal's direction (Tessera's stories never do this). A trigger's own element is read, so a trigger with its own `dir` decides its overlay. Menu and Select item indicators (`left-2`, `pl-8`, `ml-auto`, the right-pointing submenu chevron) are physical classes and do not mirror in an RTL page (backlog).

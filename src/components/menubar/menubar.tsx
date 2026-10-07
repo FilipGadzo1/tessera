@@ -1,8 +1,12 @@
 "use client";
 
+import { DirectionProvider } from "@base-ui/react/direction-provider";
 import { Menubar as BaseMenubar } from "@base-ui/react/menubar";
+import { useRef } from "react";
 import { barTriggerClasses } from "../../lib/bar-classes";
 import { mergeClassName } from "../../lib/merge-class-name";
+import { useElementDirection } from "../../lib/use-element-direction";
+import { useMergedRefs } from "../../lib/use-merged-refs";
 import { MenuTrigger, type MenuTriggerProps } from "../menu";
 
 export interface MenubarProps extends BaseMenubar.Props {}
@@ -13,16 +17,22 @@ export interface MenubarProps extends BaseMenubar.Props {}
  * ←/→ move between triggers, and with a menu open they switch to the neighbouring menu; hovering
  * another trigger while one is open switches menus too. Needs an accessible name (`aria-label`).
  */
-export function Menubar({ className, ...props }: MenubarProps) {
+export function Menubar({ className, ref, ...props }: MenubarProps) {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const setRootRef = useMergedRefs(rootRef, ref);
+  const direction = useElementDirection(rootRef);
   return (
-    <BaseMenubar
-      {...props}
-      data-slot="menubar"
-      className={mergeClassName(
-        "flex items-center gap-1 rounded-lg border border-border bg-background p-1 data-[orientation=vertical]:flex-col data-[orientation=vertical]:items-stretch",
-        className,
-      )}
-    />
+    <DirectionProvider direction={direction}>
+      <BaseMenubar
+        {...props}
+        ref={setRootRef}
+        data-slot="menubar"
+        className={mergeClassName(
+          "flex items-center gap-1 rounded-lg border border-border bg-background p-1 data-[orientation=vertical]:flex-col data-[orientation=vertical]:items-stretch",
+          className,
+        )}
+      />
+    </DirectionProvider>
   );
 }
 

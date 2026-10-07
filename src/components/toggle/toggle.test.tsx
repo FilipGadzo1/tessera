@@ -322,3 +322,36 @@ describe("ToggleGroup", () => {
     expect(results.incomplete.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
   });
 });
+
+describe("ToggleGroup direction", () => {
+  const button = (name: string) => page.getByRole("button", { name }).element();
+
+  it("under dir=rtl, ← moves to the next item (visually left) and → back", async () => {
+    await render(
+      <div dir="rtl">
+        <Formatting />
+      </div>,
+    );
+    expect(button("Italic").getBoundingClientRect().left).toBeLessThan(
+      button("Bold").getBoundingClientRect().left,
+    );
+    await userEvent.tab();
+    expect(document.activeElement).toBe(button("Bold"));
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(button("Italic"));
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(button("Bold"));
+  });
+
+  it("follows a dir change on an ancestor after mount", async () => {
+    await render(
+      <div data-testid="host">
+        <Formatting />
+      </div>,
+    );
+    page.getByTestId("host").element().setAttribute("dir", "rtl");
+    await userEvent.tab();
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(button("Italic"));
+  });
+});

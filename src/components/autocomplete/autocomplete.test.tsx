@@ -100,6 +100,47 @@ afterEach(async () => {
   await resetEmulatedMedia();
 });
 
+describe("Autocomplete direction", () => {
+  it("under dir=rtl, End scrolls an overflowing input to its inline end (the left)", async () => {
+    await render(
+      <div dir="rtl">
+        <City
+          defaultValue={"Amsterdam Berlin Bern Lisbon Zagreb ".repeat(4)}
+          inputProps={{ groupClassName: "w-40" }}
+        />
+      </div>,
+    );
+    const element = input();
+    expect(element.scrollWidth).toBeGreaterThan(element.clientWidth);
+    element.focus();
+    await userEvent.keyboard("{Home}");
+    await expect.poll(() => element.scrollLeft).toBe(0);
+    await userEvent.keyboard("{End}");
+    await expect
+      .poll(() => element.scrollLeft)
+      .toBeLessThanOrEqual(-(element.scrollWidth - element.clientWidth - 1));
+  });
+
+  it("follows a dir change on an ancestor after mount", async () => {
+    const screen = await render(
+      <div data-testid="host">
+        <City
+          defaultValue={"Amsterdam Berlin Bern Lisbon Zagreb ".repeat(4)}
+          inputProps={{ groupClassName: "w-40" }}
+        />
+      </div>,
+    );
+    screen.getByTestId("host").element().setAttribute("dir", "rtl");
+    const element = input();
+    element.focus();
+    await userEvent.keyboard("{Home}");
+    await userEvent.keyboard("{End}");
+    await expect
+      .poll(() => element.scrollLeft)
+      .toBeLessThanOrEqual(-(element.scrollWidth - element.clientWidth - 1));
+  });
+});
+
 describe("Autocomplete", () => {
   describe("filtering and filling", () => {
     it("wires aria-expanded / aria-controls and opens the listbox as the user types", async () => {

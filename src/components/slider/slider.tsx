@@ -1,9 +1,13 @@
 "use client";
 
+import { DirectionProvider } from "@base-ui/react/direction-provider";
 import { Slider as BaseSlider } from "@base-ui/react/slider";
+import { useRef } from "react";
 import { cn } from "../../lib/cn";
 import { mergeClassName } from "../../lib/merge-class-name";
 import { type ToneColor, toneClass } from "../../lib/tone";
+import { useElementDirection } from "../../lib/use-element-direction";
+import { useMergedRefs } from "../../lib/use-merged-refs";
 
 export type SliderSize = "sm" | "md";
 
@@ -50,8 +54,12 @@ export function Slider<Value extends number | readonly number[] = number>({
   defaultValue,
   "aria-label": ariaLabel,
   "aria-labelledby": ariaLabelledBy,
+  ref,
   ...props
 }: SliderProps<Value>) {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const setRootRef = useMergedRefs(rootRef, ref);
+  const direction = useElementDirection(rootRef);
   const thumbCount = thumbCountOf(value ?? defaultValue);
   // A plain `aria-label`/`aria-labelledby` names the single thumb directly (Base UI's Root only
   // uses its own `aria-label` prop for the wrapping `role="group"`, not the thumb's `<input>`);
@@ -72,63 +80,66 @@ export function Slider<Value extends number | readonly number[] = number>({
   const soloThumbAriaLabelledBy = thumbCount === 1 ? ariaLabelledBy : undefined;
 
   return (
-    <BaseSlider.Root
-      {...props}
-      value={value}
-      defaultValue={defaultValue}
-      aria-label={ariaLabel}
-      aria-labelledby={ariaLabelledBy}
-      data-slot="slider"
-      data-color={color}
-      data-size={size}
-      className={mergeClassName(
-        cn(
-          "relative flex w-full touch-none select-none flex-col gap-2 data-disabled:opacity-50",
-          toneClass[color],
-        ),
-        className,
-      )}
-    >
-      {children != null && (
-        <div data-slot="slider-header" className="flex items-center justify-between gap-2">
-          {children}
-        </div>
-      )}
-      <BaseSlider.Control
-        data-slot="slider-control"
-        className="relative flex h-5 items-center data-[orientation=vertical]:h-full data-[orientation=vertical]:w-5 data-[orientation=vertical]:flex-col"
+    <DirectionProvider direction={direction}>
+      <BaseSlider.Root
+        {...props}
+        ref={setRootRef}
+        value={value}
+        defaultValue={defaultValue}
+        aria-label={ariaLabel}
+        aria-labelledby={ariaLabelledBy}
+        data-slot="slider"
+        data-color={color}
+        data-size={size}
+        className={mergeClassName(
+          cn(
+            "relative flex w-full touch-none select-none flex-col gap-2 data-disabled:opacity-50",
+            toneClass[color],
+          ),
+          className,
+        )}
       >
-        <BaseSlider.Track
-          data-slot="slider-track"
-          className={cn(
-            "relative w-full grow overflow-hidden rounded-full bg-muted forced-colors:outline forced-colors:outline-1 forced-colors:outline-[CanvasText]",
-            trackSizes[size],
-          )}
+        {children != null && (
+          <div data-slot="slider-header" className="flex items-center justify-between gap-2">
+            {children}
+          </div>
+        )}
+        <BaseSlider.Control
+          data-slot="slider-control"
+          className="relative flex h-5 items-center data-[orientation=vertical]:h-full data-[orientation=vertical]:w-5 data-[orientation=vertical]:flex-col"
         >
-          <BaseSlider.Indicator
-            data-slot="slider-indicator"
-            className="bg-tone forced-colors:bg-[Highlight]"
-          />
-        </BaseSlider.Track>
-        {Array.from({ length: thumbCount }, (_, index) => (
-          <BaseSlider.Thumb
-            // biome-ignore lint/suspicious/noArrayIndexKey: thumbs are identified by their fixed index into the value array (also the `index` prop); that count doesn't reorder at runtime.
-            key={index}
-            index={index}
-            data-slot="slider-thumb"
-            getAriaLabel={getAriaLabel}
-            aria-label={soloThumbAriaLabel}
-            aria-labelledby={soloThumbAriaLabelledBy}
+          <BaseSlider.Track
+            data-slot="slider-track"
             className={cn(
-              "block cursor-grab rounded-full border-2 border-tone bg-background shadow-sm active:cursor-grabbing data-disabled:cursor-not-allowed",
-              "outline-none outline-offset-2 outline-ring has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-solid",
-              "forced-colors:border-[CanvasText] forced-colors:has-[:focus-visible]:outline-[Highlight]",
-              thumbSizes[size],
+              "relative w-full grow overflow-hidden rounded-full bg-muted forced-colors:outline forced-colors:outline-1 forced-colors:outline-[CanvasText]",
+              trackSizes[size],
             )}
-          />
-        ))}
-      </BaseSlider.Control>
-    </BaseSlider.Root>
+          >
+            <BaseSlider.Indicator
+              data-slot="slider-indicator"
+              className="bg-tone forced-colors:bg-[Highlight]"
+            />
+          </BaseSlider.Track>
+          {Array.from({ length: thumbCount }, (_, index) => (
+            <BaseSlider.Thumb
+              // biome-ignore lint/suspicious/noArrayIndexKey: thumbs are identified by their fixed index into the value array (also the `index` prop); that count doesn't reorder at runtime.
+              key={index}
+              index={index}
+              data-slot="slider-thumb"
+              getAriaLabel={getAriaLabel}
+              aria-label={soloThumbAriaLabel}
+              aria-labelledby={soloThumbAriaLabelledBy}
+              className={cn(
+                "block cursor-grab rounded-full border-2 border-tone bg-background shadow-sm active:cursor-grabbing data-disabled:cursor-not-allowed",
+                "outline-none outline-offset-2 outline-ring has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-solid",
+                "forced-colors:border-[CanvasText] forced-colors:has-[:focus-visible]:outline-[Highlight]",
+                thumbSizes[size],
+              )}
+            />
+          ))}
+        </BaseSlider.Control>
+      </BaseSlider.Root>
+    </DirectionProvider>
   );
 }
 

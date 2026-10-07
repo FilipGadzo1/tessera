@@ -331,6 +331,58 @@ describe("Menu", () => {
     await expect.poll(highlighted).toEqual(["Share"]);
   });
 
+  it("under dir=rtl, ← opens a submenu to the left of its trigger item and → closes it", async () => {
+    await render(
+      <div dir="rtl">
+        <WithSubmenu />
+      </div>,
+    );
+    await openByClick("File");
+    await userEvent.keyboard("{ArrowDown}");
+    await userEvent.keyboard("{ArrowDown}");
+    await expect.poll(highlighted).toEqual(["Share"]);
+    await userEvent.keyboard("{ArrowLeft}");
+    await expect.poll(() => menus().length).toBe(2);
+    const sub = menus()[1] as HTMLElement;
+    await waitForPopupSettled(sub);
+    const share = item("Share").element().getBoundingClientRect();
+    const subRect = sub.getBoundingClientRect();
+    expect(subRect.right).toBeLessThanOrEqual(share.left + 1);
+    expect(subRect.left).toBeLessThan(share.left);
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(() => menus().length).toBe(1);
+  });
+
+  it("in an RTL page, align start lines the menu up with the trigger's right edge", async () => {
+    // Floating UI resolves `start` from the popup's own computed direction, which a portalled
+    // popup takes from its container: here the RTL document (spec §7, portal note).
+    document.documentElement.setAttribute("dir", "rtl");
+    try {
+      await render(<Actions className="w-40" />);
+      const popup = await openByClick();
+      const t = trigger().element().getBoundingClientRect();
+      expect(popup.getBoundingClientRect().width).toBeGreaterThan(t.width + 20);
+      expect(Math.abs(popup.getBoundingClientRect().right - t.right)).toBeLessThanOrEqual(1);
+    } finally {
+      document.documentElement.removeAttribute("dir");
+    }
+  });
+
+  it("follows a dir change on an ancestor after mount", async () => {
+    await render(
+      <div data-testid="host">
+        <WithSubmenu />
+      </div>,
+    );
+    page.getByTestId("host").element().setAttribute("dir", "rtl");
+    await openByClick("File");
+    await userEvent.keyboard("{ArrowDown}");
+    await userEvent.keyboard("{ArrowDown}");
+    await expect.poll(highlighted).toEqual(["Share"]);
+    await userEvent.keyboard("{ArrowLeft}");
+    await expect.poll(() => menus().length).toBe(2);
+  });
+
   it("aligns the submenu's first item with its trigger item", async () => {
     await render(<WithSubmenu />);
     await openByClick("File");

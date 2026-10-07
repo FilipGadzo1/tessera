@@ -1,9 +1,13 @@
 "use client";
 
+import { DirectionProvider } from "@base-ui/react/direction-provider";
 import { Radio as BaseRadio } from "@base-ui/react/radio";
 import { RadioGroup as BaseRadioGroup } from "@base-ui/react/radio-group";
+import { useRef } from "react";
 import { cn } from "../../lib/cn";
 import { mergeClassName } from "../../lib/merge-class-name";
+import { useElementDirection } from "../../lib/use-element-direction";
+import { useMergedRefs } from "../../lib/use-merged-refs";
 
 /** Base UI RadioGroup props. Name it with `aria-label(ledby)` or render it through a Fieldset. */
 export type RadioGroupProps<Value = unknown> = BaseRadioGroup.Props<Value>;
@@ -27,13 +31,19 @@ const radioClasses = cn(
  * over the RadioGroup's className and the legend sits in the same flex container, so wrap the
  * options instead: `<div className="flex flex-row gap-6">…</div>` after the FieldsetLegend.
  */
-export function RadioGroup<Value>({ className, ...props }: RadioGroupProps<Value>) {
+export function RadioGroup<Value>({ className, ref, ...props }: RadioGroupProps<Value>) {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const setRootRef = useMergedRefs(rootRef, ref);
+  const direction = useElementDirection(rootRef);
   return (
-    <BaseRadioGroup
-      {...props}
-      data-slot="radio-group"
-      className={mergeClassName("flex flex-col gap-2", className)}
-    />
+    <DirectionProvider direction={direction}>
+      <BaseRadioGroup
+        {...props}
+        ref={setRootRef}
+        data-slot="radio-group"
+        className={mergeClassName("flex flex-col gap-2", className)}
+      />
+    </DirectionProvider>
   );
 }
 

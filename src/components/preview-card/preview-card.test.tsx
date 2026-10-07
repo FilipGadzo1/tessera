@@ -42,6 +42,40 @@ afterEach(() => {
   document.documentElement.classList.remove("dark");
 });
 
+describe("PreviewCard direction", () => {
+  it.each(["ltr", "rtl"] as const)(
+    "%s: side inline-end places the card after the trigger in the reading order",
+    async (dir) => {
+      await render(
+        <div dir={dir} className="flex justify-center">
+          <Basic side="inline-end" className="w-32" />
+        </div>,
+      );
+      const element = await openByHover();
+      const t = trigger().element().getBoundingClientRect();
+      const p = element.getBoundingClientRect();
+      if (dir === "rtl") expect(p.right).toBeLessThanOrEqual(t.left);
+      else expect(p.left).toBeGreaterThanOrEqual(t.right);
+    },
+  );
+
+  it("follows a dir change on an ancestor after mount", async () => {
+    await render(
+      <div data-testid="host" className="flex justify-center">
+        <Basic side="inline-end" className="w-32" />
+      </div>,
+    );
+    page.getByTestId("host").element().setAttribute("dir", "rtl");
+    const element = await openByHover();
+    await expect
+      .poll(
+        () =>
+          element.getBoundingClientRect().right - trigger().element().getBoundingClientRect().left,
+      )
+      .toBeLessThanOrEqual(0);
+  });
+});
+
 describe("PreviewCard", () => {
   it("renders the trigger as a link and opens the card on hover after the delay", async () => {
     await render(<Basic />);
