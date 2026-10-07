@@ -2,11 +2,17 @@ import { useRef, useState } from "react";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, type MockInstance, vi } from "vitest";
 import { render } from "vitest-browser-react";
-import { isRtl } from "./direction";
 import { useElementDirection } from "./use-element-direction";
 
-// Every export keeps its implementation; `isRtl` (the only style read) records its calls.
-vi.mock("./direction", { spy: true });
+/**
+ * Spies on `getComputedStyle` (the hook's only style read, through `isRtl`) and returns a counter
+ * of the reads of one element. Only that element's reads count: Base UI and floating-ui read
+ * other elements too. `afterEach` restores the spy.
+ */
+function spyStyleReads() {
+  const spy = vi.spyOn(window, "getComputedStyle");
+  return (element: Element) => spy.mock.calls.filter(([target]) => target === element).length;
+}
 
 function Probe({ label = "probe" }: { label?: string }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -35,7 +41,6 @@ function dirObservers(observe: MockInstance<MutationObserver["observe"]>) {
 
 afterEach(() => {
   vi.restoreAllMocks();
-  vi.mocked(isRtl).mockClear();
 });
 
 describe("useElementDirection", () => {
@@ -58,9 +63,10 @@ describe("useElementDirection", () => {
   });
 
   it('stays "ltr" with no dir', async () => {
-    await render(<Probe />);
+    const reads = spyStyleReads();
+    const screen = await render(<Probe />);
     expect(direction()).toBe("ltr");
-    expect(vi.mocked(isRtl)).toHaveBeenCalled();
+    expect(reads(screen.getByTestId("probe").element())).toBeGreaterThan(0);
   });
 
   it("sees an ancestor's dir change", async () => {
@@ -78,6 +84,7 @@ describe("useElementDirection", () => {
   });
 
   it("a re-render with no dir change reads no style", async () => {
+    const styleReads = spyStyleReads();
     const screen = await render(
       <div dir="rtl">
         <Probe />
@@ -85,15 +92,17 @@ describe("useElementDirection", () => {
     );
     await expect.poll(() => direction()).toBe("rtl");
     const probe = screen.getByTestId("probe").element();
-    const reads = () => vi.mocked(isRtl).mock.calls.filter(([element]) => element === probe).length;
-    const before = reads();
-    expect(before).toBeGreaterThan(0);
-    const button = screen.getByRole("button");
+    const reads = () => styleReads(probe);
+    expect(reads()).toBeGreaterThan(0);
+    const button = screen.getByRole("button").element() as HTMLButtonElement;
     for (let i = 1; i <= 3; i++) {
-      (button.element() as HTMLButtonElement).click();
-      await expect.element(button).toHaveAttribute("data-count", String(i));
+      // Polls the attribute, not the locator: `expect.element` reads the styles of the element
+      // and its ancestors (its visibility check), which would count as reads of the probe.
+      const before = reads();
+      button.click();
+      await expect.poll(() => button.getAttribute("data-count")).toBe(String(i));
+      expect(reads()).toBe(before);
     }
-    expect(reads()).toBe(before);
   });
 
   it("shares one observer and disconnects it after the last unmount", async () => {

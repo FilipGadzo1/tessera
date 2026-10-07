@@ -11,7 +11,6 @@ import {
   emulateReducedMotion,
   systemColor,
 } from "../../../test/emulation";
-import { isRtl } from "../../lib/direction";
 import {
   ResizableHandle,
   type ResizableHandleProps,
@@ -22,11 +21,9 @@ import {
 } from "./resizable";
 import * as stories from "./resizable.stories";
 
-// Every export keeps its implementation; `isRtl` (the only direction read) records its calls.
-vi.mock("../../lib/direction", { spy: true });
-
+// Restores the `getComputedStyle` spy (and any other `vi.spyOn`) after each test.
 afterEach(() => {
-  vi.mocked(isRtl).mockClear();
+  vi.restoreAllMocks();
 });
 
 /** The panel space of the fixtures in px (each handle is 1px more): 1% is 3px. */
@@ -509,19 +506,6 @@ describe("Resizable pointer", () => {
     await expect.poll(() => Math.abs(valueNow() - 30)).toBeLessThanOrEqual(1);
   });
 
-  it("a drag reads no direction per move (isRtl is read on mount only)", async () => {
-    const onLayoutChange = vi.fn();
-    await render(<Two dir="rtl" onLayoutChange={onLayoutChange} />);
-    const element = group();
-    const readsOfGroup = () =>
-      vi.mocked(isRtl).mock.calls.filter(([target]) => target === element).length;
-    expect(readsOfGroup()).toBe(1);
-    const before = vi.mocked(isRtl).mock.calls.length;
-    await dragTo(70, { rtl: true });
-    await expect.poll(() => onLayoutChange.mock.calls.length).toBeGreaterThan(4);
-    expect(vi.mocked(isRtl).mock.calls.length).toBe(before);
-  });
-
   it("a touch drag resizes (pointer events, touch-action none)", async () => {
     await render(<Two />);
     const target = handle();
@@ -973,6 +957,32 @@ describe("Resizable hardening", () => {
     await expect.poll(() => handle().hasAttribute("data-dragging")).toBe(false);
     expect(onLayoutCommitted).toHaveBeenCalledTimes(1);
     expect(onLayoutCommitted).toHaveBeenLastCalledWith([70, 30]);
+  });
+
+  it("a drag reads no style per move (the direction is read on mount only)", async () => {
+    // Only the group's own elements count (Base UI and floating-ui read others). Dispatched events,
+    // not a Playwright drag: its actionability checks read the styles of the elements it targets.
+    const getComputedStyleSpy = vi.spyOn(window, "getComputedStyle");
+    const onLayoutChange = vi.fn();
+    await render(<Two dir="rtl" onLayoutChange={onLayoutChange} />);
+    const element = group();
+    const reads = (inside: boolean) =>
+      getComputedStyleSpy.mock.calls.filter(([target]) =>
+        inside ? element.contains(target) : target === element,
+      ).length;
+    expect(reads(false)).toBe(1);
+    const before = reads(true);
+    const x = handle().getBoundingClientRect().left;
+    pointer("pointerdown", x);
+    // In RTL the preceding panel is on the right: each move left grows it by 10px.
+    for (let step = 1; step <= 6; step++) {
+      pointer("pointermove", x - step * 10);
+      await expect.poll(() => onLayoutChange.mock.calls.length).toBe(step);
+    }
+    pointer("pointerup", x - 60);
+    await expect.poll(() => handle().hasAttribute("data-dragging")).toBe(false);
+    expect(valueNow()).toBe(70);
+    expect(reads(true)).toBe(before);
   });
 
   it("a move flushed together with the up commits the moved layout", async () => {
