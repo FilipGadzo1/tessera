@@ -170,7 +170,9 @@ source files automatically (build output + `"use client"` directive checks).
   Opens on click, Enter or Space; Escape, an outside click or PopoverClose closes it and focus returns
   to the trigger. On open, focus moves to the first tabbable element inside (or the panel itself);
   change that with `initialFocus` on PopoverContent, and position against another element (not the
-  trigger) with `anchor`. Controlled via `open` / `onOpenChange`)
+  trigger) with `anchor`. A scrollable list that shrinks to the available height passes
+  `collisionAvoidance={{ fallbackAxisSide: "none" }}` so it never moves beside its trigger.
+  Controlled via `open` / `onOpenChange`)
 - [x] Dialog (Dialog, DialogTrigger, DialogContent, DialogHeader, DialogFooter, DialogTitle,
   DialogDescription, DialogClose; a centred modal `role="dialog"` over a dimmed backdrop. DialogContent
   takes `size` (`sm` / `md` default / `lg`) and `showCloseButton` (default true: a ghost icon Button
@@ -587,6 +589,20 @@ source files automatically (build output + `"use client"` directive checks).
   "9:30 AM" in an RTL page and Arabic reads "م ٩:٣٠". Field and Form as DateField. `locale` is
   required when server-rendering: a server and client that disagree on the hour cycle render a
   different number of segments, and hydration fails. Client component)
+- [x] TimePicker (a TimeField with a clock icon button inside its border — the editable
+  DatePicker's shell — opening a popover with one listbox of time slots: every `slotStep` minutes
+  (default 30) from `min` (default midnight) to `max`, without the ones off the `step` grid, each
+  shown with the locale's time format and a check on the selected one. Typing is the main path;
+  the list picks a common time. Opening focuses the selected slot, else the first slot after the
+  value, else the last slot (a value later than every slot), else the first; ↑/↓ move (no wrap),
+  Home/End jump, PageUp/PageDown move five, hovering focuses, and Enter, Space or a click picks
+  (`":00"` seconds at second granularity), closes the popup and returns focus to the icon button;
+  Escape closes it unchanged (inside a Dialog only the list closes) and Tab leaves it. With no slot
+  the popup says "No times available". TimeField's props plus `slotStep`, `open` /
+  `defaultOpen` / `onOpenChange`, `container` and `labels` (TimeField's plus `open` "Choose time",
+  `dialog` "Choose a time", `list` "Times", `noTimes`). The TimeField is the one Field / Form
+  control; the field, the button and the popup are one blur boundary. `readOnly` and `disabled`
+  disable the icon button. Client component)
 - [x] Sidebar, SidebarProvider, SidebarTrigger, SidebarRail, SidebarInset, SidebarHeader, SidebarFooter,
   SidebarContent, SidebarSeparator, SidebarGroup, SidebarGroupLabel, SidebarGroupAction, SidebarGroupContent,
   SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuAction, SidebarMenuBadge, SidebarMenuSub,

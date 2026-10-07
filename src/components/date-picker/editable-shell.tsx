@@ -68,6 +68,8 @@ interface EditableShellProps extends EditableElementProps, PickerOwnProps {
    * its first tabbable element).
    */
   initialFocus: (popup: HTMLElement | null) => HTMLElement | true;
+  /** The popup's collision avoidance (PopoverContent's); TimePicker's list keeps to its axis. */
+  collisionAvoidance?: PopoverContentProps["collisionAvoidance"];
   /** Renders the field (a DateField, DateRangeField or TimeField) with the props it is handed. */
   renderField: (props: EditableFieldProps) => ReactNode;
   /** Renders the popup's content: `close` closes the popup (focus returns to the icon button). */
@@ -91,6 +93,7 @@ export function EditableShell({
   openLabel,
   dialogLabel,
   initialFocus,
+  collisionAvoidance,
   renderField,
   renderCalendar,
   growToContent = false,
@@ -152,6 +155,7 @@ export function EditableShell({
       <PopoverContent
         ref={popupRef}
         anchor={anchorRef}
+        collisionAvoidance={collisionAvoidance}
         container={container}
         align="start"
         sideOffset={6}

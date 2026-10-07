@@ -54,6 +54,12 @@ export interface PopoverContentProps extends BasePopover.Popup.Props {
   /** Element to position against instead of the trigger (e.g. a wider group the trigger sits in). */
   anchor?: PositionerProps["anchor"];
   /**
+   * How the popover avoids collisions. A scrollable list that shrinks to the available height
+   * passes `{ fallbackAxisSide: "none" }` (Base UI's dropdown rule) so it never moves to the side.
+   * @default Base UI's popup rule: flip, then fall back to the other axis's end side
+   */
+  collisionAvoidance?: PositionerProps["collisionAvoidance"];
+  /**
    * Element to portal into (default `document.body`). Pass an element inside a nested theme scope
    * (`data-primary`, `data-surface`, `.dark` on an inner element) so the popover inherits it.
    */
@@ -74,6 +80,7 @@ export function PopoverContent({
   alignOffset,
   collisionPadding,
   anchor,
+  collisionAvoidance,
   container,
   className,
   "data-slot": dataSlot = "popover-content",
@@ -90,6 +97,7 @@ export function PopoverContent({
         alignOffset={alignOffset}
         collisionPadding={collisionPadding}
         anchor={anchor}
+        collisionAvoidance={collisionAvoidance}
         className="z-(--z-overlay)"
       >
         <BasePopover.Popup

@@ -647,6 +647,7 @@ export {
 } from "./components/tabs";
 export { Textarea, type TextareaProps } from "./components/textarea";
 export { TimeField, type TimeFieldLabels, type TimeFieldProps } from "./components/time-field";
+export { TimePicker, type TimePickerLabels, type TimePickerProps } from "./components/time-picker";
 export {
   createToaster,
   Toaster,

@@ -86,6 +86,16 @@ export function ChevronUpIcon(props: ComponentProps<"svg">) {
   );
 }
 
+/** A clock face with its hands at 12 and 3: TimePicker's icon button. */
+export function ClockIcon(props: ComponentProps<"svg">) {
+  return (
+    <StrokeIcon {...props}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 6v6h4" />
+    </StrokeIcon>
+  );
+}
+
 export function CloseIcon(props: ComponentProps<"svg">) {
   return (
     <StrokeIcon {...props}>
