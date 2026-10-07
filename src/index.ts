@@ -582,6 +582,24 @@ export {
   SliderValue,
   type SliderValueProps,
 } from "./components/slider";
+export {
+  Stepper,
+  StepperDescription,
+  type StepperDescriptionProps,
+  StepperIndicator,
+  type StepperIndicatorProps,
+  StepperItem,
+  type StepperItemProps,
+  type StepperOrientation,
+  type StepperProps,
+  StepperSeparator,
+  type StepperSeparatorProps,
+  type StepperState,
+  StepperTitle,
+  type StepperTitleProps,
+  StepperTrigger,
+  type StepperTriggerProps,
+} from "./components/stepper";
 export { Switch, type SwitchProps } from "./components/switch";
 export {
   Table,

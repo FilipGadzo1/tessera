@@ -24,6 +24,17 @@ function StrokeIcon({ children, ...props }: ComponentProps<"svg"> & { children: 
   );
 }
 
+/** A circle with "!": an error (a Stepper step in error). */
+export function AlertIcon(props: ComponentProps<"svg">) {
+  return (
+    <StrokeIcon {...props}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 8v4" />
+      <path d="M12 16h.01" />
+    </StrokeIcon>
+  );
+}
+
 export function CalendarIcon(props: ComponentProps<"svg">) {
   return (
     <StrokeIcon {...props}>

@@ -693,6 +693,20 @@ source files automatically (build output + `"use client"` directive checks).
   an input: an image named "4.3 out of 5 stars" with fractional fills, no Tab stop and no form value.
   `itemLabel(value, max)` and `valueLabel(value, max)` localise the names. Filled stars are solid and empty
   ones outlined, so forced colors keep the difference. Client component)
+- [x] Stepper (`Stepper`, `StepperItem`, `StepperTrigger`, `StepperIndicator`, `StepperTitle`,
+  `StepperDescription`, `StepperSeparator`: an `ol role="list"` (named "Progress" by default) whose
+  steps are plain buttons, `aria-current="step"` on the current one. Every step is a Tab stop and
+  Enter/Space activate it; there are no arrow keys. `value` / `defaultValue` (0-based) /
+  `onValueChange` (once per real change), `orientation` (`horizontal` / `vertical`), `linear`
+  (default `true`: the steps up to the current one, the run of complete steps after it and the step
+  after that run are reachable; the rest are `aria-disabled` but stay focusable, muted). Each item's
+  `completed` (overrides `step < value`), `error` and `disabled`; the Stepper reads them from its
+  `StepperItem` children (fragments and arrays included), so keep the items direct children. A step's
+  name is its title plus `stateLabel(state)` ("Shipping Completed", "Shipping Error"); the indicator
+  shows the number, a check or "!", so state never relies on colour, and in forced colors a complete
+  separator is drawn 4px thick. Items without a trigger are a display-only progress list. RTL is CSS
+  only. Four titled steps need about 580px in a row: switch to `vertical` on narrow screens. Client
+  component)
 
 Phase A (foundation), Phase B (forms), Phase C (overlays), Phase D (navigation and feedback),
 Phase E (data entry and display), Phase F (dates, toolbars and surfaces — Meter, ScrollArea,
