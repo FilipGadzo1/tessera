@@ -1,8 +1,8 @@
 # Tessera backlog
 
 Open follow-ups from the foundation, Phase A (2026-09-23), Phase B, Phase C, Phase D (2026-09-24),
-Phase E (2026-09-25), Phase F and Phase G (2026-09-26), Phase H (2026-09-30) and Phase I (2026-10-01)
-reviews.
+Phase E (2026-09-25), Phase F and Phase G (2026-09-26), Phase H (2026-09-30), Phase I (2026-10-01)
+and Phase J (2026-10-07) reviews.
 None block current use.
 
 ## Components
@@ -367,6 +367,32 @@ DateRangeField test and the Tree position compare.
 - Radio (Phase B, found in Task 5): Base UI keeps a disabled RadioGroup's roving radio focusable
   (`aria-disabled`), yet Tessera's `Radio` still fades with `data-disabled:opacity-50`. It should follow the
   focusable-disabled convention (muted, GrayText in forced colors, opacity 1), as Rating does.
+- Menu (found in Task 1): in the Menu `Default` story there is almost no gap between "Duplicate" and its
+  "Ctrl+D" hint (cosmetic; the platform-aware hints are wider than the old "⌘D").
+- Stepper (Task 6): the Stepper reads each item's `completed` / `error` from its direct `StepperItem`
+  children, so an item wrapped in another component cannot extend the reachable steps (a dev warning names
+  it; documented in the README). A context registration would lift the limit at the cost of the server
+  HTML's `aria-disabled`.
+- RTL text in Phase J components (Task 8 visual check, screen `task8-theme-studio-rtl.png`; a fit for the
+  Task 9 direction work):
+  - `KbdShortcut` follows the page direction, so under `dir="rtl"` its keys read "S Ctrl" from left to
+    right. Decide whether a shortcut stays in LTR order (`dir="ltr"` on the group), as platform menus
+    usually show it.
+  - A hex that starts with a letter is reordered by the bidi algorithm in an RTL page: the
+    `ColorPickerPopover` trigger shows "ffffff#" (its `color-picker-value` span), and the `ColorInput`
+    would too. A hex is LTR text; `dir="ltr"` on the value span (and `dir="ltr"` or `dir="auto"` on the
+    input, against the spec's "the input follows the page" ruling) would fix it.
+- Theme Studio example (Task 8):
+  - The contrast Badge measures only the primary colour as text on the surface (spec §6). The preview's
+    other pairs (the soft Button, the Badge, the muted text) are derived with `color-mix` and are not
+    checked, so an extreme surface can make them weak.
+  - Going Back and changing the primary to a failing colour does not drop "Colors" from the completed
+    set until Next is pressed on it again, so Review stays reachable (and Save works) with a failing
+    contrast.
+  - Its axe test for the open surface popover hides the panels (the popup covers controls, which axe
+    leaves `bgOverlap`); the panels are audited with the popover closed. The popup flips above its
+    trigger when the trigger sits low in the controls panel.
+  - "Finish" marks Review complete and saves; there is no separate "done" state.
 
 ## Next components
 Follow the phases in the design-system spec §6
@@ -377,6 +403,9 @@ Phase D navigation and feedback, Phase E data entry and display, Phase F dates/t
 HoverCard/PreviewCard, ContextMenu). Phases B–G are done (G: Collapsible, CheckboxGroup, Form, OTPField,
 Autocomplete, Menubar, NavigationMenu); Phase H is done (DateField, editable DatePicker, date form
 participation, Sidebar, Dashboard example); Phase I is done (DateRangeField, editable DateRangePicker,
-Command, Tree, Carousel, Files example). Next, Phase J: candidates are data-grid pieces (column
-visibility, pagination state), Resizable panels, Stepper, Rating, a Color picker and a Calendar events
-view.
+Command, Tree, Carousel, Files example). Phase J's components are done (Kbd and shortcut labels, colour
+helpers, useElementDirection, ColorPicker, ColorPickerPopover, Rating, Stepper, Resizable, Theme Studio
+example); its last task, the RTL direction fix for the older Base UI composites, is next. Then Phase K:
+candidates are data-grid pieces (column visibility, sorting and multi-sort, row selection, pagination
+state via a headless `useDataTable`), a Calendar events view, TimeField / TimePicker, a FileUpload
+dropzone and a TagsInput.

@@ -735,7 +735,10 @@ Toggle/ToggleGroup, Toolbar, PreviewCard, ContextMenu, Calendar, RangeCalendar, 
 DateRangePicker) and Phase G (forms and navigation — Collapsible, CheckboxGroup, Form, OTPField,
 Autocomplete, Menubar and NavigationMenu), Phase H (DateField, editable DatePicker, form participation
 for the date controls, and the Sidebar app shell) and Phase I (DateRangeField and the editable
-DateRangePicker, the Command palette, Tree and Carousel) are complete.
+DateRangePicker, the Command palette, Tree and Carousel) are complete. Phase J's components (Kbd and
+platform-aware shortcut labels, the colour helpers, useElementDirection, ColorPicker and
+ColorPickerPopover, Rating, Stepper and Resizable) and its Theme Studio example are complete; the
+phase's last task, the RTL direction fix for the older Base UI composites, follows.
 
 Composition: when a part is rendered through another (`<Fieldset render={<RadioGroup className=…/>}>`),
 the outer part's own classes win over conflicting classes on the render element (Base UI merges the
@@ -820,9 +823,31 @@ with the open folder's files in a `Table`; a filter `Form` with an editable `Dat
 button) with "Go to folder…" (a sub-list of folders: type a name, Enter goes there), "New folder" and
 "Toggle sidebar".
 
+The Storybook story **Tessera/Examples/Theme Studio** (`src/docs/examples/theme-studio-page.tsx`)
+composes the Phase J components in a theme editor: a `ResizablePanelGroup` (stacked below `md`) with a
+collapsible controls panel ("Resize controls" handle), a live preview and a code panel that mounts
+with the "Show code" Switch. The controls hold a linear `Stepper` wizard (Colors, Shape, Review) whose
+completed steps the page keeps in its own set, so going Back keeps the later steps reachable. Colors
+has an inline `ColorPicker` with swatches for the primary colour and a `ColorPickerPopover` for the
+surface; a `Badge` shows `contrastRatio(primary, surface)` ("Primary on surface 6.3:1 AA"), and Next
+refuses below 4.5:1, marking the step `error` with a message. Shape has a radius `Slider` and a density
+`RadioGroup`; Review a name `Input` and a clearable `Rating`. The preview applies the theme through
+inline custom properties on its own container (the popover's portalled popup keeps the page theme).
+Ctrl/⌘+S saves ("Theme saved" in a status line until the next change) and Ctrl/⌘+J toggles the code
+panel; both work while typing, call `preventDefault`, and show `aria-hidden` `KbdShortcut` hints with
+`aria-keyshortcuts` on the Button and the Switch.
+
 ## Roadmap
 
-Phase I is complete. Next, Phase J; candidates: data-grid pieces (column visibility, pagination
-state), Resizable panels, Stepper, Rating, a Color picker and a Calendar events view.
+Phase J's components are complete; its last task, the RTL direction fix for the older Base UI
+composites (RadioGroup, ToggleGroup, Toolbar, Tabs, Slider, ScrollArea, the menus and the positioned
+popups), is next. Then Phase K; candidates:
+
+- data-grid pieces: column visibility, sorting and multi-sort state, row selection and pagination
+  state (a headless `useDataTable` over Table);
+- a Calendar events view (month and week agenda);
+- TimeField / TimePicker (the date family's missing half);
+- a FileUpload dropzone;
+- a TagsInput.
 
 Later: visual regression · React Compiler on output · publish to npm (`@tessera/ui` is free).

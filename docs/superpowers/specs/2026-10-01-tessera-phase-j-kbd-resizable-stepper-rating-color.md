@@ -539,6 +539,15 @@ Server-safe, no dependency, no hooks. Every function is pure and unit-tested in 
   - a TagsInput.
 - Backlog: the Phase J notes; nothing resolved left in it.
 - `src/docs/introduction.mdx`: a "Shortcuts, panels, steps, ratings and colour" section pointing at **Examples / Theme Studio**.
+- *Amended in Task 8*: the Theme Studio as built (screens `task8-theme-studio-*.png`):
+  - The Stepper is `orientation="vertical"` in the controls panel. Three titled horizontal steps need about 344px plus the panel's padding, and the 30% panel at a 1280px viewport left the third step clipped (screenshot); at `minSize` 22 and at 390px it is narrower still.
+  - Stacked below `md`, the controls panel starts at 55% (`defaultSize={narrow ? 55 : 30}`), and the group is keyed on the orientation so a breakpoint switch re-reads the defaults. At 30% the stacked controls showed only the Stepper at 390px.
+  - The contrast Badge sits in the Colors step's heading row with the error message under it, and Back / Next are a sticky footer of the controls panel: at the panel's height the Badge and the buttons were below the fold. The message is in an always-rendered `role="alert"` container, and Next is `aria-describedby` it while shown. "Theme saved" is an always-rendered `role="status"` in the header, beside the Switch.
+  - The preview sets more tokens than the list above, so its Card, Input, soft Button and Badge follow the surface on a dark page too: `--primary-active`, `--primary-soft`, `--primary-soft-hover`, `--primary-soft-foreground`, `--ring`, `--card-foreground`, `--muted-foreground`, `--border`, `--field`, `--field-border` and `--field-border-hover` (mixed from the surface, its readable foreground and the primary), and `color-scheme` from the surface. The code panel shows the same tokens.
+  - "Finish" (the last step's Next) marks Review complete and saves.
+  - The ColorPickerPopover's popup is portalled to `document.body`, so it keeps the page's tokens, not the preview's (tested: with the surface at `#0f172a` the popup's `--background` and `--primary` are the page's, while the preview's `--background` is `#0f172a`).
+  - The open-popover axe test hides the panels: the popup covers part of the controls and axe leaves the text around it `bgOverlap`. The panels are audited with the popover closed, with and without the code panel.
+  - The visual check found two bidi defects in Phase J components under `dir="rtl"` (a `KbdShortcut` reads "S Ctrl"; the popover trigger's hex reads "ffffff#"). They are recorded in the backlog for the Task 9 direction work, not fixed here.
 
 ## 7. Direction for the older Base UI composites (Task 9, last)
 
