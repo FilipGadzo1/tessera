@@ -386,9 +386,11 @@ DateRangeField test and the Tree position compare.
   - The contrast Badge measures only the primary colour as text on the surface (spec §6). The preview's
     other pairs (the soft Button, the Badge, the muted text) are derived with `color-mix` and are not
     checked, so an extreme surface can make them weak.
-  - Going Back and changing the primary to a failing colour does not drop "Colors" from the completed
-    set until Next is pressed on it again, so Review stays reachable (and Save works) with a failing
-    contrast.
+  - Under `dir="rtl"` its English copy shows weak-direction artefacts (".Every role below…",
+    "(reviews 24) 4.5"): expected Unicode bidi behaviour for LTR text in an RTL page, not a component
+    defect. Real RTL copy (or `dir="ltr"` on English runs) avoids it.
+  - The header Save (and Ctrl/⌘+S) saves the theme as it is, including a failing contrast (a draft
+    save); only the wizard's Review step and its Finish are gated.
   - Its axe test for the open surface popover hides the panels (the popup covers controls, which axe
     leaves `bgOverlap`); the panels are audited with the popover closed. The popup flips above its
     trigger when the trigger sits low in the controls panel.

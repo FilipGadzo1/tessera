@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState, useSyncExternalStore } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Badge } from "../../components/badge";
 import { Button } from "../../components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/card";
@@ -251,15 +251,21 @@ export function ThemeStudioPage({ onSave }: { onSave?: (theme: Theme) => void })
   const narrow = useNarrow();
   const { aria } = useModifierKeyLabel();
   const errorId = useId();
+  const switchRef = useRef<HTMLElement>(null);
+  const codePanelRef = useRef<HTMLDivElement>(null);
+  const codeHandleRef = useRef<HTMLDivElement>(null);
   const passes = primaryContrast(theme).aa;
-  const showError = colorsError && !passes;
+  // A passing colour clears a refused Next (adjusting state during render, not in an effect).
+  if (colorsError && passes) setColorsError(false);
+  // A failing colour also un-completes Colors (e.g. after going Back), so the later steps are
+  // unreachable again until it passes; the set keeps the entry, so they return when it does.
+  const showError = !passes && (colorsError || completed.has(0));
   const last = steps.length - 1;
 
   const update: Update = (patch) => {
-    const next = { ...theme, ...patch };
-    setTheme(next);
+    // Functional, so several changes in one batch (a picker drag) all land.
+    setTheme((prev) => ({ ...prev, ...patch }));
     setSaved(false);
-    if (primaryContrast(next).aa) setColorsError(false);
   };
 
   const save = () => {
@@ -267,22 +273,38 @@ export function ThemeStudioPage({ onSave }: { onSave?: (theme: Theme) => void })
     setSaved(true);
   };
 
+  const toggleCode = () => {
+    // Hiding the panel that holds focus would drop it to <body>: hand it to the Switch.
+    const active = document.activeElement;
+    if (
+      showCode &&
+      (codePanelRef.current?.contains(active) || codeHandleRef.current?.contains(active))
+    )
+      switchRef.current?.focus();
+    setShowCode(!showCode);
+  };
+
+  // The listener is added once and always calls the latest `save` / `toggleCode`.
+  const commands = useRef({ save, toggleCode });
+  useLayoutEffect(() => {
+    commands.current = { save, toggleCode };
+  });
+
   // App commands: they work everywhere, typing included, so there is no `isEditable` check.
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (event.repeat || event.isComposing || event.keyCode === 229) return;
       if (matchesShortcut(event, saveKeys)) {
         event.preventDefault();
-        onSave?.(theme);
-        setSaved(true);
+        commands.current.save();
       } else if (matchesShortcut(event, toggleCodeKeys)) {
         event.preventDefault();
-        setShowCode((open) => !open);
+        commands.current.toggleCode();
       }
     }
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [theme, onSave]);
+  }, []);
 
   const next = () => {
     if (current === 0 && !passes) {
@@ -299,7 +321,12 @@ export function ThemeStudioPage({ onSave }: { onSave?: (theme: Theme) => void })
   return (
     <div className="flex w-full flex-col gap-4">
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">Theme Studio</h1>
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-semibold">Theme Studio</h1>
+          <p className="text-sm text-muted-foreground">
+            The preview shows the theme on its own surface, whatever the page's light or dark mode.
+          </p>
+        </div>
         <div className="flex flex-wrap items-center gap-4">
           {/* Always rendered, so the change is announced; empty until a save. */}
           <p role="status" className="text-sm text-muted-foreground">
@@ -307,6 +334,7 @@ export function ThemeStudioPage({ onSave }: { onSave?: (theme: Theme) => void })
           </p>
           <Label className="flex items-center gap-2 text-sm">
             <Switch
+              ref={switchRef}
               checked={showCode}
               onCheckedChange={setShowCode}
               aria-keyshortcuts={aria(TOGGLE_CODE)}
@@ -341,7 +369,8 @@ export function ThemeStudioPage({ onSave }: { onSave?: (theme: Theme) => void })
                     <StepperItem
                       key={title}
                       step={index}
-                      completed={completed.has(index)}
+                      // While the colours fail, nothing shows as done: the theme needs fixing.
+                      completed={completed.has(index) && passes}
                       error={index === 0 && showError}
                     >
                       <StepperTrigger>
@@ -375,13 +404,25 @@ export function ThemeStudioPage({ onSave }: { onSave?: (theme: Theme) => void })
             </div>
           </ResizablePanel>
           <ResizableHandle withHandle aria-label="Resize controls" />
-          <ResizablePanel minSize={30}>
+          <ResizablePanel
+            minSize={30}
+            // The white (or any) surface would paint square corners over the rounded frame: the
+            // panel clips its end corners to the frame's inner radius while it is the last panel.
+            // (The frame is not `overflow-hidden`, which would clip a collapsed handle's grip.)
+            className={
+              showCode
+                ? undefined
+                : narrow
+                  ? "rounded-b-[calc(var(--radius-lg)-1px)]"
+                  : "rounded-e-[calc(var(--radius-lg)-1px)]"
+            }
+          >
             <Preview theme={theme} />
           </ResizablePanel>
           {showCode && (
             <>
-              <ResizableHandle withHandle aria-label="Resize code" />
-              <ResizablePanel defaultSize={25} minSize={15}>
+              <ResizableHandle ref={codeHandleRef} withHandle aria-label="Resize code" />
+              <ResizablePanel ref={codePanelRef} defaultSize={25} minSize={15}>
                 <CodePanel theme={theme} />
               </ResizablePanel>
             </>

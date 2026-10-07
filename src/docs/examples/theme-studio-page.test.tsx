@@ -224,20 +224,79 @@ describe("ThemeStudioPage example", () => {
     }
   });
 
-  it("ignores a repeated Ctrl+S keydown", async () => {
+  it("a failing colour after going Back un-completes Colors until it passes again", async () => {
     const onSave = vi.fn();
     await render(<ThemeStudioPage onSave={onSave} />);
-    const event = new KeyboardEvent("keydown", {
-      key: "s",
-      code: "KeyS",
-      ctrlKey: true,
-      repeat: true,
-      bubbles: true,
-      cancelable: true,
-    });
-    document.body.dispatchEvent(event);
-    expect(event.defaultPrevented).toBe(false);
+    await goToReview();
+    await tabTo(el(step("Colors")));
+    await userEvent.keyboard("{Enter}");
+    await expect.element(step("Colors")).toHaveAttribute("aria-current", "step");
+    expect(el(step("Review")).getAttribute("aria-disabled")).not.toBe("true");
+
+    await retype(primaryInput(), "#ffff66");
+    await expect.poll(() => stepItem("Colors").getAttribute("data-state")).toBe("error");
+    await expect.element(step("Colors")).toHaveAccessibleName("Colors Error");
+    await expect
+      .element(page.getByText("The primary colour needs 4.5:1 against the surface"))
+      .toBeVisible();
+    expect(el(step("Shape")).getAttribute("aria-disabled")).toBe("true");
+    expect(el(step("Review")).getAttribute("aria-disabled")).toBe("true");
+    expect(stepItem("Shape").getAttribute("data-state")).toBe("upcoming");
+    // Review (and its Finish) cannot be reached.
+    await tabTo(el(step("Review")));
+    await userEvent.keyboard("{Enter}");
+    await expect.element(step("Colors")).toHaveAttribute("aria-current", "step");
+    expect(page.getByRole("button", { name: "Finish" }).elements()).toHaveLength(0);
     expect(onSave).not.toHaveBeenCalled();
+
+    // Passing again restores the completed steps.
+    await retype(primaryInput(), "#1d4ed8");
+    await expect.poll(() => stepItem("Colors").getAttribute("data-state")).toBe("complete");
+    expect(el(step("Shape")).getAttribute("aria-disabled")).not.toBe("true");
+    expect(el(step("Review")).getAttribute("aria-disabled")).not.toBe("true");
+    expect(
+      page.getByText("The primary colour needs 4.5:1 against the surface").elements(),
+    ).toHaveLength(0);
+  });
+
+  it("ignores a repeated Ctrl+S keydown (a plain one saves)", async () => {
+    const onSave = vi.fn();
+    await render(<ThemeStudioPage onSave={onSave} />);
+    await expect.element(saveButton()).toBeInTheDocument();
+    const press = (repeat: boolean) => {
+      const event = new KeyboardEvent("keydown", {
+        key: "s",
+        code: "KeyS",
+        ctrlKey: true,
+        repeat,
+        bubbles: true,
+        cancelable: true,
+      });
+      document.body.dispatchEvent(event);
+      return event;
+    };
+    expect(press(true).defaultPrevented).toBe(false);
+    expect(onSave).not.toHaveBeenCalled();
+    expect(press(false).defaultPrevented).toBe(true);
+    expect(onSave).toHaveBeenCalledTimes(1);
+  });
+
+  it("Ctrl+J from inside the code panel hides it and moves focus to the Switch", async () => {
+    await render(<ThemeStudioPage />);
+    await userEvent.click(codeSwitch());
+    await expect.poll(() => panels().length).toBe(3);
+    const pre = document.querySelector("pre") as HTMLElement;
+    await tabTo(pre);
+    await userEvent.keyboard("{Control>}j{/Control}");
+    await expect.poll(() => panels().length).toBe(2);
+    await expect.poll(() => document.activeElement).toBe(el(codeSwitch()));
+    // From the code panel's handle too.
+    await userEvent.keyboard("{Control>}j{/Control}");
+    await expect.poll(() => panels().length).toBe(3);
+    await tabTo(el(page.getByRole("separator", { name: "Resize code" })));
+    await userEvent.keyboard("{Control>}j{/Control}");
+    await expect.poll(() => panels().length).toBe(2);
+    await expect.poll(() => document.activeElement).toBe(el(codeSwitch()));
   });
 
   it("under a macOS stub ⌘+S saves and the Save hint shows ⌘", async () => {
