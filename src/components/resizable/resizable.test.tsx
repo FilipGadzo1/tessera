@@ -920,6 +920,147 @@ describe("Resizable stories", () => {
   });
 });
 
+describe("Resizable hardening", () => {
+  /** Dispatches a PointerEvent of `type` on the handle at viewport x `clientX`. */
+  function pointer(
+    type: string,
+    clientX: number,
+    { pointerId = 1, isPrimary = true, pointerType = "mouse", target = handle() } = {},
+  ) {
+    const rect = target.getBoundingClientRect();
+    target.dispatchEvent(
+      new PointerEvent(type, {
+        bubbles: true,
+        cancelable: true,
+        pointerId,
+        isPrimary,
+        pointerType,
+        button: 0,
+        buttons: type === "pointerup" ? 0 : 1,
+        clientX,
+        clientY: rect.top + 10,
+      }),
+    );
+  }
+
+  it("a second pointer during a drag neither moves the panel nor resets the drag", async () => {
+    const onLayout = vi.fn();
+    await render(<Two onLayout={onLayout} />);
+    const x = handle().getBoundingClientRect().left;
+    pointer("pointerdown", x);
+    pointer("pointermove", x + 30);
+    await expect.poll(() => valueNow()).toBe(60);
+    // A second touch lands on the handle and moves: ignored.
+    const second = { pointerId: 2, isPrimary: false, pointerType: "touch" };
+    pointer("pointerdown", x + 30, second);
+    pointer("pointermove", x + 90, second);
+    await nextFrame();
+    expect(valueNow()).toBe(60);
+    pointer("pointerup", x + 90, second);
+    expect(handle().hasAttribute("data-dragging")).toBe(true);
+    // The first pointer still drags from the original start.
+    pointer("pointermove", x + 60);
+    await expect.poll(() => valueNow()).toBe(70);
+    pointer("pointerup", x + 60);
+    await expect.poll(() => handle().hasAttribute("data-dragging")).toBe(false);
+    expect(onLayout).toHaveBeenCalledTimes(1);
+    expect(onLayout).toHaveBeenLastCalledWith([70, 30]);
+  });
+
+  it("a handle unmounting mid-drag clears the group's data-dragging", async () => {
+    const error = vi.spyOn(console, "error");
+    onTestFinished(() => error.mockRestore());
+    function Conditional() {
+      const [extra, setExtra] = useState(true);
+      return (
+        <>
+          <button type="button" onClick={() => setExtra(false)}>
+            Remove
+          </button>
+          <div style={{ width: SPACE + 2, height: 200 }}>
+            <ResizablePanelGroup defaultLayout={[30, 40, 30]}>
+              <ResizablePanel>A</ResizablePanel>
+              <ResizableHandle />
+              <ResizablePanel>B</ResizablePanel>
+              {extra && (
+                <>
+                  <ResizableHandle />
+                  <ResizablePanel>C</ResizablePanel>
+                </>
+              )}
+            </ResizablePanelGroup>
+          </div>
+        </>
+      );
+    }
+    await render(<Conditional />);
+    const target = handle(1);
+    const x = target.getBoundingClientRect().left;
+    pointer("pointerdown", x, { target });
+    pointer("pointermove", x + 6, { target });
+    await expect.poll(() => group().hasAttribute("data-dragging")).toBe(true);
+    // A DOM click: a real one would be retargeted to the handle, which holds pointer 1's capture.
+    (page.getByRole("button", { name: "Remove" }).element() as HTMLElement).click();
+    await expect.poll(() => slots("resizable-handle").length).toBe(1);
+    await expect.poll(() => group().hasAttribute("data-dragging")).toBe(false);
+    expect(getComputedStyle(group()).userSelect).not.toBe("none");
+    expect(error).not.toHaveBeenCalled();
+  });
+
+  it("the panel follows the pointer when the group resizes mid-drag", async () => {
+    const screen = await render(<Two />);
+    const wrapper = screen.container.firstElementChild as HTMLElement;
+    const x = handle().getBoundingClientRect().left;
+    pointer("pointerdown", x);
+    // The group shrinks from 300px to 200px of panel space while the pointer is down.
+    wrapper.style.width = "201px";
+    await nextFrame();
+    const left = group().getBoundingClientRect().left;
+    pointer("pointermove", left + 50);
+    // The preceding panel's end edge is under the pointer: 50px of 200px.
+    await expect.poll(() => valueNow()).toBe(25);
+    expect(Math.abs(handle().getBoundingClientRect().left - (left + 50))).toBeLessThanOrEqual(1);
+    pointer("pointerup", left + 50);
+  });
+
+  it("warns once in development about constraints that cannot hold", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    onTestFinished(() => warn.mockRestore());
+    await render(<Two first={{ minSize: 10, collapsible: true, collapsedSize: 10 }} />);
+    await expect.poll(() => warn.mock.calls.length).toBe(1);
+    expect(String(warn.mock.calls[0]?.[0])).toContain("collapsedSize");
+    await render(<Two second={{ minSize: 60, maxSize: 40 }} />);
+    await expect.poll(() => warn.mock.calls.length).toBe(2);
+    expect(String(warn.mock.calls[1]?.[0])).toContain("minSize");
+  });
+
+  it("valid constraints do not warn", async () => {
+    const warn = vi.spyOn(console, "warn");
+    onTestFinished(() => warn.mockRestore());
+    await render(<Two first={{ minSize: 20, collapsible: true }} second={{ maxSize: 80 }} />);
+    await nextFrame();
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("a controlled group reports nothing on mount", async () => {
+    const onLayoutChange = vi.fn();
+    const onLayout = vi.fn();
+    await render(<Two layout={[30, 70]} onLayoutChange={onLayoutChange} onLayout={onLayout} />);
+    await expect.poll(() => handle().getAttribute("aria-controls")).toBe(panel(0).id);
+    await nextFrame();
+    expect(valueNow()).toBe(30);
+    expect(onLayoutChange).not.toHaveBeenCalled();
+    expect(onLayout).not.toHaveBeenCalled();
+  });
+
+  it("a click does not focus a disabled handle", async () => {
+    await render(<Two handle={{ disabled: true }} />);
+    await userEvent.click(page.elementLocator(handle()), { force: true });
+    expect(document.activeElement).not.toBe(handle());
+    expect(valueNow()).toBe(50);
+  });
+});
+
 describe("Resizable axe", () => {
   async function audit(container: Element) {
     const results = await axe.run(container);

@@ -8,6 +8,7 @@ import {
   Fragment,
   isValidElement,
   type KeyboardEvent,
+  type MouseEvent,
   type PointerEvent,
   type ReactElement,
   type ReactNode,
@@ -239,6 +240,8 @@ interface GroupContextValue {
   /** The size a collapsed panel had before it collapsed. */
   expandedSize: (id: string) => number | undefined;
   setDragging: (dragging: boolean) => void;
+  /** The group element, measured on each drag move (its size can change mid-drag). */
+  elementRef: RefObject<HTMLDivElement | null>;
 }
 
 const GroupContext = createContext<GroupContextValue | null>(null);
@@ -460,6 +463,7 @@ export function ResizablePanelGroup({
     commitLayout: () => onLayout?.(layout),
     expandedSize: (id) => expanded.current.get(id),
     setDragging,
+    elementRef,
   };
 
   return (
@@ -538,6 +542,20 @@ export function ResizablePanel({
     });
   }, [register, id, element, defaultSize, minSize, maxSize, collapsible, collapsedSize]);
 
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production") return;
+    if (collapsible && collapsedSize >= minSize) {
+      console.warn(
+        `ResizablePanel: collapsedSize (${collapsedSize}) must be below minSize (${minSize}), or the panel can never collapse.`,
+      );
+    }
+    if (minSize > maxSize) {
+      console.warn(
+        `ResizablePanel: minSize (${minSize}) is above maxSize (${maxSize}), so the panel has no allowed size.`,
+      );
+    }
+  }, [collapsible, collapsedSize, minSize, maxSize]);
+
   const registeredIndex = element
     ? group.panels.findIndex((panel) => panel.element === element)
     : -1;
@@ -573,7 +591,7 @@ export function ResizablePanel({
 export interface ResizableHandleProps extends ComponentProps<"div"> {
   /** Renders a visible grip on the line. */
   withHandle?: boolean;
-  /** Not focusable (`tabIndex` −1, `aria-disabled`), no drag and no keys. */
+  /** Not focusable (`tabIndex` −1, and a click does not focus it), `aria-disabled`, no drag or keys. */
   disabled?: boolean;
 }
 
@@ -598,10 +616,13 @@ const handleClasses = [
 ].join(" ");
 
 interface DragState {
+  /** The one pointer driving the drag; other pointers are ignored until it ends. */
+  pointerId: number;
   start: readonly number[];
-  coordinate: number;
-  /** The panels' total size along the axis in px (the space the percentages refer to). */
-  space: number;
+  /** How far past the preceding panel's end edge the pointer was pressed, in px. */
+  grab: number;
+  /** The group's size along the axis that is not panel space (handles, borders), in px. */
+  chrome: number;
 }
 
 /**
@@ -619,6 +640,7 @@ export function ResizableHandle({
   className,
   children,
   onKeyDown,
+  onMouseDown,
   onPointerDown,
   onPointerMove,
   onPointerUp,
@@ -666,9 +688,28 @@ export function ResizableHandle({
     return next;
   };
 
-  const endDrag = () => {
+  // A handle unmounting mid-drag (a conditional panel) must not leave the group dragging.
+  const { setDragging: setGroupDragging } = group;
+  useEffect(
+    () => () => {
+      if (drag.current) setGroupDragging(false);
+    },
+    [setGroupDragging],
+  );
+
+  /** The preceding panel's start edge along the axis (left, or right in RTL; top). */
+  const startEdge = (rect: DOMRect) =>
+    horizontal ? (group.rtl ? rect.right : rect.left) : rect.top;
+  /** The pointer's distance from the preceding panel's start edge, in px. */
+  const reach = (event: PointerEvent<HTMLDivElement>, rect: DOMRect) => {
+    const coordinate = horizontal ? event.clientX : event.clientY;
+    return horizontal && group.rtl ? startEdge(rect) - coordinate : coordinate - startEdge(rect);
+  };
+  const extent = (rect: DOMRect) => (horizontal ? rect.width : rect.height);
+
+  const endDrag = (event: PointerEvent<HTMLDivElement>) => {
     const state = drag.current;
-    if (!state) return;
+    if (!state || event.pointerId !== state.pointerId) return;
     drag.current = null;
     setDragging(false);
     group.setDragging(false);
@@ -728,19 +769,31 @@ export function ResizableHandle({
         if (Math.abs(target - pair.size) < EPSILON) return;
         group.setLayout(withSize(layout, target), true, layout);
       }}
+      onMouseDown={(event: MouseEvent<HTMLDivElement>) => {
+        onMouseDown?.(event);
+        // `tabIndex` −1 keeps it out of the Tab order; this keeps a click from focusing it too.
+        if (disabled) event.preventDefault();
+      }}
       onPointerDown={(event: PointerEvent<HTMLDivElement>) => {
         onPointerDown?.(event);
-        if (event.defaultPrevented || disabled || !pair || event.button !== 0) return;
+        // One pointer drives a drag: a second touch or pen press is ignored until it ends.
+        if (event.defaultPrevented || disabled || !pair || event.button !== 0 || drag.current) {
+          return;
+        }
+        const panelElement = pair.before.element;
+        const groupElement = group.elementRef.current;
+        if (!panelElement || !groupElement) return;
         event.currentTarget.setPointerCapture(event.pointerId);
+        const panelRect = panelElement.getBoundingClientRect();
         let space = 0;
         for (const panel of panels) {
-          const rect = panel.element?.getBoundingClientRect();
-          if (rect) space += horizontal ? rect.width : rect.height;
+          if (panel.element) space += extent(panel.element.getBoundingClientRect());
         }
         drag.current = {
+          pointerId: event.pointerId,
           start: layout,
-          coordinate: horizontal ? event.clientX : event.clientY,
-          space,
+          grab: reach(event, panelRect) - extent(panelRect),
+          chrome: extent(groupElement.getBoundingClientRect()) - space,
         };
         setDragging(true);
         group.setDragging(true);
@@ -748,26 +801,30 @@ export function ResizableHandle({
       onPointerMove={(event: PointerEvent<HTMLDivElement>) => {
         onPointerMove?.(event);
         const state = drag.current;
-        if (!state || !pair || state.space <= 0) return;
-        const moved = (horizontal ? event.clientX : event.clientY) - state.coordinate;
-        // The direction comes from the group (read on mount and on `dir` changes), never per move.
-        const offset = ((horizontal && group.rtl ? -moved : moved) / state.space) * 100;
-        const startSize = state.start[index] ?? pair.size;
-        const target = snapNearest(clamp(startSize + offset, lo, hi), ranges);
+        if (!state || event.pointerId !== state.pointerId || !pair) return;
+        const panelElement = pair.before.element;
+        const groupElement = group.elementRef.current;
+        if (!panelElement || !groupElement) return;
+        // Two rect reads per move, so a group resized mid-drag still tracks the pointer. The
+        // direction comes from the group (read on mount and on `dir` changes), never per move.
+        const space = extent(groupElement.getBoundingClientRect()) - state.chrome;
+        if (space <= 0) return;
+        const size = reach(event, panelElement.getBoundingClientRect()) - state.grab;
+        const target = snapNearest(clamp((size / space) * 100, lo, hi), ranges);
         const next = withSize(state.start, target);
         if (!sameLayout(next, layout)) group.setLayout(next, false, state.start);
       }}
       onPointerUp={(event: PointerEvent<HTMLDivElement>) => {
         onPointerUp?.(event);
-        endDrag();
+        endDrag(event);
       }}
       onPointerCancel={(event: PointerEvent<HTMLDivElement>) => {
         onPointerCancel?.(event);
-        endDrag();
+        endDrag(event);
       }}
       onLostPointerCapture={(event: PointerEvent<HTMLDivElement>) => {
         onLostPointerCapture?.(event);
-        endDrag();
+        endDrag(event);
       }}
     >
       {withHandle && (
