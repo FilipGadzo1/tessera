@@ -392,6 +392,22 @@ DateRangeField test and the Tree position compare.
     leaves `bgOverlap`); the panels are audited with the popover closed. The popup flips above its
     trigger when the trigger sits low in the controls panel.
   - "Finish" marks Review complete and saves; there is no separate "done" state.
+- Phase J fix-wave re-review (2026-10-08):
+  - Resizable: `latestLayout` is reset only by `useLatest`'s layout effect after a render. A controlled parent
+    that ignores a key change may not re-render, so a pointerdown and pointerup in the same task with no move
+    could compare a stale layout against `start` and commit a layout the user never dragged to. Fix: set
+    `group.latestLayout.current = layout` in `onPointerDown`, next to `start: layout`. Also add an assertion for
+    the new behaviour that a drag in a controlled-ignore group commits the attempted layout (as the keys do).
+  - Popup direction (`dir` on the positioner) has no wrapper-RTL test for Tooltip, PreviewCard or Autocomplete
+    (each got the same two-line change as the tested Popover and ContextMenu), and no LTR-island guard for
+    Popover or Select (only Menu has one).
+  - README: a consumer `dir` on `*Content` sets the popup's text direction but not its `start`/`end` alignment,
+    which follows the positioner.
+  - NavigationMenu's vertical chevron still uses `-rotate-90 rtl:rotate-90`; `rtl:` also matches an LTR menu
+    under an RTL `<html>` (`[dir=rtl] *`), so that chevron can point the wrong way there. Use the
+    `useDirection()` approach the Menu chevron now uses.
+  - Floating UI does not observe `dir` changes: an open popup whose trigger's ancestor `dir` flips keeps its
+    old alignment until the next `autoUpdate`.
 
 ## Next components
 Follow the phases in the design-system spec §6
