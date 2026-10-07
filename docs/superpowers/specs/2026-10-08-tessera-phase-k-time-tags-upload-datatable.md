@@ -134,6 +134,11 @@ Not exported from the package (as `date-segments.ts`); reachable through TimeFie
 - `getTimeSegmentLabel(type, locale)`: `Intl.DisplayNames(locale, { type: "dateTimeField" })` of `hour`, `minute`, `second`, `dayPeriod`; English "hour" / "minute" / "second" / "AM/PM" where unsupported (try/catch, as `getSegmentLabel`).
 - Placeholder: every empty time segment shows `"––"` (two U+2013), as React Aria; a first-letter placeholder would collide (de "Stunde" / "Sekunde").
 - `parseTimeString(text, locale, hourCycle)` → a value or `null`: a strict ISO `HH:mm[:ss]` first; else ASCII or locale digits (`parseDigit` / `getLocaleDigits` from `date-segments.ts`) in 2–3 groups, plus an AM/PM marker found case-insensitively among the locale's labels, `am`/`pm`/`a`/`p`. "9:30 PM" → `"21:30"`; "21.30" → `"21:30"`; "12:15 am" → `"00:15"`; "25:00" → `null`.
+- *Amended in Task 2* (details the text above leaves open, pinned in `time-segments.test.ts`):
+  - `typeTimeDigit` advances only with a value (as `typeDigit`): an `h12` hour "0" "0" stays empty and waits rather than moving on from an empty segment.
+  - `stepTimeSegment`'s `delta` is in the segment's units and moves `max(1, round(|delta| / step))` grid values, so ↑ is one grid step and PageUp's `max(15, step)` is 15 minutes on any grid; from an off-grid value the first of those moves lands on the neighbouring grid value.
+  - `parseTimeString` takes groups of one or two digits, uses `hourCycle` for the locale's day-period labels, reads the hour 0–12 with a marker and 0–23 without, and returns `"HH:mm:ss"` for three groups (TimeField then fits it to its granularity).
+  - `getDayPeriodLabels` asks `Intl` for an `h12` clock when given `h23`, so it always names both periods.
 
 ### 1.4 `src/components/field/segments.tsx` (internal, `"use client"`)
 
@@ -159,7 +164,7 @@ A move, no behaviour change, so the date suites are the guard (`date-field`, `da
 - `value?: string | null` / `defaultValue?: string | null` (default `null`) / `onValueChange?(value: string | null)`: called with a value once every needed segment forms a time, and with `null` when the user clears a segment of a complete time; partial input never calls it. An unparsable controlled `value` is ignored with a dev-only `console.warn`; a value with seconds under minute granularity is shown without them (not reported back).
 - `granularity?: "minute" | "second"` (default `"minute"`).
 - `hourCycle?: 12 | 24` (default the locale's, `resolveHourCycle`).
-- `min?: string`, `max?: string` (`"HH:mm[:ss]"`; an earlier/later value is shown invalid, not clamped, as DateField); `step?: number` (seconds, default 60).
+- `min?: string`, `max?: string` (`"HH:mm[:ss]"`; an earlier/later value is shown invalid, not clamped, as DateField); `step?: number` (seconds, default 60; 1 at second granularity, *Amended in Task 2* below).
 - `locale?: string` (default `resolveLocale()`: the document's `lang`, else the browser's; pass it when server-rendering, as DateField's doc says).
 - `disabled`, `readOnly`, `required`, `name`, `form`, `size?: "sm" | "md" | "lg"` (default `"md"`, `textFieldSizes`), `labels?: TimeFieldLabels`, and the internal `focusScope` (as DateField, for TimePicker).
 - `TimeFieldLabels`: `hour`, `minute`, `second`, `dayPeriod` (segment names; defaults `getTimeSegmentLabel`), `empty` (default "Empty"), `incomplete` (default "Enter a complete time."), `rangeUnderflow(minText)` (default `` `Enter a time at or after ${minText}.` ``), `rangeOverflow(maxText)` (default `` `Enter a time at or before ${maxText}.` ``), `stepMismatch(step)` (default: `step % 60 === 0` → `` `Enter a time in ${step / 60}-minute steps.` ``, else `` `Enter a time in ${step}-second steps.` ``). `minText` / `maxText` are `formatTime` in the field's locale and cycle.
@@ -221,6 +226,12 @@ A move, no behaviour change, so the date suites are the guard (`date-field`, `da
 - axe light and dark: empty, filled, invalid, disabled, read-only, in a Field, ar-EG under `dir="rtl"`; violations and incomplete both `[]`.
 
 **Stories (Task 2, `Components/TimeField`):** Basic, With seconds, 24-hour / 12-hour (`hourCycle`), Min, max and step (09:00–17:00, 15-minute steps), In a Form (Field + submit echo), Disabled and read-only, Locales (en-US, de-DE, ko-KR, ar-EG in an RTL frame).
+
+- *Amended in Task 2*: a number still waiting for its next digit is *held*, as DateField's year: it shows but is not reported until the segment advances, or on blur or Enter (Enter reports it, then submits after that render). Evidence: without the hold, "9" "3" "0" reported `"09:03"` and then `"09:30"` (two calls; the RED run of the "once" test), and de-DE "2" "1" "4" "5" reported `"21:04"` first, contradicting the tests above. With it both report once, and "1" "2" "0" "0" "p" reports `"00:00"` (at the second "0", when the minute advances) and then `"12:00"`, as the review amendment says. Tested: the held minute shows, is reported on blur, and on Enter before the submit.
+- *Amended in Task 2*: the `h11` typing case presses "p" on the day-period segment (the ja-JP period is the first segment, so the test moves focus there after "0" "5" "3" "0"); `a` / `p` act only on the day period, as the key table says.
+- *Amended in Task 2*: `-ms-0.5` goes on the row's first DOM segment only when the locale's direction is LTR. In an RTL-locale row the first DOM segment sits inside the LTR clock run, away from the group's inline-start edge, so pulling it back would only shift it. The en-US text start is tested against Input's.
+- *Amended in Task 2*: `step` defaults to 1 at second granularity (60 at minute granularity). Evidence: the visual check of the With seconds story showed `"14:05:30"` marked invalid, because a 60-second step makes every non-zero second a step mismatch (and pins the second segment); a native time input likewise shows seconds only with a `step` below 60. Tested: a second-granularity `"14:05:30"` is valid and ↑ on the seconds goes to 31.
+- *Amended in Task 2*: when `resolveLocale` finds no locale (no `locale` prop and no `lang`), the field uses `Intl.DateTimeFormat().resolvedOptions().locale`, since `resolveHourCycle` / `formatTime` need one.
 
 ## 3. TimePicker (Task 3)
 

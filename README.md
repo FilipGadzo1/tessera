@@ -567,6 +567,26 @@ source files automatically (build output + `"use client"` directive checks).
   focuses the first segment, Enter in either half submits and the halves are one blur boundary.
   `name` submits the ISO interval `YYYY-MM-DD/YYYY-MM-DD` natively (the Field's name adds no
   native entry), `startName` / `endName` each end. Client component)
+- [x] TimeField (a typed, segmented time input on DateField's plumbing: a `group` of `spinbutton`
+  segments — hour, minute, the second with `granularity="second"`, and AM/PM on a 12-hour clock —
+  in the locale's order, with the Input look and `size` heights. The value is the
+  `<input type="time">` wire format: `"HH:mm"` (`"HH:mm:ss"` at second granularity) or `null`; no
+  `Date`, no time zone. Digits type with auto-advance (a number still waiting for its next digit is
+  reported once it advances, or on blur or Enter); typing or stepping the hour fills an empty
+  AM/PM with AM. ↑/↓ step on the `step` grid counted from `min` (native semantics; the arrows never
+  carry into the next segment) with wrap, PageUp/PageDown step hour 2 / minute and second 15,
+  Home/End jump to the bounds, `a` / `p` set AM/PM, Backspace/Delete clear, ←/→ move to the
+  visually neighbouring segment and Tab through them, ":" advances, Enter submits the enclosing
+  form, and pasting "9:30 PM", "21.30" or "21:30" fills every segment. `value` / `defaultValue` /
+  `onValueChange`, `granularity`, `hourCycle` (12 / 24, default the locale's), `min` / `max` /
+  `step` (seconds, default 60, or 1 with seconds; outside or off the grid it is invalid, not
+  clamped; no overnight ranges),
+  `locale`, `disabled`, `readOnly`, `required`, `name` (else the Field's), `form`, `size`, `labels`
+  (segment names, "Empty", the incomplete / range / step messages). The segment row follows the
+  locale's script direction and the clock digits are always LTR, so an English time reads
+  "9:30 AM" in an RTL page and Arabic reads "م ٩:٣٠". Field and Form as DateField. `locale` is
+  required when server-rendering: a server and client that disagree on the hour cycle render a
+  different number of segments, and hydration fails. Client component)
 - [x] Sidebar, SidebarProvider, SidebarTrigger, SidebarRail, SidebarInset, SidebarHeader, SidebarFooter,
   SidebarContent, SidebarSeparator, SidebarGroup, SidebarGroupLabel, SidebarGroupAction, SidebarGroupContent,
   SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuAction, SidebarMenuBadge, SidebarMenuSub,
