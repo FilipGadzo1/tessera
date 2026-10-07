@@ -754,7 +754,9 @@ when the `dir` is on a wrapper rather than `<html>`. A trigger linked to its roo
 `handle` / `createHandle` (a detached trigger) sits outside the root's React tree and cannot report, so
 its overlay keeps Base UI's LTR default and the popup keeps its portal container's direction. Drawer and
 the dialogs are not anchored: their text follows the portal container (the document), so a `dir` on an
-inner wrapper does not reach them unless `container` points inside that wrapper.
+inner wrapper does not reach them unless `container` points inside that wrapper. A `dir` you pass to a
+`*Content` part sets the popup's text direction only. Its `start` / `end` alignment follows the
+positioner, which takes the trigger's direction.
 
 Composition: when a part is rendered through another (`<Fieldset render={<RadioGroup className=…/>}>`),
 the outer part's own classes win over conflicting classes on the render element (Base UI merges the

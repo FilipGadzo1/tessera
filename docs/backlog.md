@@ -357,16 +357,12 @@ DateRangeField test and the Tree position compare.
     tested separately); the mobile test covers the Drawer at 390px only.
 
 ### Phase J notes
-- Kbd (Task 0): the keycap border (`border-border` on `bg-muted`) is almost invisible in dark mode.
 - Kbd (Task 0): the ↵ glyph renders small next to the other keys at `text-xs`.
 - Rating (Task 5): the arrow keys wrap at the ends (5 → 1, 1 → 5), as Base UI's RadioGroup does; it exposes no
   option to stop. Clamping would need a ~10-line key-capture handler on the root (swallow the forward key on
   the last radio and the backward key on the first, direction-aware) plus flipping the pinned wrap test.
 - Rating (Task 5): its focus ring (`outline-offset-2` round the item) touches the neighbouring star's outline
   with the row's `gap-0.5` (cosmetic; screen `task5-focus.png`).
-- Radio (Phase B, found in Task 5): Base UI keeps a disabled RadioGroup's roving radio focusable
-  (`aria-disabled`), yet Tessera's `Radio` still fades with `data-disabled:opacity-50`. It should follow the
-  focusable-disabled convention (muted, GrayText in forced colors, opacity 1), as Rating does.
 - Stepper (Task 6): the Stepper reads each item's `completed` / `error` from its direct `StepperItem`
   children, so an item wrapped in another component cannot extend the reachable steps (a dev warning names
   it; documented in the README). A context registration would lift the limit at the cost of the server
@@ -393,19 +389,6 @@ DateRangeField test and the Tree position compare.
     trigger when the trigger sits low in the controls panel.
   - "Finish" marks Review complete and saves; there is no separate "done" state.
 - Phase J fix-wave re-review (2026-10-08):
-  - Resizable: `latestLayout` is reset only by `useLatest`'s layout effect after a render. A controlled parent
-    that ignores a key change may not re-render, so a pointerdown and pointerup in the same task with no move
-    could compare a stale layout against `start` and commit a layout the user never dragged to. Fix: set
-    `group.latestLayout.current = layout` in `onPointerDown`, next to `start: layout`. Also add an assertion for
-    the new behaviour that a drag in a controlled-ignore group commits the attempted layout (as the keys do).
-  - Popup direction (`dir` on the positioner) has no wrapper-RTL test for Tooltip, PreviewCard or Autocomplete
-    (each got the same two-line change as the tested Popover and ContextMenu), and no LTR-island guard for
-    Popover or Select (only Menu has one).
-  - README: a consumer `dir` on `*Content` sets the popup's text direction but not its `start`/`end` alignment,
-    which follows the positioner.
-  - NavigationMenu's vertical chevron still uses `-rotate-90 rtl:rotate-90`; `rtl:` also matches an LTR menu
-    under an RTL `<html>` (`[dir=rtl] *`), so that chevron can point the wrong way there. Use the
-    `useDirection()` approach the Menu chevron now uses.
   - Floating UI does not observe `dir` changes: an open popup whose trigger's ancestor `dir` flips keeps its
     old alignment until the next `autoUpdate`.
 
