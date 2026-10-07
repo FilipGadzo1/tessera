@@ -120,6 +120,37 @@ describe("KbdShortcut", () => {
     expect(shortcutKbds().map((key) => key.textContent)).toEqual(["Strg", "K"]);
   });
 
+  it("reads left to right in an RTL page (Ctrl S, not S Ctrl), as does a KbdGroup", async () => {
+    stubWindows();
+    const screen = await render(
+      <div dir="rtl">
+        <KbdShortcut shortcut="mod+s" />
+        <KbdGroup data-testid="group">
+          <Kbd>Ctrl</Kbd>
+          <Kbd>B</Kbd>
+        </KbdGroup>
+      </div>,
+    );
+    const [ctrl, s] = shortcutKbds() as [HTMLElement, HTMLElement];
+    expect(ctrl.textContent).toBe("Ctrl");
+    expect(ctrl.getBoundingClientRect().right).toBeLessThan(s.getBoundingClientRect().left);
+    const root = screen.container.querySelector("[data-slot=kbd-shortcut]") as HTMLElement;
+    expect(getComputedStyle(root).direction).toBe("ltr");
+    const [groupCtrl, b] = Array.from(
+      screen.getByTestId("group").element().children,
+    ) as HTMLElement[];
+    expect((groupCtrl as HTMLElement).getBoundingClientRect().right).toBeLessThan(
+      (b as HTMLElement).getBoundingClientRect().left,
+    );
+  });
+
+  it("a consumer's dir wins over the LTR default", async () => {
+    stubWindows();
+    const screen = await render(<KbdShortcut shortcut="mod+s" dir="rtl" />);
+    const root = screen.container.querySelector("[data-slot=kbd-shortcut]") as HTMLElement;
+    expect(root.getAttribute("dir")).toBe("rtl");
+  });
+
   it("takes no children (the keys come from shortcut)", () => {
     // @ts-expect-error `children` is not a KbdShortcut prop.
     const element = <KbdShortcut shortcut="mod+k">X</KbdShortcut>;

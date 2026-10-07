@@ -117,6 +117,28 @@ describe("ColorPickerPopover trigger", () => {
     expect(triggerEl().textContent).toBe("#1d4ed880");
   });
 
+  it("in an RTL page the hex reads left to right (#ffffff, not ffffff#)", async () => {
+    await render(
+      <div dir="rtl">
+        <Picker defaultValue="#ffffff" />
+      </div>,
+    );
+    const value = slot("color-picker-value") as HTMLElement;
+    const text = value.firstChild as Text;
+    const charLeft = (index: number) => {
+      const range = document.createRange();
+      range.setStart(text, index);
+      range.setEnd(text, index + 1);
+      return range.getBoundingClientRect().left;
+    };
+    expect(text.data).toBe("#ffffff");
+    expect(charLeft(0)).toBeLessThan(charLeft(1));
+    expect(getComputedStyle(value).direction).toBe("ltr");
+    // The trigger itself still follows the page: the swatch sits at the inline start (right).
+    const swatch = slot("color-picker-trigger-swatch") as HTMLElement;
+    expect(swatch.getBoundingClientRect().left).toBeGreaterThan(value.getBoundingClientRect().left);
+  });
+
   it("disabled: not-allowed cursor and never opens", async () => {
     await render(<Picker disabled />);
     expect(triggerEl().disabled).toBe(true);

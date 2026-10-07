@@ -19,7 +19,9 @@ export type KbdGroupProps = ComponentProps<"kbd">;
 /**
  * A key combination: `Kbd`s side by side in a `<kbd>` (HTML nests `<kbd>` for a combination),
  * separated by a gap. For a `modifier+key` shortcut labelled for the platform, use `KbdShortcut`.
+ * It is `dir="ltr"` by default: a key sequence is a physical label and reads "Ctrl B" in an RTL
+ * page too (pass `dir` to override).
  */
 export function KbdGroup({ className, ...props }: KbdGroupProps) {
-  return <kbd {...props} data-slot="kbd-group" className={cn(kbdGroupBase, className)} />;
+  return <kbd dir="ltr" {...props} data-slot="kbd-group" className={cn(kbdGroupBase, className)} />;
 }

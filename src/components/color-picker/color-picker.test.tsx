@@ -338,9 +338,19 @@ describe("ColorPicker RTL", () => {
     await userEvent.keyboard("{ArrowRight}");
     await expect.element(areaThumb()).toHaveAttribute("aria-valuenow", "51");
     expect(centreX(thumb)).toBeGreaterThan(before);
-    // The colour surfaces are physical; the input follows the page.
+    // The colour surfaces are physical. The input's text is LTR data (a hex would otherwise read
+    // "ffffff#"), but its alignment follows the page (Task 9).
     expect(slot("color-area")?.getAttribute("dir")).toBe("ltr");
-    expect(getComputedStyle(textInput().element()).direction).toBe("rtl");
+    const input = getComputedStyle(textInput().element());
+    expect(input.direction).toBe("ltr");
+    expect(input.textAlign).toBe("right");
+  });
+
+  it("in an LTR page the input's text is LTR and left-aligned", async () => {
+    await render(<ColorPicker defaultValue="#804040" />);
+    const input = getComputedStyle(textInput().element());
+    expect(input.direction).toBe("ltr");
+    expect(["left", "start"]).toContain(input.textAlign);
   });
 
   it("→ in the swatches moves to the previous swatch", async () => {

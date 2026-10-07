@@ -716,6 +716,9 @@ export function ColorInput({
   };
   return (
     <input
+      // A colour value is LTR data ("#ffffff", not "ffffff#"); `rtl:text-right` keeps the text at
+      // the inline start of an RTL page.
+      dir="ltr"
       {...props}
       type="text"
       value={draft ?? display}
@@ -727,7 +730,7 @@ export function ColorInput({
       data-slot="color-input"
       className={inputVariants({
         size: "sm",
-        className: cn("font-mono", picker.disabled && noSecondFade.input, className),
+        className: cn("font-mono rtl:text-right", picker.disabled && noSecondFade.input, className),
       })}
       onChange={(event) => {
         onChange?.(event);

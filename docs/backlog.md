@@ -373,15 +373,6 @@ DateRangeField test and the Tree position compare.
   children, so an item wrapped in another component cannot extend the reachable steps (a dev warning names
   it; documented in the README). A context registration would lift the limit at the cost of the server
   HTML's `aria-disabled`.
-- RTL text in Phase J components (Task 8 visual check, screen `task8-theme-studio-rtl.png`; a fit for the
-  Task 9 direction work):
-  - `KbdShortcut` follows the page direction, so under `dir="rtl"` its keys read "S Ctrl" from left to
-    right. Decide whether a shortcut stays in LTR order (`dir="ltr"` on the group), as platform menus
-    usually show it.
-  - A hex that starts with a letter is reordered by the bidi algorithm in an RTL page: the
-    `ColorPickerPopover` trigger shows "ffffff#" (its `color-picker-value` span), and the `ColorInput`
-    would too. A hex is LTR text; `dir="ltr"` on the value span (and `dir="ltr"` or `dir="auto"` on the
-    input, against the spec's "the input follows the page" ruling) would fix it.
 - RTL styling of menu-like items (found in Task 9): `MenuCheckboxItem` / `MenuRadioItem`, `SelectItem` and
   `ComboboxItem` place their indicator with physical classes (`absolute left-2`, `pl-8`), `MenuShortcut` and
   the submenu chevron use `ml-auto`, and the chevron always points right. In an RTL page the keys and the
@@ -414,7 +405,7 @@ Autocomplete, Menubar, NavigationMenu); Phase H is done (DateField, editable Dat
 participation, Sidebar, Dashboard example); Phase I is done (DateRangeField, editable DateRangePicker,
 Command, Tree, Carousel, Files example). Phase J's components are done (Kbd and shortcut labels, colour
 helpers, useElementDirection, ColorPicker, ColorPickerPopover, Rating, Stepper, Resizable, Theme Studio
-example); its last task, the RTL direction fix for the older Base UI composites, is next. Then Phase K:
+example), and so is its last task, the RTL direction fix for the older Base UI composites. Next is Phase K:
 candidates are data-grid pieces (column visibility, sorting and multi-sort, row selection, pagination
 state via a headless `useDataTable`), a Calendar events view, TimeField / TimePicker, a FileUpload
 dropzone and a TagsInput.

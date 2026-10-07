@@ -28,7 +28,8 @@ const NO_BREAK_SPACE = String.fromCharCode(0xa0);
  * Ctrl K elsewhere (the server and the hydration render say Ctrl). A symbol key shows its glyph to
  * sighted users and its name ("Command") to screen readers and as a `title`, so a standalone
  * shortcut reads "Command K". Inside a control, make it `aria-hidden` and put
- * `aria-keyshortcuts={useModifierKeyLabel().aria(shortcut)}` on the control.
+ * `aria-keyshortcuts={useModifierKeyLabel().aria(shortcut)}` on the control. Like `KbdGroup` it is
+ * `dir="ltr"` by default, so an RTL page shows "Ctrl S", not "S Ctrl".
  */
 export function KbdShortcut({
   shortcut,
@@ -38,7 +39,7 @@ export function KbdShortcut({
 }: KbdShortcutProps) {
   const { keys } = useModifierKeyLabel();
   return (
-    <kbd {...props} data-slot="kbd-shortcut" className={cn(kbdGroupBase, className)}>
+    <kbd dir="ltr" {...props} data-slot="kbd-shortcut" className={cn(kbdGroupBase, className)}>
       {keys(shortcut).map(({ glyph, name }, index) => {
         const label = keyName(name);
         // Keys are positional and the list never reorders.

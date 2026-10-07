@@ -205,7 +205,10 @@ export function ColorPickerPopover({
             <span className="absolute inset-0 rounded-[inherit]" style={{ backgroundColor: hex }} />
           )}
         </span>
-        <span data-slot="color-picker-value">{hex}</span>
+        {/* A hex is LTR data: in an RTL page it would otherwise read "ffffff#". */}
+        <span dir="ltr" data-slot="color-picker-value">
+          {hex}
+        </span>
       </PopoverTrigger>
       {formControl.input}
       <PopoverContent
