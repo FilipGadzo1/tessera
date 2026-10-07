@@ -150,6 +150,49 @@ describe("Popover direction", () => {
   });
 });
 
+describe("Popover placement", () => {
+  // A 280px popup under a trigger centred in a 400px-high viewport fits neither below nor above
+  // (about 180px each), but fits beside the trigger.
+  function Tall(props: PopoverContentProps) {
+    return (
+      <div className="flex h-[400px] items-center">
+        <Popover>
+          <PopoverTrigger render={<Button variant="outline" />}>Dimensions</PopoverTrigger>
+          <PopoverContent aria-label="Tall" className="w-40" {...props}>
+            <div className="h-[280px]" />
+          </PopoverContent>
+        </Popover>
+      </div>
+    );
+  }
+
+  it.each([
+    ["the default", undefined, (side: string) => !["top", "bottom"].includes(side)],
+    [
+      'collisionAvoidance { fallbackAxisSide: "none" }',
+      { fallbackAxisSide: "none" } as const,
+      (side: string) => ["top", "bottom"].includes(side),
+    ],
+  ])("%s: a popup that fits neither below nor above", async (_, collisionAvoidance, expected) => {
+    await page.viewport(800, 400);
+    try {
+      await render(<Tall collisionAvoidance={collisionAvoidance} />);
+      const popup = await openByClick();
+      await waitForPopupSettled(popup);
+      const side = popup.getAttribute("data-side") ?? "";
+      // The default falls back to the other axis (beside the trigger); "none" keeps the
+      // requested vertical axis.
+      expect(expected(side), side).toBe(true);
+      const t = trigger().element().getBoundingClientRect();
+      const p = popup.getBoundingClientRect();
+      if (collisionAvoidance) expect(p.left).toBeLessThan(t.right);
+      else expect(p.left).toBeGreaterThanOrEqual(t.right);
+    } finally {
+      await page.viewport(1280, 720);
+    }
+  });
+});
+
 describe("Popover", () => {
   it("opens on click as role=dialog, named by the title and described by the description", async () => {
     await render(<Basic />);
