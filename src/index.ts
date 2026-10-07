@@ -483,6 +483,15 @@ export {
 export { Radio, RadioGroup, type RadioGroupProps, type RadioProps } from "./components/radio-group";
 export { Rating, type RatingProps, type RatingSize } from "./components/rating";
 export {
+  ResizableHandle,
+  type ResizableHandleProps,
+  type ResizableOrientation,
+  ResizablePanel,
+  ResizablePanelGroup,
+  type ResizablePanelGroupProps,
+  type ResizablePanelProps,
+} from "./components/resizable";
+export {
   ScrollArea,
   ScrollAreaContent,
   type ScrollAreaContentProps,

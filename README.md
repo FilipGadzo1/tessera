@@ -693,6 +693,20 @@ source files automatically (build output + `"use client"` directive checks).
   an input: an image named "4.3 out of 5 stars" with fractional fills, no Tab stop and no form value.
   `itemLabel(value, max)` and `valueLabel(value, max)` localise the names. Filled stars are solid and empty
   ones outlined, so forced colors keep the difference. Client component)
+- [x] Resizable (`ResizablePanelGroup`, `ResizablePanel`, `ResizableHandle`: resizable panels split by
+  APG window-splitter handles, `role="separator"` with `aria-valuenow` / `aria-valuemin` /
+  `aria-valuemax` (the preceding panel's size and limits) and `aria-controls`. Sizes are percentages
+  summing to 100, in panel (DOM) order: `layout` / `defaultLayout` / `onLayoutChange` (every change,
+  also mid-drag) and `onLayout` (committed: drag end, each key, a collapse, a panel mounting or
+  unmounting; store it and pass it back as `defaultLayout` to persist). `orientation`
+  (`horizontal` / `vertical`), `keyboardStep` (10). Panels take `defaultSize`, `minSize`, `maxSize`,
+  `collapsible` / `collapsedSize` and `onCollapsedChange`; a panel collapsed to 0 is `inert`. A
+  handle moves only its two neighbours: arrows resize (← / → flipped in RTL; ↑ / ↓ when vertical),
+  Home / End go to the limits, Enter collapses or restores a collapsible preceding panel, and a drag
+  snaps a collapsible panel across its gap at the midpoint. `aria-valuemin` / `aria-valuemax` are
+  exactly what the keys and a drag can reach. `withHandle` shows a grip, `disabled` removes it from
+  the Tab order; touch drags resize too. No imperative API: a "toggle sidebar" button drives a
+  controlled `layout`. The server HTML has the sizes from the defaults. Client component)
 - [x] Stepper (`Stepper`, `StepperItem`, `StepperTrigger`, `StepperIndicator`, `StepperTitle`,
   `StepperDescription`, `StepperSeparator`: an `ol role="list"` (named "Progress" by default) whose
   steps are plain buttons, `aria-current="step"` on the current one. Every step is a Tab stop and

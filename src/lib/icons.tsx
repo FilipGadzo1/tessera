@@ -114,6 +114,20 @@ export function FolderIcon(props: ComponentProps<"svg">) {
   );
 }
 
+/** Six dots in two columns: a drag grip (a Resizable handle's `withHandle`). */
+export function GripVerticalIcon(props: ComponentProps<"svg">) {
+  return (
+    <StrokeIcon {...props}>
+      <circle cx="9" cy="12" r="1" />
+      <circle cx="9" cy="5" r="1" />
+      <circle cx="9" cy="19" r="1" />
+      <circle cx="15" cy="12" r="1" />
+      <circle cx="15" cy="5" r="1" />
+      <circle cx="15" cy="19" r="1" />
+    </StrokeIcon>
+  );
+}
+
 /** A panel with a left column: the Sidebar toggle. */
 export function PanelLeftIcon(props: ComponentProps<"svg">) {
   return (
