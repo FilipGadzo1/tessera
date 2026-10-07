@@ -496,13 +496,14 @@ describe("ColorPicker pointer", () => {
     await expect.element(hueThumb()).toHaveAttribute("aria-valuenow", "210");
     const area = slot("color-area") as HTMLElement;
     const rect = area.getBoundingClientRect();
-    // Saturation 0 (the top-left corner): white, whose hex has no hue.
-    await drag(area, { x: rect.width - 2, y: 2 }, { x: 0, y: 0 });
+    // Saturation 0 (past the top-left corner, inside the padded frame; the clamp gives exactly
+    // s 0, v 100 even with a sub-pixel landing): white, whose hex has no hue.
+    await drag(area, { x: rect.width - 2, y: 2 }, { x: -10, y: -10 });
     await expect.element(areaThumb()).toHaveAttribute("aria-valuenow", "0");
     await expect.element(textInput()).toHaveValue("#ffffff");
     expect(valueNow(hueThumb())).toBe(210);
-    // Back up (the top-right corner): the colour has the same hue again.
-    await drag(area, { x: 2, y: 2 }, { x: rect.width, y: 0 });
+    // Back up (past the top-right corner): the colour has the same hue again.
+    await drag(area, { x: 2, y: 2 }, { x: rect.width + 10, y: -10 });
     await expect.element(areaThumb()).toHaveAttribute("aria-valuenow", "100");
     expect(valueNow(hueThumb())).toBe(210);
     await expect.element(textInput()).toHaveValue(hexOf(210, 100, 100));
