@@ -722,6 +722,20 @@ export {
   wcagContrast,
 } from "./lib/color";
 export type { ShortcutKey } from "./lib/modifier-key";
+export {
+  compareTime,
+  formatTime,
+  formatTimeValue,
+  getTimeSlots,
+  type HourCycle,
+  parseTime,
+  resolveHourCycle,
+  secondsToTimeValue,
+  type TimeGranularity,
+  type TimeParts,
+  timeStepMismatch,
+  timeToSeconds,
+} from "./lib/time";
 export { type ToneColor, toneColors } from "./lib/tone";
 export { type ElementDirection, useElementDirection } from "./lib/use-element-direction";
 export { type ModifierKeyLabel, useModifierKeyLabel } from "./lib/use-modifier-key-label";
