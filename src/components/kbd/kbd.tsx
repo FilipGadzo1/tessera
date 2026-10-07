@@ -2,7 +2,7 @@ import type { ComponentProps } from "react";
 import { cn } from "../../lib/cn";
 
 const kbdBase =
-  "inline-flex h-5 min-w-5 select-none items-center justify-center gap-0.5 rounded-sm border border-border bg-muted px-1 font-sans text-xs font-medium tabular-nums text-muted-foreground [&_svg]:size-3 forced-colors:border-[CanvasText]";
+  "inline-flex h-5 min-w-5 select-none items-center justify-center gap-0.5 rounded-sm border border-foreground/20 bg-muted px-1 font-sans text-xs font-medium tabular-nums text-muted-foreground [&_svg]:size-3 forced-colors:border-[CanvasText]";
 
 /** `KbdGroup`'s classes, shared with `KbdShortcut` (which renders a group of its own slot). */
 export const kbdGroupBase = "inline-flex items-center gap-1";

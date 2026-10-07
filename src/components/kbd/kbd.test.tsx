@@ -2,10 +2,11 @@ import axe from "axe-core";
 import type { ReactElement } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { emulateForcedColors, systemColor } from "../../../test/emulation";
 import { restorePlatform, stubMac, stubWindows } from "../../../test/platform";
+import { contrastRatio, type RGBA } from "../../lib/color";
 import { Kbd, KbdGroup } from "./kbd";
 import * as stories from "./kbd.stories";
 import { KbdShortcut } from "./kbd-shortcut";
@@ -13,6 +14,15 @@ import { KbdShortcut } from "./kbd-shortcut";
 afterEach(() => {
   restorePlatform();
 });
+
+/** Resolves any CSS colour (oklch and color-mix included) to sRGB bytes and alpha via a canvas. */
+function rgba(color: string): RGBA {
+  const ctx = document.createElement("canvas").getContext("2d") as CanvasRenderingContext2D;
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, 1, 1);
+  const [r = 0, g = 0, b = 0, a = 0] = ctx.getImageData(0, 0, 1, 1).data;
+  return { r, g, b, a: a / 255 };
+}
 
 function StoryView({ story }: { story: { args?: object; render?: unknown } }) {
   const Render = story.render as (args: object) => ReactElement;
@@ -35,7 +45,7 @@ describe("Kbd", () => {
     expect(kbd.id).toBe("k1");
     expect(kbd.classList).toContain("px-2");
     expect(kbd.classList).not.toContain("px-1");
-    expect(kbd.classList).toContain("border-border");
+    expect(kbd.classList).toContain("border-foreground/20");
   });
 
   it("KbdGroup nests kbd elements in a kbd", async () => {
@@ -50,6 +60,24 @@ describe("Kbd", () => {
     expect(group.dataset.slot).toBe("kbd-group");
     expect(Array.from(group.children).map((child) => child.tagName)).toEqual(["KBD", "KBD"]);
   });
+
+  it.each(["light", "dark"] as const)(
+    "the keycap border stands out from its background in the %s theme (≥ 1.4:1)",
+    async (theme) => {
+      document.documentElement.classList.toggle("dark", theme === "dark");
+      onTestFinished(() => {
+        document.documentElement.classList.remove("dark");
+      });
+      const screen = await render(<Kbd>K</Kbd>);
+      const style = getComputedStyle(screen.getByText("K").element());
+      // Computed colours are oklch() / color-mix() strings, which parseColor rejects: resolve them
+      // to sRGB bytes (and alpha) through a canvas first.
+      const border = rgba(style.borderTopColor);
+      const background = rgba(style.backgroundColor);
+      expect(background.a).toBe(1);
+      expect(contrastRatio(border, background)).toBeGreaterThanOrEqual(1.4);
+    },
+  );
 
   it("has a CanvasText border in forced colors", async () => {
     const screen = await render(<Kbd>K</Kbd>);
