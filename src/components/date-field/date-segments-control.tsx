@@ -9,14 +9,13 @@
  * value) and renders its spinbuttons and literals; the caller renders the group around them and
  * owns the value, the Field / Form wiring and the paste handling. Focus movement (←/→, the
  * auto-advance, Backspace on an empty segment, the separator key) runs over every segment inside
- * `navigationRef`, so a DateRangeField's two halves form one sequence.
+ * `navigationRef`, so a DateRangeField's two halves form one sequence. The type-agnostic plumbing
+ * (classes, focus, submit-on-Enter, IME text) is shared with TimeField in `../field/segments.tsx`.
  */
 import {
   type KeyboardEvent,
-  type MouseEvent,
   type ReactNode,
   type RefObject,
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -37,8 +36,14 @@ import {
   segmentsToDate,
   typeDigit,
 } from "../../lib/date-segments";
-import { findDefaultButton } from "../../lib/default-button";
 import { isRtl } from "../../lib/direction";
+import {
+  isForeignKey,
+  preventedSegmentKeys,
+  segmentBase,
+  segmentLiteralBase,
+  useSegmentTextInput,
+} from "../field/segments";
 
 /** Translatable segment names and the empty value text. */
 export interface DateSegmentLabels {
@@ -52,51 +57,10 @@ export interface DateSegmentLabels {
   empty?: string;
 }
 
-/**
- * The text-field look on a group (spec Phase H §2): `textFieldStates` written out for a `<div>`
- * with a `focus-within` ring, as `textFieldGroupBase` (no `outline-color` transition, keyed off
- * `data-invalid` / `data-disabled` / `data-readonly`).
- */
-export const dateGroupBase = [
-  "inline-flex w-full min-w-0 items-center gap-0.5 rounded-md border border-field-border bg-field text-foreground shadow-xs tabular-nums cursor-text",
-  "not-data-disabled:not-data-invalid:not-focus-within:hover:border-field-border-hover",
-  "outline-none focus-within:outline-1 focus-within:outline-solid focus-within:outline-ring focus-within:border-ring forced-colors:focus-within:outline-[Highlight]",
-  // The forced-colors Highlight ring restated for the invalid state (as `textFieldGroupBase`):
-  // `data-invalid:focus-within:` is more specific than `forced-colors:focus-within:`, so without
-  // it the danger outline (forced to CanvasText) would win, unlike Input's `:focus` ring, which
-  // stays Highlight.
-  "data-invalid:border-danger data-invalid:focus-within:outline-danger forced-colors:data-invalid:focus-within:outline-[Highlight]",
-  "data-disabled:cursor-not-allowed data-disabled:opacity-50 data-readonly:bg-muted",
-  "transition-[color,background-color,border-color,box-shadow,translate] duration-150 ease-out motion-reduce:transition-none",
-];
-
-const segmentBase = [
-  // `not-focus:` on the placeholder colour: Tailwind emits `data-*` variants after `focus:`, so a
-  // plain `data-placeholder:text-muted-foreground` would win over the focused text colour and
-  // paint muted text on the primary fill.
-  "rounded-sm px-0.5 caret-transparent outline-none focus:bg-primary focus:text-primary-foreground data-placeholder:not-focus:text-muted-foreground",
-  "forced-colors:focus:bg-[Highlight] forced-colors:focus:text-[HighlightText] forced-colors:focus:forced-color-adjust-none",
-];
-
-const literalBase = "text-muted-foreground";
-
 /** PageUp / PageDown steps (spec §2): month by 1, day by a week, year by a decade. */
 const pageStep: Record<DateSegmentType, number> = { month: 1, day: 7, year: 10 };
 
 export const segmentSelector = "[data-slot=date-field-segment]";
-
-/** Keys a focused segment always swallows: edits, and the stepping keys that would scroll. */
-const preventedKeys = new Set([
-  "Enter",
-  "Backspace",
-  "Delete",
-  "ArrowUp",
-  "ArrowDown",
-  "PageUp",
-  "PageDown",
-  "Home",
-  "End",
-]);
 
 /** `day` clamped to the month's length once the month and year are both known (Jan 31 → Feb 28). */
 function clampSegmentDay(segments: DateSegments): DateSegments {
@@ -105,65 +69,8 @@ function clampSegmentDay(segments: DateSegments): DateSegments {
   return segments.day > max ? { ...segments, day: max } : segments;
 }
 
-/**
- * Focuses `root`'s first empty segment, else its first. Reads the DOM only, so the label's native
- * click listener never sees stale state.
- */
-export function focusFirstEmpty(root: HTMLElement | null) {
-  if (!root || root.hasAttribute("data-disabled")) return;
-  const elements = [...root.querySelectorAll<HTMLElement>(segmentSelector)];
-  (elements.find((element) => element.hasAttribute("data-placeholder")) ?? elements[0])?.focus();
-}
-
-/** Clicking the group's padding or a literal focuses the first empty segment (else the first). */
-export function handleGroupMouseDown(event: MouseEvent<HTMLElement>, disabled: boolean) {
-  if (disabled || event.defaultPrevented) return;
-  if ((event.target as HTMLElement).closest(segmentSelector)) return;
-  event.preventDefault();
-  focusFirstEmpty(event.currentTarget);
-}
-
 export function sameDate(a: Date | null, b: Date | null) {
   return a === b || isSameDay(a, b);
-}
-
-/**
- * A FieldLabel has no `for` (the group isn't labelable): clicking it focuses the first empty
- * segment instead, as a native label would focus its control.
- */
-export function useLabelFocusesFirstEmpty(
-  fieldLabelId: string | undefined,
-  rootRef: RefObject<HTMLElement | null>,
-) {
-  useEffect(() => {
-    if (!fieldLabelId) return;
-    const root = rootRef.current;
-    const label = root?.ownerDocument.getElementById(fieldLabelId);
-    if (!label) return;
-    const onClick = () => focusFirstEmpty(root);
-    label.addEventListener("click", onClick);
-    return () => label.removeEventListener("click", onClick);
-  }, [fieldLabelId, rootRef]);
-}
-
-/**
- * Enter's form submit, after the render that reports a held year (the Form reads the registered
- * value, and the custom validity is set in a layout effect, both before this effect runs).
- * Returns the function that asks for it.
- */
-export function useSubmitOnEnter(rootRef: RefObject<HTMLElement | null>): () => void {
-  const [submitRequest, setSubmitRequest] = useState(0);
-  useEffect(() => {
-    if (submitRequest === 0) return;
-    const form = rootRef.current?.closest("form");
-    if (!form) return;
-    // As native implicit submission: through the form's default button (its first submit
-    // button, form-associated ones included), and not at all when that button is disabled.
-    const defaultButton = findDefaultButton(form);
-    if (defaultButton?.disabled) return;
-    form.requestSubmit(defaultButton);
-  }, [submitRequest, rootRef]);
-  return () => setSubmitRequest((count) => count + 1);
 }
 
 export interface DateSegmentsOptions {
@@ -341,11 +248,9 @@ export function useDateSegments({
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLElement>, type: DateSegmentType) => {
-    if (event.altKey || event.ctrlKey || event.metaKey) return;
-    // A key that belongs to an IME composition (Chrome: `isComposing`; Safari reports the Enter
-    // that commits it as keyCode 229, after `compositionend`) is the IME's, not ours: above all,
-    // that Enter must not submit the form. The committed text arrives through `compositionend`.
-    if (event.nativeEvent.isComposing || event.keyCode === 229) return;
+    // A modifier key, or a key of an IME composition (its text arrives through
+    // `useSegmentTextInput`), is not the segment's.
+    if (isForeignKey(event)) return;
     const { key } = event;
     const target = event.currentTarget;
     if (key === "ArrowLeft" || key === "ArrowRight") {
@@ -358,7 +263,7 @@ export function useDateSegments({
     if (key === "Tab") return;
     // Everything else is handled here or ignored: never let the browser edit the segment's text,
     // and never let the stepping keys scroll the page (read-only included).
-    if (key.length === 1 || preventedKeys.has(key)) event.preventDefault();
+    if (key.length === 1 || preventedSegmentKeys.has(key)) event.preventDefault();
     if (!editable) return;
 
     const current = segments[type];
@@ -398,72 +303,18 @@ export function useDateSegments({
     else if (literalKeys.has(key)) moveFocus(target, 1);
   };
 
-  /** Types the first character of `data` into `target`'s segment (a digit, or a separator). */
-  const typeText = (target: HTMLElement, data: string) => {
-    const type = target.dataset.type as DateSegmentType;
-    // One character per event in practice; the first one wins (focus may move after it).
-    const char = [...data][0];
-    if (char === undefined) return;
-    const digit = parseDigit(char, intl.digits);
-    if (digit !== null) typeInto(target, type, digit);
-    else if (literalKeys.has(char)) moveFocus(target, 1);
-  };
-  // An IME composition (e.g. full-width digits from a Japanese IME) edits the DOM through
-  // `beforeinput` events that cannot be cancelled. As React Aria's date segments do, they are
-  // ignored while composing; on `compositionend` the segment's text is put back to what React
-  // rendered (React owns that text node), then the committed text is typed.
-  const compositionRef = useRef<{ node: Node | null; text: string | null } | null>(null);
-  const nativeHandlersRef = useRef({
-    beforeinput: (_event: InputEvent) => {},
-    compositionstart: (_event: CompositionEvent) => {},
-    compositionend: (_event: CompositionEvent) => {},
+  // Mobile `beforeinput` text and IME compositions: a digit types, a separator advances.
+  useSegmentTextInput({
+    containerRef,
+    selector: segmentSelector,
+    editable,
+    onText: (target, char) => {
+      const digit = parseDigit(char, intl.digits);
+      if (digit !== null) typeInto(target, target.dataset.type as DateSegmentType, digit);
+      else if (literalKeys.has(char)) moveFocus(target, 1);
+    },
+    onClear: (target) => clear(target.dataset.type as DateSegmentType),
   });
-  nativeHandlersRef.current = {
-    // Mobile keyboards send "Unidentified" keydowns and deliver the text through `beforeinput`
-    // instead; handle that too, and never let it edit the DOM React renders.
-    beforeinput: (event) => {
-      if (event.isComposing || event.inputType.includes("Composition")) return;
-      event.preventDefault();
-      const target = (event.target as HTMLElement).closest<HTMLElement>(segmentSelector);
-      if (!editable || !target) return;
-      if (event.inputType.startsWith("delete")) {
-        clear(target.dataset.type as DateSegmentType);
-        return;
-      }
-      typeText(target, event.data ?? "");
-    },
-    compositionstart: (event) => {
-      const target = (event.target as HTMLElement).closest<HTMLElement>(segmentSelector);
-      const node = target?.firstChild ?? null;
-      compositionRef.current = { node, text: node?.nodeValue ?? null };
-    },
-    compositionend: (event) => {
-      const target = (event.target as HTMLElement).closest<HTMLElement>(segmentSelector);
-      const saved = compositionRef.current;
-      compositionRef.current = null;
-      if (!target) return;
-      if (saved?.node) {
-        saved.node.nodeValue = saved.text;
-        target.replaceChildren(saved.node);
-      }
-      if (editable) typeText(target, event.data);
-    },
-  };
-  useEffect(() => {
-    const element = containerRef.current;
-    if (!element) return;
-    const onBeforeInput = (event: InputEvent) => nativeHandlersRef.current.beforeinput(event);
-    const onStart = (event: CompositionEvent) => nativeHandlersRef.current.compositionstart(event);
-    const onEnd = (event: CompositionEvent) => nativeHandlersRef.current.compositionend(event);
-    element.addEventListener("beforeinput", onBeforeInput);
-    element.addEventListener("compositionstart", onStart);
-    element.addEventListener("compositionend", onEnd);
-    return () => {
-      element.removeEventListener("beforeinput", onBeforeInput);
-      element.removeEventListener("compositionstart", onStart);
-      element.removeEventListener("compositionend", onEnd);
-    };
-  }, [containerRef]);
 
   /** Zeros typed into an empty segment so far ("0", "00"), in the locale's digits; "" otherwise. */
   const typedZeros = (type: DateSegmentType): string => {
@@ -494,7 +345,7 @@ export function useDateSegments({
           key={`literal-${partIndex}`}
           aria-hidden="true"
           data-slot="date-field-literal"
-          className={literalBase}
+          className={segmentLiteralBase}
         >
           {part.value}
         </span>

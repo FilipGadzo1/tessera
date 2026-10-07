@@ -23,16 +23,14 @@ import {
   useDateFormControl,
   useFocusScope,
 } from "../date-picker/date-form-control";
-import { textFieldSizes } from "../input/input-variants";
 import {
-  type DateSegmentLabels,
-  dateGroupBase,
   handleGroupMouseDown,
-  segmentSelector,
-  useDateSegments,
+  segmentGroupBase,
   useLabelFocusesFirstEmpty,
   useSubmitOnEnter,
-} from "./date-segments-control";
+} from "../field/segments";
+import { textFieldSizes } from "../input/input-variants";
+import { type DateSegmentLabels, segmentSelector, useDateSegments } from "./date-segments-control";
 
 /**
  * Translatable strings for the segments' accessible names, the empty value text and the
@@ -198,7 +196,7 @@ export function DateField({
   // popup), under the date controls' one blur rule.
   useFocusScope(() => focusScope?.() ?? [rootRef.current], formControl.onFocus, formControl.onBlur);
 
-  useLabelFocusesFirstEmpty(fieldLabelId, rootRef);
+  useLabelFocusesFirstEmpty(fieldLabelId, rootRef, segmentSelector);
 
   return (
     <>
@@ -215,10 +213,10 @@ export function DateField({
         data-invalid={invalid ? "" : undefined}
         data-disabled={disabled ? "" : undefined}
         data-readonly={readOnly ? "" : undefined}
-        className={cn(dateGroupBase, textFieldSizes[size ?? "md"], className)}
+        className={cn(segmentGroupBase, textFieldSizes[size ?? "md"], className)}
         onMouseDown={(event) => {
           props.onMouseDown?.(event);
-          handleGroupMouseDown(event, disabled);
+          handleGroupMouseDown(event, disabled, segmentSelector);
         }}
         onPaste={(event) => {
           props.onPaste?.(event);

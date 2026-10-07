@@ -16,20 +16,18 @@ import { useControllableState } from "../../lib/use-controllable-state";
 import { useMergedRefs } from "../../lib/use-merged-refs";
 import { type DateRange, emptyRange } from "../calendar/calendar";
 import type { DateFieldLabels } from "../date-field/date-field";
-import {
-  dateGroupBase,
-  handleGroupMouseDown,
-  sameDate,
-  segmentSelector,
-  useDateSegments,
-  useLabelFocusesFirstEmpty,
-  useSubmitOnEnter,
-} from "../date-field/date-segments-control";
+import { sameDate, segmentSelector, useDateSegments } from "../date-field/date-segments-control";
 import {
   dateValidationMessage,
   useDateFormControl,
   useFocusScope,
 } from "../date-picker/date-form-control";
+import {
+  handleGroupMouseDown,
+  segmentGroupBase,
+  useLabelFocusesFirstEmpty,
+  useSubmitOnEnter,
+} from "../field/segments";
 import { textFieldSizes } from "../input/input-variants";
 
 /** Translatable strings: the halves' names, the segments' and the validation messages. */
@@ -256,7 +254,7 @@ export function DateRangeField({
   // the halves is neither a focus nor a blur.
   useFocusScope(() => focusScope?.() ?? [rootRef.current], formControl.onFocus, formControl.onBlur);
 
-  useLabelFocusesFirstEmpty(fieldLabelId, rootRef);
+  useLabelFocusesFirstEmpty(fieldLabelId, rootRef, segmentSelector);
 
   return (
     <>
@@ -275,10 +273,10 @@ export function DateRangeField({
         data-readonly={readOnly ? "" : undefined}
         // `min-w-max` over the group's `min-w-0`: the halves can't shrink, so in a narrow container
         // the group grows past it rather than painting its segments past its own border.
-        className={cn(dateGroupBase, "min-w-max", textFieldSizes[size ?? "md"], className)}
+        className={cn(segmentGroupBase, "min-w-max", textFieldSizes[size ?? "md"], className)}
         onMouseDown={(event) => {
           props.onMouseDown?.(event);
-          handleGroupMouseDown(event, disabled);
+          handleGroupMouseDown(event, disabled, segmentSelector);
         }}
         onPaste={(event) => {
           props.onPaste?.(event);
