@@ -414,14 +414,16 @@ describe("Resizable pointer", () => {
     await dragTo(65);
     observer.disconnect();
     await expect.poll(() => onLayout.mock.calls.length).toBe(1);
-    expect(Math.abs(valueNow() - 65)).toBeLessThanOrEqual(1);
+    // The commit is the last reported layout, also when the last move is rendered after the up.
+    const [committed] = onLayout.mock.calls[0] as [[number, number]];
+    expect(committed[0] + committed[1]).toBeCloseTo(100);
+    expect(onLayoutChange.mock.calls.at(-1)?.[0]).toEqual(committed);
+    expect(Math.abs(committed[0] - 65)).toBeLessThanOrEqual(1);
+    await expect.poll(() => valueNow()).toBe(Math.round(committed[0]));
     expect(seen).toEqual({ handle: true, group: true });
     expect(handle().hasAttribute("data-dragging")).toBe(false);
     expect(group().hasAttribute("data-dragging")).toBe(false);
     expect(onLayoutChange.mock.calls.length).toBeGreaterThan(2);
-    const [committed] = onLayout.mock.calls[0] as [[number, number]];
-    expect(committed[0] + committed[1]).toBeCloseTo(100);
-    expect(onLayoutChange.mock.calls.at(-1)?.[0]).toEqual(committed);
     // Pointer focus on the handle, no ring.
     expect(document.activeElement).toBe(handle());
     expect(getComputedStyle(handle()).outlineStyle).toBe("none");
@@ -965,6 +967,38 @@ describe("Resizable hardening", () => {
     await expect.poll(() => handle().hasAttribute("data-dragging")).toBe(false);
     expect(onLayout).toHaveBeenCalledTimes(1);
     expect(onLayout).toHaveBeenLastCalledWith([70, 30]);
+  });
+
+  it("a move flushed together with the up commits the moved layout", async () => {
+    const onLayoutChange = vi.fn();
+    const onLayout = vi.fn();
+    await render(<Two onLayoutChange={onLayoutChange} onLayout={onLayout} />);
+    const x = handle().getBoundingClientRect().left;
+    pointer("pointerdown", x);
+    await expect.poll(() => handle().hasAttribute("data-dragging")).toBe(true);
+    // No await between the move and the up: React has not re-rendered the move when the up runs.
+    pointer("pointermove", x + 30);
+    pointer("pointerup", x + 30);
+    await expect.poll(() => onLayout.mock.calls.length).toBe(1);
+    expect(onLayout).toHaveBeenLastCalledWith([60, 40]);
+    expect(onLayoutChange).toHaveBeenLastCalledWith([60, 40]);
+    await expect.poll(() => valueNow()).toBe(60);
+  });
+
+  it("a quick back-and-forth before a render ends where the pointer is", async () => {
+    const onLayout = vi.fn();
+    await render(<Two onLayout={onLayout} />);
+    const x = handle().getBoundingClientRect().left;
+    pointer("pointerdown", x);
+    await expect.poll(() => handle().hasAttribute("data-dragging")).toBe(true);
+    pointer("pointermove", x + 30);
+    pointer("pointermove", x);
+    pointer("pointerup", x);
+    await nextFrame();
+    await expect.poll(() => handle().hasAttribute("data-dragging")).toBe(false);
+    expect(valueNow()).toBe(50);
+    // The drag ended where it started: nothing to commit.
+    expect(onLayout).not.toHaveBeenCalled();
   });
 
   it("a handle unmounting mid-drag clears the group's data-dragging", async () => {

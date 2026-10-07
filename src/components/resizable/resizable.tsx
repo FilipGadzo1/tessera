@@ -235,8 +235,13 @@ interface GroupContextValue {
   register: (entry: PanelEntry) => () => void;
   /** Sets a new layout; `committed` also reports `onLayout`. `from` is the collapse reference. */
   setLayout: (next: number[], committed: boolean, from: readonly number[]) => void;
-  /** Reports the current layout through `onLayout` (a drag's end). */
+  /** Reports the latest layout through `onLayout` (a drag's end). */
   commitLayout: () => void;
+  /**
+   * The layout last set, written synchronously by `setLayout`: a pointer move is rendered in a
+   * later task, so a move and the up flushed together would otherwise read the layout before it.
+   */
+  latestLayout: RefObject<readonly number[]>;
   /** The size a collapsed panel had before it collapsed. */
   expandedSize: (id: string) => number | undefined;
   setDragging: (dragging: boolean) => void;
@@ -394,6 +399,8 @@ export function ResizablePanelGroup({
   }
 
   const latest = useLatest({ layout, onLayoutChange, onLayout, controlled });
+  // The rendered layout, or the one `setLayout` set since (a drag's end reads this one).
+  const latestLayout = useLatest<readonly number[]>(layout);
 
   // Panels registering for the first time adopt the layout silently; later mounts and unmounts
   // (a conditional panel) re-normalise and report it.
@@ -456,11 +463,13 @@ export function ResizablePanelGroup({
           expanded.current.set(panel.id, before);
         }
       });
+      latestLayout.current = next;
       if (!controlled) setInternal({ ids, sizes: next });
       onLayoutChange?.(next);
       if (committed) onLayout?.(next);
     },
-    commitLayout: () => onLayout?.(layout),
+    commitLayout: () => onLayout?.([...latestLayout.current]),
+    latestLayout,
     expandedSize: (id) => expanded.current.get(id),
     setDragging,
     elementRef,
@@ -713,7 +722,7 @@ export function ResizableHandle({
     drag.current = null;
     setDragging(false);
     group.setDragging(false);
-    if (!sameLayout(layout, state.start)) group.commitLayout();
+    if (!sameLayout(group.latestLayout.current, state.start)) group.commitLayout();
   };
 
   return (
@@ -812,7 +821,9 @@ export function ResizableHandle({
         const size = reach(event, panelElement.getBoundingClientRect()) - state.grab;
         const target = snapNearest(clamp((size / space) * 100, lo, hi), ranges);
         const next = withSize(state.start, target);
-        if (!sameLayout(next, layout)) group.setLayout(next, false, state.start);
+        if (!sameLayout(next, group.latestLayout.current)) {
+          group.setLayout(next, false, state.start);
+        }
       }}
       onPointerUp={(event: PointerEvent<HTMLDivElement>) => {
         onPointerUp?.(event);
