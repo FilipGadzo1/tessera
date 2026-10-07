@@ -804,6 +804,8 @@ export function ResizableHandle({
           grab: reach(event, panelRect) - extent(panelRect),
           chrome: extent(groupElement.getBoundingClientRect()) - space,
         };
+        // A refused change (a controlled parent that ignored it) left no render to reset this.
+        group.latestLayout.current = layout;
         setDragging(true);
         group.setDragging(true);
       }}

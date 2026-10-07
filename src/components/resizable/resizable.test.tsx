@@ -1017,6 +1017,52 @@ describe("Resizable hardening", () => {
     expect(onLayoutCommitted).not.toHaveBeenCalled();
   });
 
+  it("a controlled group that ignored a key: a press and release with no move commits nothing", async () => {
+    const onLayoutChange = vi.fn();
+    const onLayoutCommitted = vi.fn();
+    await render(
+      <Two
+        layout={[50, 50]}
+        onLayoutChange={onLayoutChange}
+        onLayoutCommitted={onLayoutCommitted}
+      />,
+    );
+    await press("ArrowRight");
+    expect(onLayoutCommitted).toHaveBeenCalledTimes(1);
+    expect(onLayoutCommitted).toHaveBeenLastCalledWith([60, 40]);
+    expect(valueNow()).toBe(50);
+    // The parent refused [60, 40], so nothing re-rendered. Down and up in one task, no move.
+    const x = handle().getBoundingClientRect().left;
+    pointer("pointerdown", x);
+    pointer("pointerup", x);
+    await nextFrame();
+    await expect.poll(() => handle().hasAttribute("data-dragging")).toBe(false);
+    expect(onLayoutCommitted).toHaveBeenCalledTimes(1);
+    expect(onLayoutChange).toHaveBeenCalledTimes(1);
+    expect(valueNow()).toBe(50);
+  });
+
+  it("a drag in a controlled group that ignores changes commits the attempted layout once", async () => {
+    const onLayoutChange = vi.fn();
+    const onLayoutCommitted = vi.fn();
+    await render(
+      <Two
+        layout={[50, 50]}
+        onLayoutChange={onLayoutChange}
+        onLayoutCommitted={onLayoutCommitted}
+      />,
+    );
+    await dragTo(80);
+    await expect.poll(() => handle().hasAttribute("data-dragging")).toBe(false);
+    // The commit reports what the user did; the parent decides.
+    expect(onLayoutCommitted).toHaveBeenCalledTimes(1);
+    expect(onLayoutCommitted).toHaveBeenLastCalledWith([80, 20]);
+    expect(onLayoutChange).toHaveBeenLastCalledWith([80, 20]);
+    await nextFrame();
+    expect(valueNow()).toBe(50);
+    expectSizes([50, 50]);
+  });
+
   it("a handle unmounting mid-drag clears the group's data-dragging", async () => {
     const error = vi.spyOn(console, "error");
     onTestFinished(() => error.mockRestore());
