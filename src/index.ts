@@ -645,6 +645,12 @@ export {
   tabsListVariants,
   tabsTabVariants,
 } from "./components/tabs";
+export {
+  type TagRejection,
+  type TagRejectionReason,
+  TagsInput,
+  type TagsInputProps,
+} from "./components/tags-input";
 export { Textarea, type TextareaProps } from "./components/textarea";
 export { TimeField, type TimeFieldLabels, type TimeFieldProps } from "./components/time-field";
 export { TimePicker, type TimePickerLabels, type TimePickerProps } from "./components/time-picker";

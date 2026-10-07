@@ -388,6 +388,16 @@ A move, no behaviour change, so the date suites are the guard (`date-field`, `da
 
 **Stories (Task 4, `Components/TagsInput`):** Basic, Max and validate (lowercase, no spaces, up to 5), Custom delimiters, In a Form (submit echo of `getAll`), Read-only and disabled, Sizes, RTL, Keyboard (a story whose description lists the keys).
 
+- *Amended in Task 4*: a disabled TagsInput puts `aria-disabled="true"` on its list. Evidence: the axe run reported the disabled chips' text as `color-contrast` incomplete (3.25:1 at `opacity-50`, `shortTextContent`): axe exempts only text inside a disabled control or an `aria-disabled` subtree, and a chip's text is in neither (the remove buttons are disabled, the text is not). An inactive control is exempt from WCAG 1.4.3, and the attribute states that state to assistive technology too. Tested by the axe case with a disabled field (light and dark, violations and incomplete both `[]`).
+- *Amended in Task 4*: Escape on a remove button also calls `claimEscape` (it returns focus to the input, so it is consumed like the input's Escape with text); inside a Popover the first Escape returns to the input and the second closes. Tested.
+- *Amended in Task 4* (details the text above leaves open, pinned in `tags-input.test.tsx`):
+  - A delimiter key in an empty input is prevented too, so a delimiter never becomes text.
+  - The paste / mobile summary joins its parts with ". " ("a added. b is already added"); "N tags added" is the English text for several adds (no label function, as the spec's list of label functions has none for it).
+  - `rejectionLabel`'s third argument is `{ max, message }`, `message` being `validate`'s message (`null` for the other reasons), so a translated `"invalid"` text can include it.
+  - `TagRejectionReason` (the `reason` union) is exported with `TagRejection`.
+  - The status region is the root's last child (inside its border; `sr-only` takes it out of the flex row); the validation input and the per-tag hidden inputs are the siblings after the root.
+  - After a keyboard removal on a remove button, focus moves once the new tags arrive; a controlled parent that refuses the removal keeps the tag and the focus where they are.
+
 ## 5. FileUpload (Task 5)
 
 ### 5.1 `src/lib/file.ts` (public)

@@ -603,6 +603,24 @@ source files automatically (build output + `"use client"` directive checks).
   `dialog` "Choose a time", `list` "Times", `noTimes`). The TimeField is the one Field / Form
   control; the field, the button and the popup are one blur boundary. `readOnly` and `disabled`
   disable the icon button. Client component)
+- [x] TagsInput, TagRejection, TagRejectionReason (a native `<input>` in a wrapping row of tag
+  chips, with the Input look and `size` heights. Enter or a delimiter (`delimiters`, default
+  `[","]`) adds the trimmed text; Enter in the empty input submits the form. An entry is rejected
+  when `max` is reached, when it duplicates a tag (case-insensitive; `allowDuplicates` permits it)
+  or when `validate(tag, tags)` returns a message: the text stays, the field shows as invalid until
+  it changes, and `onTagRejected({ tag, reason, message })` fires. Pasting text with a delimiter
+  or a newline adds each piece (the rejected ones stay in the input), Backspace in the empty input
+  removes the last tag, Escape clears the text (inside an overlay the overlay closes on the next
+  Escape) and `addOnBlur` commits on blur. The input is the one Tab stop: press ← (→ in RTL) at
+  the start of the text to reach the tags' remove buttons, then ←/→, Home/End move, Backspace,
+  Delete, Enter or Space remove and Escape returns. Each add, removal and rejection is announced
+  in a polite status region. `value` / `defaultValue` / `onValueChange` (`string[]`),
+  `inputValue` / `defaultInputValue` / `onInputValueChange`, `disabled`, `readOnly` (no remove
+  buttons), `required` (at least one tag), `name` (else the Field's: one FormData entry per tag;
+  `onFormSubmit` reports the `string[]`), `form`, `size`, `placeholder`, `inputProps` (name the
+  input with `inputProps["aria-label"]`, default "Add a tag", when there is no Field label), and
+  `listLabel` / `removeLabel` / `addedLabel` / `removedLabel` / `rejectionLabel` for the strings.
+  Client component)
 - [x] Sidebar, SidebarProvider, SidebarTrigger, SidebarRail, SidebarInset, SidebarHeader, SidebarFooter,
   SidebarContent, SidebarSeparator, SidebarGroup, SidebarGroupLabel, SidebarGroupAction, SidebarGroupContent,
   SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuAction, SidebarMenuBadge, SidebarMenuSub,
