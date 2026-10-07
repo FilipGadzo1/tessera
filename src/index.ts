@@ -730,6 +730,16 @@ export {
   wcagContrast,
 } from "./lib/color";
 export { getLocaleDirection } from "./lib/direction";
+export {
+  type FileRejection,
+  type FileRejectionReason,
+  formatFileSize,
+  getFileKey,
+  matchesAccept,
+  type ValidateFilesOptions,
+  type ValidateFilesResult,
+  validateFiles,
+} from "./lib/file";
 export type { ShortcutKey } from "./lib/modifier-key";
 export {
   compareTime,
