@@ -29,11 +29,15 @@ type ItemProps = { completed?: boolean; error?: boolean; disabled?: boolean };
 /** The fixture: four steps, each a trigger (indicator, title, description) and a separator. */
 function Wizard({
   items = {},
+  steps = STEPS,
   ...props
-}: Omit<StepperProps, "children"> & { items?: Record<number, ItemProps> }) {
+}: Omit<StepperProps, "children"> & {
+  items?: Record<number, ItemProps>;
+  steps?: typeof STEPS;
+}) {
   return (
     <Stepper {...props}>
-      {STEPS.map((step, index) => (
+      {steps.map((step, index) => (
         <StepperItem key={step.title} step={index} {...items[index]}>
           <StepperTrigger>
             <StepperIndicator />
@@ -42,7 +46,7 @@ function Wizard({
               <StepperDescription>{step.description}</StepperDescription>
             </span>
           </StepperTrigger>
-          {index < STEPS.length - 1 && <StepperSeparator />}
+          {index < steps.length - 1 && <StepperSeparator />}
         </StepperItem>
       ))}
     </Stepper>
@@ -50,11 +54,11 @@ function Wizard({
 }
 
 /** A display-only stepper: no triggers (the last item's parts sit inside a fragment). */
-function Display({ value }: { value: number }) {
+function Display({ value, items = {} }: { value: number; items?: Record<number, ItemProps> }) {
   return (
     <Stepper value={value} aria-label="Order status">
       {STEPS.map((step, index) => (
-        <StepperItem key={step.title} step={index}>
+        <StepperItem key={step.title} step={index} {...items[index]}>
           {index === STEPS.length - 1 ? (
             <>
               <StepperIndicator />
@@ -292,6 +296,55 @@ describe("Stepper names", () => {
       .toBeInTheDocument();
   });
 
+  it("display-only: a complete or error step exposes its state text too", async () => {
+    await render(<Display value={2} items={{ 1: { error: true } }} />);
+    const texts = listItems().map((element) => element.textContent);
+    expect(texts[0]).toContain("Account Completed");
+    expect(texts[1]).toContain("Shipping Error");
+    expect(texts[2]).not.toMatch(/Completed|Error/);
+    // Visually hidden, but in the accessibility tree.
+    await expect.element(page.getByText("Error", { exact: true })).toBeInTheDocument();
+    expect(page.getByText("Error", { exact: true }).element().closest("[aria-hidden]")).toBeNull();
+    expect(getComputedStyle(page.getByText("Error", { exact: true }).element()).position).toBe(
+      "absolute",
+    );
+  });
+
+  it("a trigger announces its state once", async () => {
+    await render(<Wizard value={2} items={{ 1: { error: true } }} />);
+    await expect
+      .element(page.getByRole("button", { name: "Account Completed", exact: true }))
+      .toBeInTheDocument();
+    await expect
+      .element(page.getByRole("button", { name: "Shipping Error", exact: true }))
+      .toBeInTheDocument();
+    expect(page.getByText("Error", { exact: true }).elements()).toHaveLength(1);
+  });
+
+  it("two descriptions describe the trigger; removing one keeps the other", async () => {
+    function Two({ both }: { both: boolean }) {
+      return (
+        <Stepper>
+          <StepperItem step={0}>
+            <StepperTrigger>
+              <StepperIndicator />
+              <StepperTitle>Account</StepperTitle>
+              <StepperDescription>Your login</StepperDescription>
+              {both && <StepperDescription>Takes a minute</StepperDescription>}
+            </StepperTrigger>
+          </StepperItem>
+        </Stepper>
+      );
+    }
+    const screen = await render(<Two both />);
+    const button = page.getByRole("button", { name: "Account" });
+    await expect.element(button).toHaveAccessibleDescription("Your login Takes a minute");
+    const ids = slots("stepper-description").map((element) => element.id);
+    expect(new Set(ids).size).toBe(2);
+    await screen.rerender(<Two both={false} />);
+    await expect.element(button).toHaveAccessibleDescription("Your login");
+  });
+
   it("without a description the trigger has no aria-describedby", async () => {
     await render(
       <Stepper>
@@ -377,6 +430,60 @@ describe("Stepper reachability", () => {
     expect(onValueChange).not.toHaveBeenCalled();
     await userEvent.click(page.elementLocator(trigger(3)));
     expect(onValueChange).toHaveBeenCalledExactlyOnceWith(3);
+  });
+
+  it("a step added or removed while mounted updates the frontier", async () => {
+    function Growing({ count }: { count: number }) {
+      return (
+        <Wizard
+          value={1}
+          steps={STEPS.slice(0, count)}
+          items={{ 1: { completed: true }, 2: { completed: true } }}
+        />
+      );
+    }
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const screen = await render(<Growing count={2} />);
+    expect(reachableSteps()).toEqual([0, 1]);
+    // Step 2 appears: the completed current step extends the frontier to it.
+    await screen.rerender(<Growing count={3} />);
+    await expect.poll(reachableSteps).toEqual([0, 1, 2]);
+    // Step 3 appears: step 2 is complete, so the frontier moves on to 3.
+    await screen.rerender(<Growing count={4} />);
+    await expect.poll(reachableSteps).toEqual([0, 1, 2, 3]);
+    // Removing steps 2 and 3 leaves the current step last.
+    await screen.rerender(<Growing count={2} />);
+    await expect.poll(() => triggers().length).toBe(2);
+    expect(reachableSteps()).toEqual([0, 1]);
+    expect(trigger(1).getAttribute("aria-current")).toBe("step");
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("warns (dev) when an item is wrapped in another component, which the Stepper cannot read", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    function Wrapped({ step }: { step: number }) {
+      return (
+        <StepperItem step={step} completed>
+          <StepperTrigger>
+            <StepperTitle>Wrapped {step}</StepperTitle>
+          </StepperTrigger>
+        </StepperItem>
+      );
+    }
+    await render(
+      <Stepper value={0}>
+        <StepperItem step={0} completed>
+          <StepperTrigger>
+            <StepperTitle>Direct</StepperTitle>
+          </StepperTrigger>
+        </StepperItem>
+        <Wrapped step={1} />
+      </Stepper>,
+    );
+    await expect.poll(() => warn.mock.calls.length).toBe(1);
+    expect(String(warn.mock.calls[0]?.[0])).toContain("StepperItem step 1");
+    warn.mockRestore();
   });
 
   it("linear: a disabled step is unreachable even before the current one", async () => {
@@ -582,6 +689,45 @@ describe("Stepper orientation and RTL", () => {
     expect(trigger(3).getBoundingClientRect().right).toBeLessThanOrEqual(list.right);
   });
 
+  it.each([
+    { dir: "ltr", forced: false },
+    { dir: "rtl", forced: false },
+    { dir: "ltr", forced: true },
+  ] as const)(
+    "horizontal ($dir, forced colors $forced): a wrapping description does not move any indicator or connector",
+    async ({ dir, forced }) => {
+      if (forced) await emulateForcedColors(true);
+      const steps = STEPS.map((step, index) =>
+        index === 0 ? { ...step, description: "Sign in or sign up for an account" } : step,
+      );
+      await render(
+        <div dir={dir} style={{ width: 560 }}>
+          <Wizard value={1} steps={steps} />
+        </div>,
+      );
+      await animationsSettled();
+      // The first description really wraps (taller than one line).
+      const description = slots("stepper-description")[0] as HTMLElement;
+      expect(description.getBoundingClientRect().height).toBeGreaterThan(20);
+      const centres = [0, 1, 2, 3].map(
+        (index) => center(indicator(index).getBoundingClientRect()).y,
+      );
+      for (const y of centres)
+        expect(Math.abs(y - (centres[0] as number))).toBeLessThanOrEqual(0.5);
+      for (const index of [0, 1, 2]) {
+        const line = separator(index).getBoundingClientRect();
+        expect(Math.abs(center(line).y - (centres[index] as number))).toBeLessThanOrEqual(0.5);
+      }
+      // A one-line title stays centred on its indicator.
+      const text = document.createRange();
+      text.selectNodeContents(title(1).firstChild as Node);
+      const titleY = center(text.getBoundingClientRect()).y;
+      expect(Math.abs(titleY - (centres[1] as number))).toBeLessThanOrEqual(1);
+      // In forced colors the complete connector is the 4px one.
+      if (forced) expect(separator(0).getBoundingClientRect().height).toBe(4);
+    },
+  );
+
   it.each(["ltr", "rtl"] as const)(
     "vertical (%s): separators are 2px wide, centred under the indicator, between the triggers",
     async (dir) => {
@@ -752,6 +898,28 @@ describe("Stepper stories", () => {
       expect(element.getBoundingClientRect().right).toBeLessThanOrEqual(390);
     }
   });
+
+  it.each(["light", "dark"] as const)(
+    "the horizontal wizard at 390px has no axe violations (%s)",
+    async (theme) => {
+      await page.viewport(390, 800);
+      onTestFinished(() => page.viewport(414, 896));
+      const screen = await render(
+        <div className={theme === "dark" ? "dark bg-background p-4" : "bg-background p-4"}>
+          <StoryView story={stories.HorizontalWizard} />
+        </div>,
+      );
+      await expect
+        .poll(() => slots("stepper")[0]?.getAttribute("data-orientation"))
+        .toBe("vertical");
+      await userEvent.click(page.getByRole("button", { name: "Next" }));
+      await expect.poll(() => trigger(1).getAttribute("aria-current")).toBe("step");
+      await animationsSettled();
+      const results = await axe.run(screen.container);
+      expect(results.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+      expect(results.incomplete.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+    },
+  );
 
   it("the wizard's Next marks the step complete, and Back keeps it reachable", async () => {
     await page.viewport(1024, 900);

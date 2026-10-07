@@ -9,6 +9,8 @@ import {
   type ReactElement,
   type ReactNode,
   use,
+  useCallback,
+  useEffect,
   useId,
   useLayoutEffect,
   useState,
@@ -32,6 +34,8 @@ interface StepperContextValue {
   /** The step right after the run of complete steps that starts at the current one (spec §4). */
   frontier: number;
   stateLabel: (state: StepperState) => string;
+  /** The steps read from the element children (a wrapped item is missing here). */
+  steps: ReadonlySet<number>;
 }
 
 const StepperContext = createContext<StepperContextValue | null>(null);
@@ -48,10 +52,9 @@ interface StepperItemContextValue {
   current: boolean;
   reachable: boolean;
   titleId: string;
-  stateId: string;
-  descriptionId: string;
-  hasDescription: boolean;
-  setHasDescription: (present: boolean) => void;
+  /** The ids of the mounted `StepperDescription`s, in mount order. */
+  descriptionIds: readonly string[];
+  registerDescription: (id: string) => () => void;
 }
 
 const StepperItemContext = createContext<StepperItemContextValue | null>(null);
@@ -141,6 +144,7 @@ export function Stepper({
     linear,
     frontier,
     stateLabel,
+    steps: new Set(items.keys()),
   };
 
   return (
@@ -177,8 +181,11 @@ export interface StepperItemProps extends ComponentProps<"li"> {
 }
 
 /**
- * One step, an `li`. Without a `StepperTrigger` among its children (a display-only stepper) the
- * `li` itself carries `aria-current="step"` when it is the current step.
+ * One step, an `li`. Keep it a direct child of the `Stepper` (fragments and arrays are fine): the
+ * Stepper reads the items' `completed` / `error` from its element children, so the server HTML is
+ * right; a wrapped item cannot extend the frontier (a dev warning says so). Without a
+ * `StepperTrigger` among its own children (direct, or in a fragment; not inside a wrapper element) it
+ * is display-only: the `li` carries `aria-current="step"` when it is the current step.
  */
 export function StepperItem({
   step,
@@ -191,9 +198,20 @@ export function StepperItem({
 }: StepperItemProps) {
   const stepper = useStepperContext("StepperItem");
   const titleId = useId();
-  const stateId = useId();
-  const descriptionId = useId();
-  const [hasDescription, setHasDescription] = useState(false);
+  const [descriptionIds, setDescriptionIds] = useState<readonly string[]>([]);
+  const registerDescription = useCallback((id: string) => {
+    setDescriptionIds((ids) => [...ids, id]);
+    return () => setDescriptionIds((ids) => ids.filter((other) => other !== id));
+  }, []);
+
+  const known = stepper.steps.has(step);
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "production" && !known) {
+      console.warn(
+        `StepperItem step ${step} is not a direct child of its Stepper (wrapped in another component?), so it cannot extend the reachable steps. Render StepperItems directly, in fragments or arrays.`,
+      );
+    }
+  }, [known, step]);
 
   const current = step === stepper.value;
   const state: StepperState = error
@@ -214,10 +232,8 @@ export function StepperItem({
         current,
         reachable,
         titleId,
-        stateId,
-        descriptionId,
-        hasDescription,
-        setHasDescription,
+        descriptionIds,
+        registerDescription,
       }}
     >
       <li
@@ -228,7 +244,7 @@ export function StepperItem({
         data-orientation={stepper.orientation}
         data-disabled={reachable ? undefined : ""}
         className={cn(
-          "group/stepper-item relative flex gap-2 data-[orientation=horizontal]:flex-1 data-[orientation=horizontal]:items-center data-[orientation=horizontal]:last:flex-none data-[orientation=vertical]:flex-col",
+          "group/stepper-item relative flex gap-2 data-[orientation=horizontal]:flex-1 data-[orientation=horizontal]:items-start data-[orientation=horizontal]:last:flex-none data-[orientation=vertical]:flex-col",
           className,
         )}
       >
@@ -248,7 +264,6 @@ export type StepperTriggerProps = ComponentProps<"button">;
 export function StepperTrigger({ className, children, onClick, ...props }: StepperTriggerProps) {
   const stepper = useStepperContext("StepperTrigger");
   const item = useStepperItemContext("StepperTrigger");
-  const label = stepper.stateLabel(item.state);
 
   return (
     <button
@@ -256,8 +271,8 @@ export function StepperTrigger({ className, children, onClick, ...props }: Stepp
       type="button"
       aria-current={item.current ? "step" : undefined}
       aria-disabled={item.reachable ? undefined : true}
-      aria-labelledby={label ? `${item.titleId} ${item.stateId}` : item.titleId}
-      aria-describedby={item.hasDescription ? item.descriptionId : undefined}
+      aria-labelledby={item.titleId}
+      aria-describedby={item.descriptionIds.length > 0 ? item.descriptionIds.join(" ") : undefined}
       data-slot="stepper-trigger"
       data-state={item.state}
       data-disabled={item.reachable ? undefined : ""}
@@ -267,16 +282,11 @@ export function StepperTrigger({ className, children, onClick, ...props }: Stepp
         stepper.select(item.step);
       }}
       className={cn(
-        `group/stepper-trigger flex min-w-0 cursor-pointer items-center gap-3 rounded-md text-start ${toggleFocusClasses} forced-colors:focus-visible:outline-[Highlight] data-disabled:cursor-not-allowed`,
+        `group/stepper-trigger flex min-w-0 cursor-pointer items-center gap-3 rounded-md text-start group-data-[orientation=horizontal]/stepper-item:items-start ${toggleFocusClasses} forced-colors:focus-visible:outline-[Highlight] data-disabled:cursor-not-allowed`,
         className,
       )}
     >
       {children}
-      {label && (
-        <span id={item.stateId} className="sr-only">
-          {label}
-        </span>
-      )}
     </button>
   );
 }
@@ -326,18 +336,34 @@ export function StepperIndicator({ className, children, ...props }: StepperIndic
 
 export type StepperTitleProps = ComponentProps<"span">;
 
-export function StepperTitle({ className, ...props }: StepperTitleProps) {
+/**
+ * The step's title. It also holds the visually hidden `stateLabel(state)` text, so a step reads
+ * "Shipping Completed" / "Shipping Error" both as a trigger's name and in a display-only list.
+ */
+export function StepperTitle({ className, children, ...props }: StepperTitleProps) {
+  const stepper = useStepperContext("StepperTitle");
   const item = useStepperItemContext("StepperTitle");
+  const label = stepper.stateLabel(item.state);
   return (
     <span
       {...props}
       id={item.titleId}
       data-slot="stepper-title"
       className={cn(
-        "text-sm font-medium text-foreground group-data-disabled/stepper-trigger:text-muted-foreground forced-colors:group-data-disabled/stepper-trigger:text-[GrayText] group-data-[state=error]/stepper-item:text-danger",
+        "text-sm font-medium text-foreground group-data-[orientation=horizontal]/stepper-item:pt-1.5 group-data-disabled/stepper-trigger:text-muted-foreground forced-colors:group-data-disabled/stepper-trigger:text-[GrayText] group-data-[state=error]/stepper-item:text-danger",
         className,
       )}
-    />
+    >
+      {children}
+      {label && (
+        <>
+          {" "}
+          <span data-slot="stepper-state" className="sr-only">
+            {label}
+          </span>
+        </>
+      )}
+    </span>
   );
 }
 
@@ -345,16 +371,13 @@ export type StepperDescriptionProps = ComponentProps<"span">;
 
 /** The step's description: the trigger's `aria-describedby` while it is rendered. */
 export function StepperDescription({ className, ...props }: StepperDescriptionProps) {
-  const item = useStepperItemContext("StepperDescription");
-  const { setHasDescription } = item;
-  useLayoutEffect(() => {
-    setHasDescription(true);
-    return () => setHasDescription(false);
-  }, [setHasDescription]);
+  const { registerDescription } = useStepperItemContext("StepperDescription");
+  const id = useId();
+  useLayoutEffect(() => registerDescription(id), [registerDescription, id]);
   return (
     <span
       {...props}
-      id={item.descriptionId}
+      id={id}
       data-slot="stepper-description"
       className={cn(
         "text-xs text-muted-foreground forced-colors:group-data-disabled/stepper-trigger:text-[GrayText]",
@@ -380,9 +403,9 @@ export function StepperSeparator({ className, ...props }: StepperSeparatorProps)
       data-state={item.state}
       className={cn(
         "shrink-0 rounded-full bg-border transition-[background-color] duration-150 ease-out motion-reduce:transition-none data-[state=complete]:bg-primary forced-colors:bg-[CanvasText] forced-colors:data-[state=complete]:bg-[CanvasText]",
-        "group-data-[orientation=horizontal]/stepper-item:h-0.5 group-data-[orientation=horizontal]/stepper-item:min-w-6 group-data-[orientation=horizontal]/stepper-item:flex-1",
+        "group-data-[orientation=horizontal]/stepper-item:mt-[calc(1rem-1px)] group-data-[orientation=horizontal]/stepper-item:h-0.5 group-data-[orientation=horizontal]/stepper-item:min-w-6 group-data-[orientation=horizontal]/stepper-item:flex-1 group-data-[orientation=horizontal]/stepper-item:self-start",
         "group-data-[orientation=vertical]/stepper-item:ms-[calc(1rem-1px)] group-data-[orientation=vertical]/stepper-item:min-h-6 group-data-[orientation=vertical]/stepper-item:w-0.5",
-        "forced-colors:group-data-[orientation=horizontal]/stepper-item:data-[state=complete]:h-1 forced-colors:group-data-[orientation=vertical]/stepper-item:data-[state=complete]:w-1 forced-colors:group-data-[orientation=vertical]/stepper-item:data-[state=complete]:ms-[calc(1rem-2px)]",
+        "forced-colors:group-data-[orientation=horizontal]/stepper-item:data-[state=complete]:h-1 forced-colors:group-data-[orientation=horizontal]/stepper-item:data-[state=complete]:mt-[calc(1rem-2px)] forced-colors:group-data-[orientation=vertical]/stepper-item:data-[state=complete]:w-1 forced-colors:group-data-[orientation=vertical]/stepper-item:data-[state=complete]:ms-[calc(1rem-2px)]",
         className,
       )}
     />

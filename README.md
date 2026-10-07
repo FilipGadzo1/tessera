@@ -701,8 +701,15 @@ source files automatically (build output + `"use client"` directive checks).
   (default `true`: the steps up to the current one, the run of complete steps after it and the step
   after that run are reachable; the rest are `aria-disabled` but stay focusable, muted). Each item's
   `completed` (overrides `step < value`), `error` and `disabled`; the Stepper reads them from its
-  `StepperItem` children (fragments and arrays included), so keep the items direct children. A step's
-  name is its title plus `stateLabel(state)` ("Shipping Completed", "Shipping Error"); the indicator
+  `StepperItem` children (fragments and arrays included), so the server HTML is right, as Tree's is:
+  keep the items direct children (a wrapped item cannot extend the reachable steps, and a dev
+  warning says so). Likewise keep each `StepperTrigger` a direct child of its item (or in a
+  fragment): one inside a wrapper element is not detected, and the `li` would carry
+  `aria-current` as well as the button. `StepperTitle` holds the visually hidden
+  `stateLabel(state)`, so a step reads "Shipping Completed" / "Shipping Error" both as a trigger's
+  name and in a display-only list. Horizontal steps are top-aligned, so a wrapping description
+  moves no indicator or connector (keep the title a flex item, e.g. in a `flex flex-col` wrapper,
+  so its first line centres on the indicator); the indicator
   shows the number, a check or "!", so state never relies on colour, and in forced colors a complete
   separator is drawn 4px thick. Items without a trigger are a display-only progress list. RTL is CSS
   only. Four titled steps need about 580px in a row: switch to `vertical` on narrow screens. Client

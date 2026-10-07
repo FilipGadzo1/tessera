@@ -87,7 +87,7 @@ export const HorizontalWizard: Story = {
           onValueChange={setValue}
           steps={CHECKOUT.map((item, index) => ({ ...item, completed: completed.has(index) }))}
         />
-        <div className="rounded-lg border border-border p-4 text-sm">
+        <div className="rounded-lg border border-border p-4 text-sm text-foreground">
           <p className="font-medium">
             Step {value + 1} of {CHECKOUT.length}: {step.title}
           </p>
