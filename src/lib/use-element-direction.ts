@@ -8,7 +8,8 @@ export type ElementDirection = "ltr" | "rtl";
 /*
  * One MutationObserver for every user: it watches `dir` attributes anywhere in the document, is
  * created for the first subscriber and disconnected after the last. Each subscriber re-reads its
- * own element when it fires.
+ * own element when it fires. So any `dir` change anywhere makes every subscriber read its element's
+ * style once, related or not; acceptable for a rare event (a page or region switching direction).
  */
 const subscribers = new Set<() => void>();
 let observer: MutationObserver | null = null;

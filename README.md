@@ -671,7 +671,9 @@ source files automatically (build output + `"use client"` directive checks).
   and `aria-label` on each part localise it. In a `Field` and `Form` the picker is one control: `name` (and
   `form`) submit the hex through a hidden input, `onFormSubmit` reports it under the Field's name, Field
   `validate` gets the hex and an invalid submit focuses the area thumb. In forced colors the colour surfaces keep
-  their colours inside CanvasText frames and the pressed swatch has a Highlight border. Client component)
+  their colours inside CanvasText frames and the pressed swatch has a Highlight border. A controlled parent
+  should set its state synchronously in `onValueChange`: a value that arrives later (after an async step)
+  replaces the picker's state mid-drag, as any controlled input would. Client component)
 - [x] ColorPickerPopover (an outline button showing a swatch and the hex that opens the ColorPicker in a
   popover. It takes the picker's props (`value` / `defaultValue` / `onValueChange` / `onValueCommitted`, `alpha`,
   `swatches`, `format`, `disabled`, `name`, `form`) plus `triggerLabel(hex)` (the trigger's name, default
@@ -692,7 +694,8 @@ source files automatically (build output + `"use client"` directive checks).
   the Field label names the group, `name` / `form` / `required` submit the number. `readOnly` is a display, not
   an input: an image named "4.3 out of 5 stars" with fractional fills, no Tab stop and no form value.
   `itemLabel(value, max)` and `valueLabel(value, max)` localise the names. Filled stars are solid and empty
-  ones outlined, so forced colors keep the difference. Client component)
+  ones outlined, so forced colors keep the difference. Its `ref` is a `Ref<HTMLElement>`: the root is a
+  `div` (the radio group) or, with `readOnly`, a `span` (the image). Client component)
 - [x] Resizable (`ResizablePanelGroup`, `ResizablePanel`, `ResizableHandle`: resizable panels split by
   APG window-splitter handles, `role="separator"` with `aria-valuenow` / `aria-valuemin` /
   `aria-valuemax` (the preceding panel's size and limits) and `aria-controls`. Sizes are percentages

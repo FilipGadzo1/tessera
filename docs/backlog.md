@@ -373,6 +373,12 @@ DateRangeField test and the Tree position compare.
   HTML's `aria-disabled`.
 - Combobox direction (Task 9): the root takes its direction from `ComboboxInput`; an input rendered inside the
   popup (the "input inside popup" pattern, unused in Tessera) would report the portal's direction instead.
+- Overlay direction (Task 9, fix wave): the last trigger report wins, so a root keeps a stale direction after
+  its trigger unmounts (until another reports); a detached trigger (Base UI `handle` / `createHandle`) never
+  reports, so its overlay stays LTR for Base UI and its popup keeps the container's direction (documented).
+- ColorPickerPopover (Task 4): no `open` / `defaultOpen` / `onOpenChange`, which DatePicker has (additive later).
+- ColorPicker (final review): a controlled parent that updates `value` asynchronously (after an await) resets
+  the picker's internal state mid-drag; standard controlled-component behaviour, documented in the README.
 - Theme Studio example (Task 8):
   - The contrast Badge measures only the primary colour as text on the surface (spec §6). The preview's
     other pairs (the soft Button, the Badge, the muted text) are derived with `color-mix` and are not
@@ -381,7 +387,7 @@ DateRangeField test and the Tree position compare.
     "(reviews 24) 4.5"): expected Unicode bidi behaviour for LTR text in an RTL page, not a component
     defect. Real RTL copy (or `dir="ltr"` on English runs) avoids it.
   - The header Save (and Ctrl/⌘+S) saves the theme as it is, including a failing contrast (a draft
-    save); only the wizard's Review step and its Finish are gated.
+    save; accepted in the final review); only the wizard's Review step and its Finish are gated.
   - Its axe test for the open surface popover hides the panels (the popup covers controls, which axe
     leaves `bgOverlap`); the panels are audited with the popover closed. The popup flips above its
     trigger when the trigger sits low in the controls panel.
