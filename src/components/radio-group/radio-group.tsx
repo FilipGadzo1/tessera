@@ -19,7 +19,11 @@ const radioClasses = cn(
   "size-5 rounded-full border border-field-border bg-field",
   "data-checked:bg-primary data-checked:not-data-invalid:border-primary",
   "not-data-disabled:not-data-readonly:not-data-checked:not-data-indeterminate:not-data-invalid:hover:border-field-border-hover",
-  "cursor-pointer not-data-disabled:data-readonly:cursor-default data-disabled:cursor-not-allowed data-disabled:opacity-50",
+  "cursor-pointer not-data-disabled:data-readonly:cursor-default data-disabled:cursor-not-allowed data-disabled:not-in-data-disabled:opacity-50",
+  // A disabled group's roving radio stays focusable (Base UI), so radios in a disabled group (or
+  // Field / Fieldset) look muted at opacity 1; a lone disabled radio leaves the Tab order and fades.
+  "in-data-disabled:bg-muted in-data-disabled:data-checked:bg-muted-foreground in-data-disabled:data-checked:not-data-invalid:border-muted-foreground",
+  "forced-colors:in-data-disabled:border-[GrayText] forced-colors:in-data-disabled:data-checked:not-data-invalid:border-[GrayText]",
   "outline-none outline-offset-2 outline-ring focus-visible:outline-2 focus-visible:outline-solid",
   "data-invalid:border-danger",
   "transition-[color,background-color,border-color,outline-color,box-shadow,translate] duration-150 ease-out motion-reduce:transition-none",
@@ -57,7 +61,7 @@ export function Radio<Value>({ className, ...props }: RadioProps<Value>) {
     >
       <BaseRadio.Indicator
         data-slot="radio-indicator"
-        className="size-2 rounded-full bg-primary-foreground"
+        className="size-2 rounded-full bg-primary-foreground forced-colors:in-data-disabled:bg-[GrayText] forced-colors:in-data-disabled:forced-color-adjust-none"
       />
     </BaseRadio.Root>
   );

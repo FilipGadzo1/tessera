@@ -1,8 +1,9 @@
 import axe from "axe-core";
 import type { ReactElement } from "react";
-import { describe, expect, it, vi } from "vitest";
-import { userEvent } from "vitest/browser";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
+import { emulateForcedColors, resetEmulatedMedia, systemColor } from "../../../test/emulation";
 import { Field, FieldError, FieldItem, FieldLabel } from "../field";
 import { Fieldset, FieldsetLegend } from "../fieldset";
 import { Label } from "../label";
@@ -392,6 +393,140 @@ describe("RadioGroup", () => {
         <Payment />
         <Payment disabled />
         <Payment invalid />
+      </div>,
+    );
+    const results = await axe.run(screen.container);
+    expect(results.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+    expect(results.incomplete.map((v) => `${v.id}: ${v.nodes.map((n) => n.target)}`)).toEqual([]);
+  });
+});
+
+describe("RadioGroup disabled focus", () => {
+  afterEach(async () => {
+    await resetEmulatedMedia();
+  });
+
+  /** A group of three radios between two buttons; `lone` disables only "B". */
+  function Sizes({ disabled, lone }: { disabled?: boolean; lone?: boolean }) {
+    return (
+      <div className="bg-background p-4 text-foreground">
+        <button type="button">Before</button>
+        <RadioGroup aria-label="Size" defaultValue="a" disabled={disabled}>
+          <Label className="flex items-center gap-2">
+            <Radio value="a" />A
+          </Label>
+          <Label className="flex items-center gap-2">
+            <Radio value="b" disabled={lone} />B
+          </Label>
+          <Label className="flex items-center gap-2">
+            <Radio value="c" />C
+          </Label>
+        </RadioGroup>
+        <button type="button">After</button>
+        <div data-testid="muted" className="border border-muted-foreground bg-muted" />
+        <div data-testid="muted-fg" className="bg-muted-foreground" />
+      </div>
+    );
+  }
+  const radio = (name: string) => page.getByRole("radio", { name }).element() as HTMLElement;
+  const focusBefore = () =>
+    (page.getByRole("button", { name: "Before" }).element() as HTMLElement).focus();
+  const style = (testId: string) => getComputedStyle(page.getByTestId(testId).element());
+
+  it("Base UI keeps the roving radio of a disabled group focusable with Tab", async () => {
+    await render(<Sizes disabled />);
+    focusBefore();
+    await userEvent.tab();
+    expect(document.activeElement).toBe(radio("A"));
+    expect(radio("A").getAttribute("aria-disabled")).toBe("true");
+    await userEvent.tab();
+    expect(document.activeElement).toBe(page.getByRole("button", { name: "After" }).element());
+  });
+
+  it("Base UI keeps the roving radio of a group in a disabled Fieldset focusable with Tab", async () => {
+    await render(
+      <div>
+        <button type="button">Before</button>
+        <Payment fieldsetDisabled />
+      </div>,
+    );
+    focusBefore();
+    await userEvent.tab();
+    expect(document.activeElement).toBe(page.getByRole("radio", { name: "Card" }).element());
+  });
+
+  it("a lone disabled radio in an enabled group is skipped by Tab and the arrows", async () => {
+    await render(<Sizes lone />);
+    focusBefore();
+    await userEvent.tab();
+    expect(document.activeElement).toBe(radio("A"));
+    await userEvent.keyboard("{ArrowDown}");
+    expect(document.activeElement).toBe(radio("C"));
+    await userEvent.keyboard("{ArrowUp}");
+    expect(document.activeElement).toBe(radio("A"));
+    await userEvent.tab();
+    expect(document.activeElement).toBe(page.getByRole("button", { name: "After" }).element());
+  });
+
+  it("a focused radio in a disabled group has opacity 1, the 2px ring and the muted look", async () => {
+    await render(<Sizes disabled />);
+    focusBefore();
+    await userEvent.tab();
+    const checked = radio("A");
+    expect(document.activeElement).toBe(checked);
+    const focused = getComputedStyle(checked);
+    expect(focused.opacity).toBe("1");
+    expect(focused.outlineStyle).toBe("solid");
+    expect(focused.outlineWidth).toBe("2px");
+    await expect
+      .poll(() => getComputedStyle(checked).backgroundColor)
+      .toBe(style("muted-fg").backgroundColor);
+    await expect
+      .poll(() => getComputedStyle(checked).borderTopColor)
+      .toBe(style("muted").borderTopColor);
+    const unchecked = radio("B");
+    expect(getComputedStyle(unchecked).opacity).toBe("1");
+    await expect
+      .poll(() => getComputedStyle(unchecked).backgroundColor)
+      .toBe(style("muted").backgroundColor);
+  });
+
+  it("a radio in a disabled Fieldset takes the same muted look at opacity 1", async () => {
+    await render(
+      <div>
+        <Payment fieldsetDisabled />
+        <div data-testid="muted-fg" className="bg-muted-foreground" />
+      </div>,
+    );
+    const card = page.getByRole("radio", { name: "Card" }).element() as HTMLElement;
+    expect(getComputedStyle(card).opacity).toBe("1");
+    await expect
+      .poll(() => getComputedStyle(card).backgroundColor)
+      .toBe(style("muted-fg").backgroundColor);
+  });
+
+  it("forced colors: a radio in a disabled group has a GrayText border and dot", async () => {
+    await render(<Sizes disabled />);
+    await emulateForcedColors(true);
+    const grayText = systemColor("GrayText");
+    await expect.poll(() => getComputedStyle(radio("A")).borderTopColor).toBe(grayText);
+    await expect.poll(() => getComputedStyle(radio("B")).borderTopColor).toBe(grayText);
+    const dot = radio("A").querySelector("[data-slot=radio-indicator]") as HTMLElement;
+    await expect.poll(() => getComputedStyle(dot).backgroundColor).toBe(grayText);
+  });
+
+  it("a lone disabled radio in an enabled group keeps opacity 0.5", async () => {
+    await render(<Sizes lone />);
+    expect(getComputedStyle(radio("B")).opacity).toBe("0.5");
+    expect(getComputedStyle(radio("A")).opacity).toBe("1");
+  });
+
+  it.each(["light", "dark"] as const)("has no axe violations in the %s theme", async (theme) => {
+    const screen = await render(
+      <div className={theme === "dark" ? "dark bg-background p-4" : "bg-background p-4"}>
+        <Sizes disabled />
+        <Sizes lone />
+        <Payment fieldsetDisabled />
       </div>,
     );
     const results = await axe.run(screen.container);
