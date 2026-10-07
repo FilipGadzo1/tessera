@@ -1,6 +1,6 @@
 "use client";
 
-import { DirectionProvider } from "@base-ui/react/direction-provider";
+import { DirectionProvider, useDirection } from "@base-ui/react/direction-provider";
 import { NavigationMenu as BaseNavigationMenu } from "@base-ui/react/navigation-menu";
 import { createContext, useCallback, useContext, useMemo, useRef } from "react";
 import { barTriggerClasses } from "../../lib/bar-classes";
@@ -193,6 +193,9 @@ export function NavigationMenuTrigger({
   ...props
 }: NavigationMenuTriggerProps) {
   const vertical = useContext(MenuContext)?.vertical;
+  // The menu's own DirectionProvider decides the side the panel opens on, so the chevron reads it
+  // too; an `rtl:` class would also match an RTL page above an LTR menu.
+  const direction = useDirection();
   return (
     <BaseNavigationMenu.Trigger
       {...props}
@@ -205,9 +208,15 @@ export function NavigationMenuTrigger({
       {children}
       <BaseNavigationMenu.Icon
         data-slot="navigation-menu-icon"
+        // A vertical chevron never turns while open, so it has no transition: the direction is
+        // read after the first render, and a transition would spin an RTL chevron on mount.
         className={cn(
-          "flex transition-transform duration-200 ease-out motion-reduce:transition-none",
-          vertical ? "-rotate-90 rtl:rotate-90" : "data-popup-open:rotate-180",
+          "flex",
+          vertical
+            ? direction === "rtl"
+              ? "rotate-90"
+              : "-rotate-90"
+            : "transition-transform duration-200 ease-out motion-reduce:transition-none data-popup-open:rotate-180",
         )}
       >
         <ChevronDownIcon className="size-4" />

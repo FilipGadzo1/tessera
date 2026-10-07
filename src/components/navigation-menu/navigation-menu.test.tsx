@@ -1,5 +1,5 @@
 import { type ComponentProps, forwardRef } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import {
@@ -166,6 +166,37 @@ describe("NavigationMenu direction", () => {
     expect(element.getBoundingClientRect().right).toBeLessThanOrEqual(
       products.getBoundingClientRect().left,
     );
+  });
+
+  it("the vertical chevron follows the menu's direction: LTR, wrapper RTL and an LTR island", async () => {
+    const rotation = () =>
+      getComputedStyle(
+        (trigger("Products").element() as HTMLElement).querySelector(
+          "[data-slot=navigation-menu-icon]",
+        ) as HTMLElement,
+      ).rotate;
+    const ltr = await render(<SideMenu />);
+    expect(rotation()).toBe("-90deg");
+    await ltr.unmount();
+    const rtl = await render(
+      <div dir="rtl">
+        <SideMenu />
+      </div>,
+    );
+    expect(rotation()).toBe("90deg");
+    await rtl.unmount();
+    // An LTR menu inside an RTL page: `rtl:` would match <html dir="rtl">.
+    document.documentElement.dir = "rtl";
+    onTestFinished(() => {
+      document.documentElement.removeAttribute("dir");
+    });
+    await render(
+      <div dir="ltr">
+        <SideMenu />
+      </div>,
+    );
+    // Read at once: the chevron has no transition to spin through after the direction is read.
+    expect(rotation()).toBe("-90deg");
   });
 
   it("follows a dir change on an ancestor after mount", async () => {
