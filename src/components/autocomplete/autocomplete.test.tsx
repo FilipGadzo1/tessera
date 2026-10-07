@@ -121,6 +121,23 @@ describe("Autocomplete direction", () => {
       .toBeLessThanOrEqual(-(element.scrollWidth - element.clientWidth - 1));
   });
 
+  it("a dir=rtl wrapper (not <html>): the positioner carries dir=rtl, align start meets the right edge", async () => {
+    await render(
+      <div dir="rtl">
+        <City
+          inputProps={{ groupClassName: "w-40" }}
+          contentProps={{ align: "start", className: "w-64" }}
+        />
+      </div>,
+    );
+    const element = await openByTyping();
+    expect(element.parentElement?.getAttribute("dir")).toBe("rtl");
+    const anchor = groupOf(input()).getBoundingClientRect();
+    const p = element.getBoundingClientRect();
+    expect(p.width).toBeGreaterThan(anchor.width + 20);
+    expect(Math.abs(p.right - anchor.right)).toBeLessThanOrEqual(1);
+  });
+
   it("follows a dir change on an ancestor after mount", async () => {
     const screen = await render(
       <div data-testid="host">

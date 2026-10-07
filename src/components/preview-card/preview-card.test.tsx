@@ -59,6 +59,19 @@ describe("PreviewCard direction", () => {
     },
   );
 
+  it("a dir=rtl wrapper (not <html>): the positioner carries dir=rtl, inline-end opens left", async () => {
+    await render(
+      <div dir="rtl" className="flex justify-center">
+        <Basic side="inline-end" className="w-32" />
+      </div>,
+    );
+    const element = await openByHover();
+    expect(element.parentElement?.getAttribute("dir")).toBe("rtl");
+    expect(element.getBoundingClientRect().right).toBeLessThanOrEqual(
+      trigger().element().getBoundingClientRect().left,
+    );
+  });
+
   it("follows a dir change on an ancestor after mount", async () => {
     await render(
       <div data-testid="host" className="flex justify-center">

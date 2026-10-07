@@ -101,6 +101,21 @@ describe("Popover direction", () => {
     },
   );
 
+  it("an LTR island in an RTL page: the positioner carries dir=ltr, align start meets the left edge", async () => {
+    document.documentElement.setAttribute("dir", "rtl");
+    await render(
+      <div dir="ltr">
+        <Basic align="start" className="w-40" />
+      </div>,
+    );
+    const popup = await openByClick();
+    await waitForPopupSettled(popup);
+    expect(popup.parentElement?.getAttribute("dir")).toBe("ltr");
+    const t = trigger().element().getBoundingClientRect();
+    expect(popup.getBoundingClientRect().width).toBeGreaterThan(t.width + 20);
+    expect(Math.abs(popup.getBoundingClientRect().left - t.left)).toBeLessThanOrEqual(1);
+  });
+
   it.each(["ltr", "rtl"] as const)(
     "%s: side inline-end places the popup after the trigger in the reading order",
     async (dir) => {

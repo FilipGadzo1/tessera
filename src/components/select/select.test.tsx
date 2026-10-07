@@ -1,5 +1,5 @@
 import { type ReactNode, useRef } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { emulateForcedColors, resetEmulatedMedia, systemColor } from "../../../test/emulation";
@@ -146,6 +146,28 @@ describe("Select direction", () => {
       expect(Math.abs(p[edge] - t[edge])).toBeLessThanOrEqual(1);
     },
   );
+
+  it("an LTR island in an RTL page: the positioner carries dir=ltr, start meets the left edge", async () => {
+    document.documentElement.setAttribute("dir", "rtl");
+    onTestFinished(() => {
+      document.documentElement.removeAttribute("dir");
+    });
+    await render(
+      <div dir="ltr">
+        <Fruit
+          defaultValue="apple"
+          triggerProps={{ "aria-label": "Fruit", className: "w-28" }}
+          contentProps={{ className: "w-48" }}
+        />
+      </div>,
+    );
+    const element = await openByClick();
+    expect(element.parentElement?.getAttribute("dir")).toBe("ltr");
+    const t = trigger().element().getBoundingClientRect();
+    const p = element.getBoundingClientRect();
+    expect(p.width).toBeGreaterThan(t.width + 20);
+    expect(Math.abs(p.left - t.left)).toBeLessThanOrEqual(1);
+  });
 
   it("follows a dir change on an ancestor after mount", async () => {
     await render(
