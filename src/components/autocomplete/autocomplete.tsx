@@ -7,7 +7,7 @@ import { ChevronDownIcon, CloseIcon } from "../../lib/icons";
 import { mergeClassName } from "../../lib/merge-class-name";
 import { menuItemBase, popupMotion, popupSurface } from "../../lib/overlay-classes";
 import { useLayeredEscape } from "../../lib/tooltip-escape";
-import { createTriggerDirection } from "../../lib/trigger-direction";
+import { createTriggerDirection, usePopupDirection } from "../../lib/trigger-direction";
 import {
   type ComboboxInputGroupVariantProps,
   comboboxButtonBase,
@@ -189,9 +189,11 @@ export function AutocompleteContent({
   className,
   ...props
 }: AutocompleteContentProps) {
+  const direction = usePopupDirection();
   return (
     <BaseAutocomplete.Portal container={container}>
       <BaseAutocomplete.Positioner
+        dir={direction}
         side={side}
         align={align}
         sideOffset={sideOffset}

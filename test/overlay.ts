@@ -11,6 +11,40 @@ export async function waitForPopupSettled(popup: Element) {
   await Promise.all(popup.getAnimations().map((animation) => animation.finished.catch(() => {})));
 }
 
+/** The rendered box of the text node inside `element` whose trimmed text is `text`. */
+export function textRect(element: Element, text: string): DOMRect {
+  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    if (node.textContent?.trim() !== text) continue;
+    const range = document.createRange();
+    range.selectNodeContents(node);
+    return range.getBoundingClientRect();
+  }
+  throw new Error(`No text node "${text}" in the element.`);
+}
+
+/**
+ * Where a popup item's parts sit: the leading indicator and the text measured from the item's
+ * inline start edge (its left in LTR, its right in RTL), and the trailing part (a shortcut or a
+ * chevron) from its inline end edge, in px.
+ */
+export function inlineOffsets(
+  item: Element,
+  { indicator, text, trailing }: { indicator?: Element; text?: string; trailing?: Element },
+  dir: "ltr" | "rtl",
+) {
+  const box = item.getBoundingClientRect();
+  const fromStart = (rect: DOMRect) =>
+    dir === "rtl" ? box.right - rect.right : rect.left - box.left;
+  const fromEnd = (rect: DOMRect) =>
+    dir === "rtl" ? rect.left - box.left : box.right - rect.right;
+  return {
+    indicator: indicator ? Math.round(fromStart(indicator.getBoundingClientRect())) : undefined,
+    text: text === undefined ? undefined : Math.round(fromStart(textRect(item, text))),
+    trailing: trailing ? Math.round(fromEnd(trailing.getBoundingClientRect())) : undefined,
+  };
+}
+
 /**
  * Runs axe over `document.body` (overlays are portalled) with an open overlay and returns the
  * violations and incomplete results as readable strings; both should be `[]`.

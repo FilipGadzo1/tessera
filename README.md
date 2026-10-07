@@ -744,8 +744,14 @@ RTL: the DOM `dir` (on the component's element or any ancestor) is the source of
 component on a direction-aware Base UI part feeds it to Base UI's `DirectionProvider` (keys, slider
 drags, scroll offsets, `inline-start` / `inline-end` sides); a root without an element (Popover, Menu,
 ContextMenu, Tooltip, PreviewCard, Select, Combobox, Autocomplete) takes its trigger's or input's direction.
-A portalled popup's text and `start` / `end` alignment follow its portal container (the document), as
-for Drawer: a `dir` on an inner wrapper does not reach it unless `container` points inside that wrapper.
+Their portalled popups (Menu and its submenus, ContextMenu, Select, Combobox, Autocomplete, Popover,
+Tooltip, PreviewCard) also carry the trigger's direction as their own `dir`, so the popup's text, its
+mirrored item indicators and submenu chevron, and its `start` / `end` alignment follow the trigger even
+when the `dir` is on a wrapper rather than `<html>`. A trigger linked to its root through Base UI's
+`handle` / `createHandle` (a detached trigger) sits outside the root's React tree and cannot report, so
+its overlay keeps Base UI's LTR default and the popup keeps its portal container's direction. Drawer and
+the dialogs are not anchored: their text follows the portal container (the document), so a `dir` on an
+inner wrapper does not reach them unless `container` points inside that wrapper.
 
 Composition: when a part is rendered through another (`<Fieldset render={<RadioGroup className=…/>}>`),
 the outer part's own classes win over conflicting classes on the render element (Base UI merges the

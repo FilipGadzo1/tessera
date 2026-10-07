@@ -5,7 +5,7 @@ import { cn } from "../../lib/cn";
 import { mergeClassName } from "../../lib/merge-class-name";
 import { menuContentClasses, popupMotion, popupSurface } from "../../lib/overlay-classes";
 import { useLayeredEscape } from "../../lib/tooltip-escape";
-import { createTriggerDirection } from "../../lib/trigger-direction";
+import { createTriggerDirection, usePopupDirection } from "../../lib/trigger-direction";
 
 /** The menu (placement, ←/→ for submenus) follows the trigger area's DOM direction. */
 const { TriggerDirectionProvider, useTriggerDirectionRef } = createTriggerDirection();
@@ -70,9 +70,11 @@ export function ContextMenuContent({
   className,
   ...props
 }: ContextMenuContentProps) {
+  const direction = usePopupDirection();
   return (
     <BaseContextMenu.Portal container={container}>
       <BaseContextMenu.Positioner
+        dir={direction}
         // Base UI's root-context-menu defaults (sideOffset -5, alignOffset 2) leave a gap meant
         // for an arrow this menu doesn't have; zero both so the popup's top-left sits at the
         // pointer, per spec.

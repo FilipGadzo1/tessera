@@ -6,14 +6,14 @@ import { CheckIcon, ChevronDownIcon } from "../../lib/icons";
 import { mergeClassName } from "../../lib/merge-class-name";
 import { menuItemBase, popupMotion, popupSurface } from "../../lib/overlay-classes";
 import { useLayeredEscape } from "../../lib/tooltip-escape";
-import { createTriggerDirection } from "../../lib/trigger-direction";
+import { createTriggerDirection, usePopupDirection } from "../../lib/trigger-direction";
 import {
   type SelectTriggerVariantProps,
   selectDefaults,
   selectTriggerVariants,
 } from "./select-variants";
 
-/** The list's placement follows the trigger's DOM direction. */
+/** The list's placement and the portalled list's own `dir` follow the trigger's DOM direction. */
 const { TriggerDirectionProvider, useTriggerDirectionRef } = createTriggerDirection();
 
 /*
@@ -23,8 +23,8 @@ const { TriggerDirectionProvider, useTriggerDirectionRef } = createTriggerDirect
 const selectValueBase = "min-w-0 truncate data-placeholder:text-muted-foreground";
 const selectIconBase = "flex shrink-0 text-muted-foreground [&_svg]:size-4";
 const selectContentBase = "min-w-(--anchor-width) max-h-(--available-height) overflow-y-auto p-1";
-const selectItemBase = "pl-8 data-selected:font-medium";
-const selectItemIndicatorBase = "absolute left-2 flex size-4 items-center justify-center";
+const selectItemBase = "ps-8 data-selected:font-medium";
+const selectItemIndicatorBase = "absolute start-2 flex size-4 items-center justify-center";
 const selectGroupLabelBase = "px-2 py-1.5 text-xs font-medium text-muted-foreground";
 const selectSeparatorBase = "-mx-1 my-1 h-px bg-border forced-colors:bg-[CanvasText]";
 
@@ -139,9 +139,11 @@ export function SelectContent({
   children,
   ...props
 }: SelectContentProps) {
+  const direction = usePopupDirection();
   return (
     <BaseSelect.Portal container={container}>
       <BaseSelect.Positioner
+        dir={direction}
         side={side}
         align={align}
         sideOffset={sideOffset}

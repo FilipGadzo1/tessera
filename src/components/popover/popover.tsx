@@ -5,7 +5,7 @@ import { cn } from "../../lib/cn";
 import { mergeClassName } from "../../lib/merge-class-name";
 import { popupMotion, popupSurface } from "../../lib/overlay-classes";
 import { useLayeredEscape } from "../../lib/tooltip-escape";
-import { createTriggerDirection } from "../../lib/trigger-direction";
+import { createTriggerDirection, usePopupDirection } from "../../lib/trigger-direction";
 
 /** The popover's placement follows the trigger's DOM direction. */
 const { TriggerDirectionProvider, useTriggerDirectionRef } = createTriggerDirection();
@@ -79,9 +79,11 @@ export function PopoverContent({
   "data-slot": dataSlot = "popover-content",
   ...props
 }: PopoverContentProps) {
+  const direction = usePopupDirection();
   return (
     <BasePopover.Portal container={container}>
       <BasePopover.Positioner
+        dir={direction}
         side={side}
         align={align}
         sideOffset={sideOffset}

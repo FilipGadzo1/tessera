@@ -1,5 +1,6 @@
 "use client";
 
+import { useDirection } from "@base-ui/react/direction-provider";
 import { Menu as BaseMenu } from "@base-ui/react/menu";
 import type { ComponentProps } from "react";
 import { cn } from "../../lib/cn";
@@ -12,10 +13,13 @@ import {
   popupSurface,
 } from "../../lib/overlay-classes";
 import { useLayeredEscape } from "../../lib/tooltip-escape";
-import { createTriggerDirection } from "../../lib/trigger-direction";
+import { createTriggerDirection, usePopupDirection } from "../../lib/trigger-direction";
 import { useModifierKeyLabel } from "../../lib/use-modifier-key-label";
 
-/** The menu (placement, ←/→ for submenus) follows the trigger's DOM direction. */
+/**
+ * The menu (placement, ←/→ for submenus, and the portalled popup's own `dir`) follows the
+ * trigger's DOM direction.
+ */
 const { TriggerDirectionProvider, useTriggerDirectionRef } = createTriggerDirection();
 
 const menuContentBase = cn("min-w-(--anchor-width)", menuContentClasses);
@@ -29,13 +33,13 @@ const menuItemVariantClasses = {
   danger:
     "text-danger data-highlighted:bg-danger-soft data-highlighted:text-danger-soft-foreground",
 } as const;
-const menuIndicatorItem = "pl-8";
-const menuItemIndicatorBase = "absolute left-2 flex size-4 items-center justify-center";
+const menuIndicatorItem = "ps-8";
+const menuItemIndicatorBase = "absolute start-2 flex size-4 items-center justify-center";
 const menuSubTriggerBase = "data-popup-open:bg-accent";
-const menuSubTriggerChevron = "ml-auto";
+const menuSubTriggerChevron = "ms-auto";
 const menuSeparatorBase = "-mx-1 my-1 h-px bg-border forced-colors:bg-[CanvasText]";
 const menuGroupLabelBase = "px-2 py-1.5 text-xs font-medium text-muted-foreground";
-const menuShortcutBase = "ml-auto text-xs text-muted-foreground";
+const menuShortcutBase = "ms-auto text-xs text-muted-foreground";
 
 export type MenuProps = BaseMenu.Root.Props;
 
@@ -104,9 +108,12 @@ function MenuPopupLayer({
   className,
   ...props
 }: MenuPopupLayerProps) {
+  // The root trigger's direction (a `MenuSub` shares its `Menu`'s or `ContextMenu`'s).
+  const direction = usePopupDirection();
   return (
     <BaseMenu.Portal container={container}>
       <BaseMenu.Positioner
+        dir={direction}
         side={side}
         align={align}
         sideOffset={sideOffset}
@@ -277,6 +284,9 @@ export type MenuSubTriggerProps = BaseMenu.SubmenuTrigger.Props;
  * submenu is open.
  */
 export function MenuSubTrigger({ className, children, ...props }: MenuSubTriggerProps) {
+  // Base UI's direction decides the side the submenu opens on (`inline-end`), so the chevron reads
+  // it too and points there; an `rtl:` class would also match an RTL page above an LTR menu.
+  const direction = useDirection();
   return (
     <BaseMenu.SubmenuTrigger
       {...props}
@@ -284,7 +294,9 @@ export function MenuSubTrigger({ className, children, ...props }: MenuSubTrigger
       className={mergeClassName(cn(menuItemBase, menuSubTriggerBase), className)}
     >
       {children}
-      <ChevronRightIcon className={menuSubTriggerChevron} />
+      <ChevronRightIcon
+        className={cn(menuSubTriggerChevron, direction === "rtl" && "rotate-180")}
+      />
     </BaseMenu.SubmenuTrigger>
   );
 }

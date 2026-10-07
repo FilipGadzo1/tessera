@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { emulateForcedColors, resetEmulatedMedia, systemColor } from "../../../test/emulation";
-import { auditOpenOverlay, waitForPopupSettled } from "../../../test/overlay";
+import { auditOpenOverlay, inlineOffsets, waitForPopupSettled } from "../../../test/overlay";
 import { restorePlatform, stubMac, stubWindows } from "../../../test/platform";
 import { Button, buttonVariants } from "../button";
 import {
@@ -122,6 +122,101 @@ afterEach(async () => {
 afterEach(() => {
   document.documentElement.classList.remove("dark");
   restorePlatform();
+});
+
+describe("Menu direction on the portalled popup", () => {
+  afterEach(() => {
+    document.documentElement.removeAttribute("dir");
+  });
+
+  /** `w-48` is wider than the trigger and fits on either side of it, so no flip lines edges up. */
+  function Mirrored({ dir }: { dir?: "ltr" | "rtl" }) {
+    return (
+      <div dir={dir} className="p-16">
+        <Menu>
+          <MenuTrigger render={<Button variant="outline" />}>File</MenuTrigger>
+          <MenuContent className="w-48">
+            <MenuCheckboxItem defaultChecked>Show grid</MenuCheckboxItem>
+            <MenuItem>
+              Duplicate
+              <MenuShortcut>Ctrl+D</MenuShortcut>
+            </MenuItem>
+            <MenuSub>
+              <MenuSubTrigger>Share</MenuSubTrigger>
+              <MenuSubContent>
+                <MenuItem>Email</MenuItem>
+              </MenuSubContent>
+            </MenuSub>
+          </MenuContent>
+        </Menu>
+      </div>
+    );
+  }
+
+  async function measure(dir: "ltr" | "rtl") {
+    const popup = await openByClick("File");
+    const slot = (name: string, scope: Element = popup) =>
+      scope.querySelector(`[data-slot=${name}]`) as HTMLElement;
+    const checkbox = slot("menu-checkbox-item");
+    const duplicate = item("Duplicate").element();
+    const share = item("Share").element();
+    return {
+      popup,
+      direction: getComputedStyle(popup).direction,
+      checkbox: inlineOffsets(
+        checkbox,
+        { indicator: slot("menu-item-indicator", checkbox), text: "Show grid" },
+        dir,
+      ),
+      shortcut: inlineOffsets(duplicate, { trailing: slot("menu-shortcut", duplicate) }, dir)
+        .trailing,
+      chevron: inlineOffsets(share, { trailing: share.querySelector("svg") as Element }, dir)
+        .trailing,
+      chevronRotate: getComputedStyle(share.querySelector("svg") as Element).rotate,
+    };
+  }
+
+  it("a dir=rtl wrapper (not <html>) mirrors the items and aligns start to the trigger's right edge", async () => {
+    await render(<Mirrored dir="rtl" />);
+    const result = await measure("rtl");
+    expect(result.direction).toBe("rtl");
+    // The indicator sits 8px in from the item's right edge, the text 32px (logical padding).
+    expect(result.checkbox).toEqual({ indicator: 8, text: 32, trailing: undefined });
+    // The shortcut and the submenu chevron sit at the inline end: the left.
+    expect(result.shortcut).toBe(8);
+    expect(result.chevron).toBe(8);
+    // The chevron points left, where the submenu opens.
+    expect(result.chevronRotate).toBe("180deg");
+    const t = trigger("File").element().getBoundingClientRect();
+    const p = result.popup.getBoundingClientRect();
+    expect(p.width).toBeGreaterThan(t.width + 20);
+    expect(Math.abs(p.right - t.right)).toBeLessThanOrEqual(1);
+  });
+
+  it("LTR is unchanged: indicator and text from the left, chevron pointing right, start on the left edge", async () => {
+    await render(<Mirrored />);
+    const result = await measure("ltr");
+    expect(result.direction).toBe("ltr");
+    expect(result.checkbox).toEqual({ indicator: 8, text: 32, trailing: undefined });
+    expect(result.shortcut).toBe(8);
+    expect(result.chevron).toBe(8);
+    expect(result.chevronRotate).toBe("none");
+    const t = trigger("File").element().getBoundingClientRect();
+    expect(Math.abs(result.popup.getBoundingClientRect().left - t.left)).toBeLessThanOrEqual(1);
+  });
+
+  it("a trigger in an LTR island of an RTL page opens an LTR menu", async () => {
+    document.documentElement.setAttribute("dir", "rtl");
+    await render(<Mirrored dir="ltr" />);
+    const result = await measure("ltr");
+    expect(result.direction).toBe("ltr");
+    expect(result.checkbox).toEqual({ indicator: 8, text: 32, trailing: undefined });
+    expect(result.chevron).toBe(8);
+    // Not rotated: an `rtl:` class would match the RTL <html> above the island.
+    expect(result.chevronRotate).toBe("none");
+    const t = trigger("File").element().getBoundingClientRect();
+    expect(Math.abs(result.popup.getBoundingClientRect().left - t.left)).toBeLessThanOrEqual(1);
+  });
 });
 
 describe("MenuShortcut shortcut", () => {
@@ -502,7 +597,7 @@ describe("Menu", () => {
       "-mx-1 my-1 h-px bg-border forced-colors:bg-[CanvasText]",
     );
     expect(slot("menu-shortcut").tagName).toBe("SPAN");
-    expect(slot("menu-shortcut").className).toBe("ml-auto text-xs text-muted-foreground");
+    expect(slot("menu-shortcut").className).toBe("ms-auto text-xs text-muted-foreground");
   });
 
   it("sets data-slots on checkbox, radio and sub-trigger items", async () => {
@@ -512,9 +607,9 @@ describe("Menu", () => {
     expect(popup.querySelectorAll("[data-slot=menu-radio-item]")).toHaveLength(2);
     expect(popup.querySelector("[data-slot=menu-radio-group]")).not.toBeNull();
     const checkbox = popup.querySelector("[data-slot=menu-checkbox-item]") as HTMLElement;
-    expect(checkbox.classList.contains("pl-8")).toBe(true);
+    expect(checkbox.classList.contains("ps-8")).toBe(true);
     const indicator = popup.querySelector("[data-slot=menu-item-indicator]") as HTMLElement;
-    expect(indicator.className).toBe("absolute left-2 flex size-4 items-center justify-center");
+    expect(indicator.className).toBe("absolute start-2 flex size-4 items-center justify-center");
   });
 
   it("marks the sub-trigger with its data-slot and keeps it painted while the submenu is open", async () => {

@@ -19,7 +19,7 @@ import { mergeClassName } from "../../lib/merge-class-name";
 import { mergeRefs } from "../../lib/merge-refs";
 import { popupMotion } from "../../lib/overlay-classes";
 import { registerOpenTooltip } from "../../lib/tooltip-escape";
-import { createTriggerDirection } from "../../lib/trigger-direction";
+import { createTriggerDirection, usePopupDirection } from "../../lib/trigger-direction";
 
 /** The tooltip's placement follows the trigger's DOM direction. */
 const { TriggerDirectionProvider, useTriggerDirectionRef } = createTriggerDirection();
@@ -187,9 +187,11 @@ export function TooltipContent({
     (element: HTMLDivElement | null) => mergeRefs(describeRef, callerRef.current)(element),
     [describeRef],
   );
+  const direction = usePopupDirection();
   return (
     <BaseTooltip.Portal container={container}>
       <BaseTooltip.Positioner
+        dir={direction}
         side={side}
         align={align}
         sideOffset={sideOffset}

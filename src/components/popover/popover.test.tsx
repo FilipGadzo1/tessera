@@ -81,6 +81,26 @@ describe("Popover direction", () => {
     },
   );
 
+  it.each([
+    ["ltr", "left"],
+    ["rtl", "right"],
+  ] as const)(
+    "a dir=%s wrapper (not <html>): the popup takes the direction and align start meets the trigger's %s edge",
+    async (dir, edge) => {
+      await render(
+        <div dir={dir}>
+          <Basic align="start" className="w-40" />
+        </div>,
+      );
+      const popup = await openByClick();
+      await waitForPopupSettled(popup);
+      expect(getComputedStyle(popup).direction).toBe(dir);
+      const t = trigger().element().getBoundingClientRect();
+      expect(popup.getBoundingClientRect().width).toBeGreaterThan(t.width + 20);
+      expect(Math.abs(popup.getBoundingClientRect()[edge] - t[edge])).toBeLessThanOrEqual(1);
+    },
+  );
+
   it.each(["ltr", "rtl"] as const)(
     "%s: side inline-end places the popup after the trigger in the reading order",
     async (dir) => {

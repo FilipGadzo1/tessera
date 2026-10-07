@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { emulateForcedColors, resetEmulatedMedia, systemColor } from "../../../test/emulation";
-import { auditOpenOverlay, waitForPopupSettled } from "../../../test/overlay";
+import { auditOpenOverlay, inlineOffsets, waitForPopupSettled } from "../../../test/overlay";
 import { Button } from "../button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "../dialog";
 import { Field, FieldDescription, FieldLabel } from "../field";
@@ -129,6 +129,35 @@ afterEach(async () => {
 
 describe("Combobox direction", () => {
   const chips = () => [...document.querySelectorAll<HTMLElement>("[data-slot=combobox-chip]")];
+
+  it.each(["ltr", "rtl"] as const)(
+    "a dir=%s wrapper: the check and text sit at the inline start, start aligns to that edge",
+    async (dir) => {
+      await render(
+        <div dir={dir}>
+          <Fruit
+            defaultValue="Apple"
+            inputProps={{ groupClassName: "w-40" }}
+            contentProps={{ className: "w-56" }}
+          />
+        </div>,
+      );
+      const element = await openByClick();
+      expect(getComputedStyle(element).direction).toBe(dir);
+      const apple = option("Apple").element();
+      const indicator = apple.querySelector("[data-slot=combobox-item-indicator]") as Element;
+      expect(inlineOffsets(apple, { indicator, text: "Apple" }, dir)).toEqual({
+        indicator: 8,
+        text: 32,
+        trailing: undefined,
+      });
+      const group = groupOf(input()).getBoundingClientRect();
+      const p = element.getBoundingClientRect();
+      expect(p.width).toBeGreaterThan(group.width + 20);
+      const edge = dir === "rtl" ? "right" : "left";
+      expect(Math.abs(p[edge] - group[edge])).toBeLessThanOrEqual(1);
+    },
+  );
 
   it("under dir=rtl, → from the empty input moves onto the last chip (visually right), ← back towards the input", async () => {
     await render(

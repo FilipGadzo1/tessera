@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
-import { auditOpenOverlay, waitForPopupSettled } from "../../../test/overlay";
+import { auditOpenOverlay, inlineOffsets, waitForPopupSettled } from "../../../test/overlay";
 import {
   MenuCheckboxItem,
   MenuItem,
@@ -99,6 +99,29 @@ describe("ContextMenu", () => {
     expect(Math.abs(rect.right - x)).toBeLessThanOrEqual(2);
     expect(Math.abs(rect.top - (box.top + 40))).toBeLessThanOrEqual(2);
   });
+
+  it.each(["ltr", "rtl"] as const)(
+    "a dir=%s wrapper: the popup takes the direction, so a checkbox item's indicator and text sit at its inline start",
+    async (dir) => {
+      await render(
+        <div dir={dir}>
+          <Area>
+            <MenuCheckboxItem defaultChecked>Show grid</MenuCheckboxItem>
+          </Area>
+        </div>,
+      );
+      const box = area().element().getBoundingClientRect();
+      const popup = await openAt(box.left + 120, box.top + 40);
+      expect(getComputedStyle(popup).direction).toBe(dir);
+      const checkbox = popup.querySelector("[data-slot=menu-checkbox-item]") as HTMLElement;
+      const indicator = checkbox.querySelector("[data-slot=menu-item-indicator]") as Element;
+      expect(inlineOffsets(checkbox, { indicator, text: "Show grid" }, dir)).toEqual({
+        indicator: 8,
+        text: 32,
+        trailing: undefined,
+      });
+    },
+  );
 
   it("under dir=rtl, ← opens a submenu to the left of its trigger item", async () => {
     await render(

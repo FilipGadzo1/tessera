@@ -373,11 +373,6 @@ DateRangeField test and the Tree position compare.
   children, so an item wrapped in another component cannot extend the reachable steps (a dev warning names
   it; documented in the README). A context registration would lift the limit at the cost of the server
   HTML's `aria-disabled`.
-- RTL styling of menu-like items (found in Task 9): `MenuCheckboxItem` / `MenuRadioItem`, `SelectItem` and
-  `ComboboxItem` place their indicator with physical classes (`absolute left-2`, `pl-8`), `MenuShortcut` and
-  the submenu chevron use `ml-auto`, and the chevron always points right. In an RTL page the keys and the
-  submenu side follow the direction (Task 9), but these do not mirror: switch them to `start-2` / `ps-8` /
-  `ms-auto` and flip the chevron with `rtl:rotate-180`.
 - Combobox direction (Task 9): the root takes its direction from `ComboboxInput`; an input rendered inside the
   popup (the "input inside popup" pattern, unused in Tessera) would report the portal's direction instead.
 - Theme Studio example (Task 8):

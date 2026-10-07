@@ -7,7 +7,7 @@ import { CheckIcon, ChevronDownIcon } from "../../lib/icons";
 import { mergeClassName } from "../../lib/merge-class-name";
 import { menuItemBase, popupMotion, popupSurface } from "../../lib/overlay-classes";
 import { useLayeredEscape } from "../../lib/tooltip-escape";
-import { createTriggerDirection } from "../../lib/trigger-direction";
+import { createTriggerDirection, usePopupDirection } from "../../lib/trigger-direction";
 import { useMergedRefs } from "../../lib/use-merged-refs";
 import {
   type ComboboxInputGroupVariantProps,
@@ -26,8 +26,8 @@ import {
 
 const comboboxChipsInputBase =
   "h-7 min-w-16 flex-1 bg-transparent px-1.5 outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed";
-const comboboxItemBase = "pl-8 data-selected:font-medium";
-const comboboxItemIndicatorBase = "absolute left-2 flex size-4 items-center justify-center";
+const comboboxItemBase = "ps-8 data-selected:font-medium";
+const comboboxItemIndicatorBase = "absolute start-2 flex size-4 items-center justify-center";
 const comboboxChipBase =
   "inline-flex h-6 items-center gap-1 rounded-md bg-muted px-1.5 text-xs text-foreground outline-none outline-offset-1 outline-ring focus-visible:outline-2 focus-visible:outline-solid forced-colors:focus-visible:outline-[Highlight] data-disabled:opacity-50";
 const comboboxChipRemoveBase =
@@ -46,7 +46,7 @@ interface ChipsAnchor {
 const ChipsAnchorContext = createContext<ChipsAnchor | null>(null);
 const InsideChipsContext = createContext(false);
 
-/** The list's placement and the chips' ←/→ follow the input's DOM direction. */
+/** The list's placement and own `dir`, and the chips' ←/→, follow the input's DOM direction. */
 const { TriggerDirectionProvider, useTriggerDirectionRef } = createTriggerDirection();
 
 /**
@@ -244,9 +244,11 @@ export function ComboboxContent({
   ...props
 }: ComboboxContentProps) {
   const chips = useContext(ChipsAnchorContext);
+  const direction = usePopupDirection();
   return (
     <BaseCombobox.Portal container={container}>
       <BaseCombobox.Positioner
+        dir={direction}
         side={side}
         align={align}
         sideOffset={sideOffset}

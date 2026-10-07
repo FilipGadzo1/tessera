@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { emulateForcedColors, resetEmulatedMedia, systemColor } from "../../../test/emulation";
-import { auditOpenOverlay, waitForPopupSettled } from "../../../test/overlay";
+import { auditOpenOverlay, inlineOffsets, waitForPopupSettled } from "../../../test/overlay";
 import { Button } from "../button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "../dialog";
 import { Field, FieldDescription, FieldLabel } from "../field";
@@ -115,6 +115,35 @@ describe("Select direction", () => {
       const p = element.getBoundingClientRect();
       if (dir === "rtl") expect(p.right).toBeLessThanOrEqual(t.left);
       else expect(p.left).toBeGreaterThanOrEqual(t.right);
+    },
+  );
+
+  it.each(["ltr", "rtl"] as const)(
+    "a dir=%s wrapper: the check and text sit at the inline start, start aligns to that edge",
+    async (dir) => {
+      await render(
+        <div dir={dir}>
+          <Fruit
+            defaultValue="apple"
+            triggerProps={{ "aria-label": "Fruit", className: "w-28" }}
+            contentProps={{ className: "w-48" }}
+          />
+        </div>,
+      );
+      const element = await openByClick();
+      expect(getComputedStyle(element).direction).toBe(dir);
+      const apple = option("Apple").element();
+      const indicator = apple.querySelector("[data-slot=select-item-indicator]") as Element;
+      expect(inlineOffsets(apple, { indicator, text: "Apple" }, dir)).toEqual({
+        indicator: 8,
+        text: 32,
+        trailing: undefined,
+      });
+      const t = trigger().element().getBoundingClientRect();
+      const p = element.getBoundingClientRect();
+      expect(p.width).toBeGreaterThan(t.width + 20);
+      const edge = dir === "rtl" ? "right" : "left";
+      expect(Math.abs(p[edge] - t[edge])).toBeLessThanOrEqual(1);
     },
   );
 
@@ -499,7 +528,7 @@ describe("Select", () => {
       expect(item.getAttribute("data-slot")).toBe("select-item");
       expect(item.classList.contains("text-base")).toBe(true);
       expect(item.classList.contains("text-sm")).toBe(false);
-      expect(item.classList.contains("pl-8")).toBe(true);
+      expect(item.classList.contains("ps-8")).toBe(true);
       expect(item.querySelector("[data-slot=select-item-text]")?.textContent).toBe("Apple");
       expect(item.querySelector("[data-slot=select-item-indicator]")).not.toBeNull();
       const separator = element.querySelector("[data-slot=select-separator]") as HTMLElement;
