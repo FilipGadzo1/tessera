@@ -11,3 +11,28 @@
 export function isRtl(element: Element): boolean {
   return getComputedStyle(element).direction === "rtl";
 }
+
+/** Languages written right to left by default, for engines without `Intl.Locale` text info. */
+const RTL_LANGUAGES = new Set(["ar", "arc", "ckb", "dv", "fa", "he", "ps", "sd", "ug", "ur", "yi"]);
+
+type TextInfo = { direction?: string };
+type LocaleWithTextInfo = Intl.Locale & { getTextInfo?: () => TextInfo; textInfo?: TextInfo };
+
+/**
+ * The script direction of `locale` (spec Phase K §1.2): `Intl.Locale`'s text info where the engine
+ * has it (`getTextInfo()`, or the older `textInfo` getter), else the language subtag. A missing or
+ * invalid locale is `"ltr"`. Server-safe: it reads only `Intl`, never the DOM, so it may run during
+ * render (unlike `isRtl`, which reads the page's direction).
+ */
+export function getLocaleDirection(locale?: string): "ltr" | "rtl" {
+  if (!locale) return "ltr";
+  let intlLocale: LocaleWithTextInfo;
+  try {
+    intlLocale = new Intl.Locale(locale);
+  } catch {
+    return "ltr";
+  }
+  const direction = (intlLocale.getTextInfo?.() ?? intlLocale.textInfo)?.direction;
+  if (direction === "rtl" || direction === "ltr") return direction;
+  return RTL_LANGUAGES.has(intlLocale.language) ? "rtl" : "ltr";
+}

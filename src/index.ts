@@ -721,6 +721,7 @@ export {
   rgbToHsv,
   wcagContrast,
 } from "./lib/color";
+export { getLocaleDirection } from "./lib/direction";
 export type { ShortcutKey } from "./lib/modifier-key";
 export {
   compareTime,
