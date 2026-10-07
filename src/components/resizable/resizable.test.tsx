@@ -181,13 +181,13 @@ describe("Resizable keyboard", () => {
     ["End", 80],
     ["Enter", 50],
   ])("horizontal LTR: %s → %i", async (key, expected) => {
-    const onLayout = vi.fn();
-    await render(<Two first={limits} onLayout={onLayout} />);
+    const onLayoutCommitted = vi.fn();
+    await render(<Two first={limits} onLayoutCommitted={onLayoutCommitted} />);
     await press(key);
     await expect.poll(() => valueNow()).toBe(expected);
     expectSizes([expected, 100 - expected]);
-    if (expected === 50) expect(onLayout).not.toHaveBeenCalled();
-    else expect(onLayout).toHaveBeenLastCalledWith([expected, 100 - expected]);
+    if (expected === 50) expect(onLayoutCommitted).not.toHaveBeenCalled();
+    else expect(onLayoutCommitted).toHaveBeenLastCalledWith([expected, 100 - expected]);
   });
 
   it.each([
@@ -313,15 +313,15 @@ describe("Resizable collapse consistency", () => {
 
   it("End collapses a collapsible following panel, and a drag to the far end reaches the same layout", async () => {
     const second = { minSize: 30, collapsible: true, collapsedSize: 5 };
-    const onLayout = vi.fn();
-    await render(<Two second={second} onLayout={onLayout} />);
+    const onLayoutCommitted = vi.fn();
+    await render(<Two second={second} onLayoutCommitted={onLayoutCommitted} />);
     expect(valueMax()).toBe(95);
     await press("End");
     await expect.poll(() => panel(1).hasAttribute("data-collapsed")).toBe(true);
-    expect(onLayout).toHaveBeenLastCalledWith([95, 5]);
+    expect(onLayoutCommitted).toHaveBeenLastCalledWith([95, 5]);
 
     const dragged = vi.fn();
-    await render(<Two second={second} onLayout={dragged} />);
+    await render(<Two second={second} onLayoutCommitted={dragged} />);
     await dragTo(100, { index: 1 });
     await expect.poll(() => dragged.mock.calls.at(-1)?.[0]).toEqual([95, 5]);
     expect(panel(3).hasAttribute("data-collapsed")).toBe(true);
@@ -362,11 +362,11 @@ describe("Resizable collapse consistency", () => {
 describe("Resizable Enter", () => {
   it("collapses a collapsible preceding panel and restores the size it had", async () => {
     const onCollapsedChange = vi.fn();
-    const onLayout = vi.fn();
+    const onLayoutCommitted = vi.fn();
     await render(
       <Two
         first={{ defaultSize: 40, minSize: 20, collapsible: true, onCollapsedChange }}
-        onLayout={onLayout}
+        onLayoutCommitted={onLayoutCommitted}
       />,
     );
     await press("Enter");
@@ -374,7 +374,7 @@ describe("Resizable Enter", () => {
     expect(valueNow()).toBe(0);
     expect(panel(0).inert).toBe(true);
     expect(onCollapsedChange).toHaveBeenLastCalledWith(true);
-    expect(onLayout).toHaveBeenLastCalledWith([0, 100]);
+    expect(onLayoutCommitted).toHaveBeenLastCalledWith([0, 100]);
     await press("Enter");
     await expect.poll(() => valueNow()).toBe(40);
     expect(panel(0).hasAttribute("data-collapsed")).toBe(false);
@@ -402,8 +402,8 @@ describe("Resizable Enter", () => {
 describe("Resizable pointer", () => {
   it("a drag resizes, reports during the drag and commits once, with data-dragging mid-drag", async () => {
     const onLayoutChange = vi.fn();
-    const onLayout = vi.fn();
-    await render(<Two onLayoutChange={onLayoutChange} onLayout={onLayout} />);
+    const onLayoutCommitted = vi.fn();
+    await render(<Two onLayoutChange={onLayoutChange} onLayoutCommitted={onLayoutCommitted} />);
     const seen = { handle: false, group: false };
     const observer = new MutationObserver(() => {
       seen.handle ||= handle().hasAttribute("data-dragging");
@@ -413,9 +413,9 @@ describe("Resizable pointer", () => {
     observer.observe(group(), { attributes: true });
     await dragTo(65);
     observer.disconnect();
-    await expect.poll(() => onLayout.mock.calls.length).toBe(1);
+    await expect.poll(() => onLayoutCommitted.mock.calls.length).toBe(1);
     // The commit is the last reported layout, also when the last move is rendered after the up.
-    const [committed] = onLayout.mock.calls[0] as [[number, number]];
+    const [committed] = onLayoutCommitted.mock.calls[0] as [[number, number]];
     expect(committed[0] + committed[1]).toBeCloseTo(100);
     expect(onLayoutChange.mock.calls.at(-1)?.[0]).toEqual(committed);
     expect(Math.abs(committed[0] - 65)).toBeLessThanOrEqual(1);
@@ -616,11 +616,17 @@ describe("Resizable layout", () => {
 
   it("a controlled parent that ignores changes keeps the layout", async () => {
     const onLayoutChange = vi.fn();
-    const onLayout = vi.fn();
-    await render(<Two layout={[50, 50]} onLayoutChange={onLayoutChange} onLayout={onLayout} />);
+    const onLayoutCommitted = vi.fn();
+    await render(
+      <Two
+        layout={[50, 50]}
+        onLayoutChange={onLayoutChange}
+        onLayoutCommitted={onLayoutCommitted}
+      />,
+    );
     await press("ArrowRight");
     expect(onLayoutChange).toHaveBeenLastCalledWith([60, 40]);
-    expect(onLayout).toHaveBeenLastCalledWith([60, 40]);
+    expect(onLayoutCommitted).toHaveBeenLastCalledWith([60, 40]);
     expect(valueNow()).toBe(50);
     await dragTo(80);
     await nextFrame();
@@ -639,10 +645,10 @@ describe("Resizable layout", () => {
   });
 
   it("three panels and two handles: each handle moves only its two neighbours", async () => {
-    const onLayout = vi.fn();
+    const onLayoutCommitted = vi.fn();
     await render(
       <div style={{ width: SPACE + 2, height: 200 }}>
-        <ResizablePanelGroup defaultLayout={[30, 40, 30]} onLayout={onLayout}>
+        <ResizablePanelGroup defaultLayout={[30, 40, 30]} onLayoutCommitted={onLayoutCommitted}>
           <ResizablePanel minSize={10}>A</ResizablePanel>
           <ResizableHandle />
           <ResizablePanel minSize={20}>B</ResizablePanel>
@@ -654,14 +660,14 @@ describe("Resizable layout", () => {
     expect([valueNow(0), valueMax(0)]).toEqual([30, 50]);
     expect([valueNow(1), valueMin(1), valueMax(1)]).toEqual([40, 20, 70]);
     await press("ArrowRight", 1);
-    await expect.poll(() => onLayout.mock.calls.at(-1)?.[0]).toEqual([30, 50, 20]);
+    await expect.poll(() => onLayoutCommitted.mock.calls.at(-1)?.[0]).toEqual([30, 50, 20]);
     expectSizes([30, 50, 20]);
     await press("End", 0);
-    await expect.poll(() => onLayout.mock.calls.at(-1)?.[0]).toEqual([60, 20, 20]);
+    await expect.poll(() => onLayoutCommitted.mock.calls.at(-1)?.[0]).toEqual([60, 20, 20]);
   });
 
   it("a conditional third panel mounting and unmounting keeps the sum at 100 and reports it", async () => {
-    const onLayout = vi.fn();
+    const onLayoutCommitted = vi.fn();
     const onLayoutChange = vi.fn();
     function Conditional() {
       const [extra, setExtra] = useState(false);
@@ -673,7 +679,7 @@ describe("Resizable layout", () => {
           <div style={{ width: SPACE + 2, height: 200 }}>
             <ResizablePanelGroup
               defaultLayout={[25, 75]}
-              onLayout={onLayout}
+              onLayoutCommitted={onLayoutCommitted}
               onLayoutChange={onLayoutChange}
             >
               <ResizablePanel>A</ResizablePanel>
@@ -693,17 +699,17 @@ describe("Resizable layout", () => {
     const warn = vi.spyOn(console, "warn");
     onTestFinished(() => warn.mockRestore());
     await render(<Conditional />);
-    expect(onLayout).not.toHaveBeenCalled();
+    expect(onLayoutCommitted).not.toHaveBeenCalled();
     await userEvent.click(page.getByRole("button", { name: "Toggle" }));
     await expect.poll(() => slots("resizable-panel").length).toBe(3);
-    await expect.poll(() => onLayout.mock.calls.length).toBe(1);
+    await expect.poll(() => onLayoutCommitted.mock.calls.length).toBe(1);
     // The new panel takes its defaultSize; A and B keep their 1:3 ratio in the rest.
-    expect(onLayout.mock.calls[0]?.[0]).toEqual([20, 60, 20]);
+    expect(onLayoutCommitted.mock.calls[0]?.[0]).toEqual([20, 60, 20]);
     expect(onLayoutChange).toHaveBeenLastCalledWith([20, 60, 20]);
     expectSizes([20, 60, 20]);
     await userEvent.click(page.getByRole("button", { name: "Toggle" }));
-    await expect.poll(() => onLayout.mock.calls.length).toBe(2);
-    expect(onLayout.mock.calls[1]?.[0]).toEqual([25, 75]);
+    await expect.poll(() => onLayoutCommitted.mock.calls.length).toBe(2);
+    expect(onLayoutCommitted.mock.calls[1]?.[0]).toEqual([25, 75]);
     // The two-entry defaultLayout was valid at mount: a later third panel is no reason to warn.
     expect(warn).not.toHaveBeenCalled();
   });
@@ -891,7 +897,7 @@ describe("Resizable stories", () => {
     await expect.poll(() => panel(0).hasAttribute("data-collapsed")).toBe(false);
   });
 
-  it("the persisted story stores onLayout and reads it back as defaultLayout", async () => {
+  it("the persisted story stores onLayoutCommitted and reads it back as defaultLayout", async () => {
     const key = "tessera-resizable-persisted";
     localStorage.removeItem(key);
     const first = await render(<StoryView story={stories.Persisted} />);
@@ -946,8 +952,8 @@ describe("Resizable hardening", () => {
   }
 
   it("a second pointer during a drag neither moves the panel nor resets the drag", async () => {
-    const onLayout = vi.fn();
-    await render(<Two onLayout={onLayout} />);
+    const onLayoutCommitted = vi.fn();
+    await render(<Two onLayoutCommitted={onLayoutCommitted} />);
     const x = handle().getBoundingClientRect().left;
     pointer("pointerdown", x);
     pointer("pointermove", x + 30);
@@ -965,29 +971,29 @@ describe("Resizable hardening", () => {
     await expect.poll(() => valueNow()).toBe(70);
     pointer("pointerup", x + 60);
     await expect.poll(() => handle().hasAttribute("data-dragging")).toBe(false);
-    expect(onLayout).toHaveBeenCalledTimes(1);
-    expect(onLayout).toHaveBeenLastCalledWith([70, 30]);
+    expect(onLayoutCommitted).toHaveBeenCalledTimes(1);
+    expect(onLayoutCommitted).toHaveBeenLastCalledWith([70, 30]);
   });
 
   it("a move flushed together with the up commits the moved layout", async () => {
     const onLayoutChange = vi.fn();
-    const onLayout = vi.fn();
-    await render(<Two onLayoutChange={onLayoutChange} onLayout={onLayout} />);
+    const onLayoutCommitted = vi.fn();
+    await render(<Two onLayoutChange={onLayoutChange} onLayoutCommitted={onLayoutCommitted} />);
     const x = handle().getBoundingClientRect().left;
     pointer("pointerdown", x);
     await expect.poll(() => handle().hasAttribute("data-dragging")).toBe(true);
     // No await between the move and the up: React has not re-rendered the move when the up runs.
     pointer("pointermove", x + 30);
     pointer("pointerup", x + 30);
-    await expect.poll(() => onLayout.mock.calls.length).toBe(1);
-    expect(onLayout).toHaveBeenLastCalledWith([60, 40]);
+    await expect.poll(() => onLayoutCommitted.mock.calls.length).toBe(1);
+    expect(onLayoutCommitted).toHaveBeenLastCalledWith([60, 40]);
     expect(onLayoutChange).toHaveBeenLastCalledWith([60, 40]);
     await expect.poll(() => valueNow()).toBe(60);
   });
 
   it("a quick back-and-forth before a render ends where the pointer is", async () => {
-    const onLayout = vi.fn();
-    await render(<Two onLayout={onLayout} />);
+    const onLayoutCommitted = vi.fn();
+    await render(<Two onLayoutCommitted={onLayoutCommitted} />);
     const x = handle().getBoundingClientRect().left;
     pointer("pointerdown", x);
     await expect.poll(() => handle().hasAttribute("data-dragging")).toBe(true);
@@ -998,7 +1004,7 @@ describe("Resizable hardening", () => {
     await expect.poll(() => handle().hasAttribute("data-dragging")).toBe(false);
     expect(valueNow()).toBe(50);
     // The drag ended where it started: nothing to commit.
-    expect(onLayout).not.toHaveBeenCalled();
+    expect(onLayoutCommitted).not.toHaveBeenCalled();
   });
 
   it("a handle unmounting mid-drag clears the group's data-dragging", async () => {
@@ -1078,13 +1084,19 @@ describe("Resizable hardening", () => {
 
   it("a controlled group reports nothing on mount", async () => {
     const onLayoutChange = vi.fn();
-    const onLayout = vi.fn();
-    await render(<Two layout={[30, 70]} onLayoutChange={onLayoutChange} onLayout={onLayout} />);
+    const onLayoutCommitted = vi.fn();
+    await render(
+      <Two
+        layout={[30, 70]}
+        onLayoutChange={onLayoutChange}
+        onLayoutCommitted={onLayoutCommitted}
+      />,
+    );
     await expect.poll(() => handle().getAttribute("aria-controls")).toBe(panel(0).id);
     await nextFrame();
     expect(valueNow()).toBe(30);
     expect(onLayoutChange).not.toHaveBeenCalled();
-    expect(onLayout).not.toHaveBeenCalled();
+    expect(onLayoutCommitted).not.toHaveBeenCalled();
   });
 
   it("a click does not focus a disabled handle", async () => {

@@ -233,9 +233,9 @@ interface GroupContextValue {
   panels: readonly PanelEntry[];
   layout: readonly number[];
   register: (entry: PanelEntry) => () => void;
-  /** Sets a new layout; `committed` also reports `onLayout`. `from` is the collapse reference. */
+  /** Sets a new layout; `committed` also reports `onLayoutCommitted`. `from` is the collapse reference. */
   setLayout: (next: number[], committed: boolean, from: readonly number[]) => void;
-  /** Reports the latest layout through `onLayout` (a drag's end). */
+  /** Reports the latest layout through `onLayoutCommitted` (a drag's end). */
   commitLayout: () => void;
   /**
    * The layout last set, written synchronously by `setLayout`: a pointer move is rendered in a
@@ -326,7 +326,7 @@ export interface ResizablePanelGroupProps extends ComponentProps<"div"> {
   /** The panel sizes in percent, in panel (DOM) order; controlled. */
   layout?: number[];
   /**
-   * The initial sizes when uncontrolled (e.g. what `onLayout` stored). Used when it has one entry
+   * The initial sizes when uncontrolled (e.g. what `onLayoutCommitted` stored). Used when it has one entry
    * per panel summing to 100 (±0.1); otherwise the panels' `defaultSize`s (a dev warning says so).
    */
   defaultLayout?: number[];
@@ -336,7 +336,7 @@ export interface ResizablePanelGroupProps extends ComponentProps<"div"> {
    * The committed layout: a drag's end, each key press, a collapse or restore, a panel mounting or
    * unmounting. The one to persist.
    */
-  onLayout?: (layout: number[]) => void;
+  onLayoutCommitted?: (layout: number[]) => void;
   /** The arrow keys' step in percentage points. Default 10. */
   keyboardStep?: number;
 }
@@ -351,7 +351,7 @@ export function ResizablePanelGroup({
   layout: layoutProp,
   defaultLayout,
   onLayoutChange,
-  onLayout,
+  onLayoutCommitted,
   keyboardStep = 10,
   className,
   children,
@@ -398,7 +398,7 @@ export function ResizablePanelGroup({
     layout = initialLayout(defaultLayout, panels);
   }
 
-  const latest = useLatest({ layout, onLayoutChange, onLayout, controlled });
+  const latest = useLatest({ layout, onLayoutChange, onLayoutCommitted, controlled });
   // The rendered layout, or the one `setLayout` set since (a drag's end reads this one).
   const latestLayout = useLatest<readonly number[]>(layout);
 
@@ -415,7 +415,7 @@ export function ResizablePanelGroup({
     if (!isControlled) setInternal({ ids, sizes: current });
     if (previous && previous.length > 0) {
       latest.current.onLayoutChange?.(current);
-      latest.current.onLayout?.(current);
+      latest.current.onLayoutCommitted?.(current);
     }
   }, [idsKey]);
 
@@ -466,9 +466,9 @@ export function ResizablePanelGroup({
       latestLayout.current = next;
       if (!controlled) setInternal({ ids, sizes: next });
       onLayoutChange?.(next);
-      if (committed) onLayout?.(next);
+      if (committed) onLayoutCommitted?.(next);
     },
-    commitLayout: () => onLayout?.([...latestLayout.current]),
+    commitLayout: () => onLayoutCommitted?.([...latestLayout.current]),
     latestLayout,
     expandedSize: (id) => expanded.current.get(id),
     setDragging,

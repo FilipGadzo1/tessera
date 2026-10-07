@@ -697,7 +697,7 @@ source files automatically (build output + `"use client"` directive checks).
   APG window-splitter handles, `role="separator"` with `aria-valuenow` / `aria-valuemin` /
   `aria-valuemax` (the preceding panel's size and limits) and `aria-controls`. Sizes are percentages
   summing to 100, in panel (DOM) order: `layout` / `defaultLayout` / `onLayoutChange` (every change,
-  also mid-drag) and `onLayout` (committed: drag end, each key, a collapse, a panel mounting or
+  also mid-drag) and `onLayoutCommitted` (drag end, each key, a collapse, a panel mounting or
   unmounting; store it and pass it back as `defaultLayout` to persist). `orientation`
   (`horizontal` / `vertical`), `keyboardStep` (10). Panels take `defaultSize`, `minSize`, `maxSize`,
   `collapsible` / `collapsedSize` and `onCollapsedChange`; a panel collapsed to 0 is `inert`. A

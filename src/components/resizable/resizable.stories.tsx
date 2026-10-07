@@ -158,7 +158,7 @@ function readLayout(): number[] | undefined {
 }
 
 /**
- * Persistence is the consumer's: store what `onLayout` reports (drag end, each key, a collapse)
+ * Persistence is the consumer's: store what `onLayoutCommitted` reports (drag end, each key, a collapse)
  * and pass it back as `defaultLayout`. Resize, then reload the story. Storage can throw (private
  * windows, blocked site data), so both reads and writes are guarded.
  */
@@ -169,7 +169,7 @@ export const Persisted: Story = {
       <Frame>
         <ResizablePanelGroup
           defaultLayout={defaultLayout}
-          onLayout={(layout) => {
+          onLayoutCommitted={(layout) => {
             try {
               localStorage.setItem(STORAGE_KEY, JSON.stringify(layout));
             } catch {
