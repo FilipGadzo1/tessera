@@ -721,6 +721,7 @@ export {
   rgbToHsv,
   wcagContrast,
 } from "./lib/color";
+export type { ShortcutKey } from "./lib/modifier-key";
 export { type ToneColor, toneColors } from "./lib/tone";
-export { useElementDirection } from "./lib/use-element-direction";
+export { type ElementDirection, useElementDirection } from "./lib/use-element-direction";
 export { type ModifierKeyLabel, useModifierKeyLabel } from "./lib/use-modifier-key-label";

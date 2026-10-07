@@ -39,6 +39,9 @@ describe("isApplePlatform", () => {
     ["Win32", "macOS", true],
     ["MacIntel", "Windows", false],
     ["MacIntel", "Linux", false],
+    // An empty `userAgentData.platform` (some Chromium contexts) falls back to `navigator.platform`.
+    ["MacIntel", "", true],
+    ["Win32", "", false],
   ] as const)("platform %s, userAgentData %s → %s", (platform, userAgentPlatform, expected) => {
     expect(isApplePlatform(fakeNavigator(platform, userAgentPlatform))).toBe(expected);
   });
@@ -108,6 +111,16 @@ describe("matchesShortcut", () => {
     expect(matchesShortcut(keydown("k", { metaKey: true }), parseShortcut("cmd+k"), false)).toBe(
       true,
     );
+  });
+
+  it("is false, not a throw, for a keydown with no key (Chrome's autofill keydown)", () => {
+    const parsed = parseShortcut("mod+k");
+    const event = keydown("k", { ctrlKey: true });
+    Object.defineProperty(event, "key", { value: undefined });
+    expect(() => matchesShortcut(event, parsed, false)).not.toThrow();
+    expect(matchesShortcut(event, parsed, false)).toBe(false);
+    const bare = new Event("keydown") as KeyboardEvent;
+    expect(matchesShortcut(bare, parseShortcut("k"), false)).toBe(false);
   });
 
   it("falls back to the physical key when Alt changes the character", () => {

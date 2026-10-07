@@ -42,8 +42,9 @@ export function isApplePlatform(
   nav: Navigator | undefined = typeof navigator === "undefined" ? undefined : navigator,
 ): boolean {
   if (!nav) return false;
+  // `||`, not `??`: some Chromium contexts report an empty `userAgentData.platform`.
   const platform =
-    (nav as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform ??
+    (nav as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform ||
     nav.platform;
   return /mac|iphone|ipad|ipod/i.test(platform);
 }
@@ -58,6 +59,8 @@ export function matchesShortcut(
   const meta = shortcut.meta || (shortcut.mod && apple);
   if (event.ctrlKey !== ctrl || event.metaKey !== meta) return false;
   if (event.shiftKey !== shortcut.shift || event.altKey !== shortcut.alt) return false;
+  // Chrome's autofill dispatches a `keydown` with no `key`.
+  if (typeof event.key !== "string") return false;
   const key = event.key.toLowerCase();
   // With Alt (Option) held, `key` can be another character; fall back to the physical key.
   return key === shortcut.key || event.code.toLowerCase() === `key${shortcut.key}`;
