@@ -3,7 +3,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { emulateForcedColors, resetEmulatedMedia, systemColor } from "../../../test/emulation";
-import { auditOpenOverlay, inlineOffsets, waitForPopupSettled } from "../../../test/overlay";
+import {
+  auditOpenOverlay,
+  inlineOffsets,
+  textRect,
+  waitForPopupSettled,
+} from "../../../test/overlay";
 import { restorePlatform, stubMac, stubWindows } from "../../../test/platform";
 import { Button, buttonVariants } from "../button";
 import {
@@ -597,7 +602,29 @@ describe("Menu", () => {
       "-mx-1 my-1 h-px bg-border forced-colors:bg-[CanvasText]",
     );
     expect(slot("menu-shortcut").tagName).toBe("SPAN");
-    expect(slot("menu-shortcut").className).toBe("ms-auto text-xs text-muted-foreground");
+    expect(slot("menu-shortcut").className).toBe("ms-auto ps-4 text-xs text-muted-foreground");
+  });
+
+  it("keeps a 24px gap between an item's text and its shortcut when the text sets the menu's width", async () => {
+    await render(
+      <div className="p-16">
+        <Menu>
+          <MenuTrigger render={<Button variant="outline" size="sm" />}>…</MenuTrigger>
+          <MenuContent>
+            <MenuItem>
+              Duplicate
+              <MenuShortcut>Ctrl+D</MenuShortcut>
+            </MenuItem>
+          </MenuContent>
+        </Menu>
+      </div>,
+    );
+    const popup = await openByClick("…");
+    const duplicate = item("Duplicate").element();
+    // The flex gap (8px) plus the shortcut's `ps-4` (16px).
+    const gap = textRect(duplicate, "Ctrl+D").left - textRect(duplicate, "Duplicate").right;
+    expect(Math.round(gap)).toBe(24);
+    expect(popup.getBoundingClientRect().width).toBeLessThan(200);
   });
 
   it("sets data-slots on checkbox, radio and sub-trigger items", async () => {

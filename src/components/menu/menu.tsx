@@ -39,7 +39,8 @@ const menuSubTriggerBase = "data-popup-open:bg-accent";
 const menuSubTriggerChevron = "ms-auto";
 const menuSeparatorBase = "-mx-1 my-1 h-px bg-border forced-colors:bg-[CanvasText]";
 const menuGroupLabelBase = "px-2 py-1.5 text-xs font-medium text-muted-foreground";
-const menuShortcutBase = "ms-auto text-xs text-muted-foreground";
+/** `ps-4` keeps a gap before the hint when the item's text fills the menu's width. */
+const menuShortcutBase = "ms-auto ps-4 text-xs text-muted-foreground";
 
 export type MenuProps = BaseMenu.Root.Props;
 

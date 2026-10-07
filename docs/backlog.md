@@ -367,8 +367,6 @@ DateRangeField test and the Tree position compare.
 - Radio (Phase B, found in Task 5): Base UI keeps a disabled RadioGroup's roving radio focusable
   (`aria-disabled`), yet Tessera's `Radio` still fades with `data-disabled:opacity-50`. It should follow the
   focusable-disabled convention (muted, GrayText in forced colors, opacity 1), as Rating does.
-- Menu (found in Task 1): in the Menu `Default` story there is almost no gap between "Duplicate" and its
-  "Ctrl+D" hint (cosmetic; the platform-aware hints are wider than the old "⌘D").
 - Stepper (Task 6): the Stepper reads each item's `completed` / `error` from its direct `StepperItem`
   children, so an item wrapped in another component cannot extend the reachable steps (a dev warning names
   it; documented in the README). A context registration would lift the limit at the cost of the server
