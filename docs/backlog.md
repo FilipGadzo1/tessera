@@ -1,8 +1,8 @@
 # Tessera backlog
 
 Open follow-ups from the foundation, Phase A (2026-09-23), Phase B, Phase C, Phase D (2026-09-24),
-Phase E (2026-09-25), Phase F and Phase G (2026-09-26), Phase H (2026-09-30), Phase I (2026-10-01)
-and Phase J (2026-10-07) reviews.
+Phase E (2026-09-25), Phase F and Phase G (2026-09-26), Phase H (2026-09-30), Phase I (2026-10-01),
+Phase J (2026-10-07) and Phase K (2026-10-08) reviews.
 None block current use.
 
 ## Components
@@ -400,6 +400,44 @@ DateRangeField test and the Tree position compare.
   is flush with the viewport's right edge overflows it by 1px in an RTL page (`scrollWidth` 1281 at 1280:
   DataTable's sort hint and status, DataTablePagination's status). Unpadded full-width RTL layouts get a 1px
   horizontal scroll. Not specific to DataTable; a fix belongs in a shared `sr-only` variant (e.g. `start-0`).
+- TimeField (spec §2): the segment row follows the locale's script direction (`getLocaleDirection`), while
+  DateField's segments follow the page direction; the two differ in an RTL page with an LTR locale. A ruling of
+  the Phase K spec, recorded here so the two are not "aligned" by accident.
+- TimeField: a number still waiting for its next digit (minute "4" on the way to "45") is reported once the
+  segment advances, on blur or on Enter, so the Form value can lag one keystroke behind the screen until then
+  (as DateField's year).
+- TimePicker: its own suite runs axe on a 5-slot list (`min` 09:00, `max` 11:00); the Events admin test covers
+  the scrolled 25-slot list.
+- TagsInput:
+  - The "N tags added" announcement after a multi-tag paste is fixed English; `addedLabel` covers only the
+    single-tag case (it needs an `addedCountLabel`).
+  - Read-only chips use the same `bg-muted` as the read-only root (`data-readonly:bg-muted`), so they do not
+    stand out from it.
+  - A controlled parent that refuses a change leaves the queued follow-up (clear the input, move focus)
+    pending until the next external change of `value`.
+- DataTable:
+  - `DataTablePagination` has no props for Previous / Next: `PaginationPrevious` / `PaginationNext` take
+    `children` (the visible text) and `aria-label`, but the pager does not pass them through, so both stay
+    English (small additive props).
+  - A controlled `sorting` or `pagination` that refuses a change leaves the pending-announcement flag set (the
+    sort button's in `DataTable`, the pager's in `DataTablePagination`) until the next change of that state,
+    which is then announced.
+  - A stored page index stays out of range after a clamp (the engine clamps what it reports, not what it
+    stores), so the table jumps back to it if the data grows again.
+  - In forced colors a selected row's outline buttons have a transparent background on Highlight (readable
+    through the system backplate); a filled button would look cleaner.
+- FileUpload: the dropzone's `focusVisible: false` focus option (after a click or drop, to keep the mirrored ring
+  off) is newer API: a browser without it may show the ring after a pointer click. Server-rendered sizes use the
+  runtime's default locale unless `locale` is passed.
+- FileUpload: a browser without the `DataTransfer` constructor (older Safari) cannot write the list back to
+  `input.files`, so a native submit carries only the last native pick (a `Form`'s `onFormSubmit` still reports
+  the full `File[]`).
+- Popover: `PopoverContent.collisionAvoidance` is public API (tested in `popover.test.tsx`). The editable
+  DatePicker's calendar popup keeps the default placement, so it can open beside the field when there is no room
+  above or below (TimePicker passes `fallbackAxisSide: "none"`).
+- Manual checks pending for the owner: NVDA / VoiceOver on the TimeField segments, the TagsInput announcements,
+  the FileUpload drop and keyboard flow and the DataTable sort and selection announcements; the mobile numeric
+  keyboard on TimeField.
 
 ## Next components
 Follow the phases in the design-system spec §6
@@ -412,7 +450,14 @@ Autocomplete, Menubar, NavigationMenu); Phase H is done (DateField, editable Dat
 participation, Sidebar, Dashboard example); Phase I is done (DateRangeField, editable DateRangePicker,
 Command, Tree, Carousel, Files example). Phase J's components are done (Kbd and shortcut labels, colour
 helpers, useElementDirection, ColorPicker, ColorPickerPopover, Rating, Stepper, Resizable, Theme Studio
-example), and so is its last task, the RTL direction fix for the older Base UI composites. Next is Phase K:
-candidates are data-grid pieces (column visibility, sorting and multi-sort, row selection, pagination
-state via a headless `useDataTable`), a Calendar events view, TimeField / TimePicker, a FileUpload
-dropzone and a TagsInput.
+example), and so is its last task, the RTL direction fix for the older Base UI composites. Phase K is done
+(the time helpers, TimeField, TimePicker, TagsInput, FileUpload, the data-table engine `useDataTable` with
+DataTable, DataTableColumnsMenu and DataTablePagination, and the Events admin example). Next is Phase L;
+candidates:
+- a Calendar events view (month and week agenda; deferred from Phase K);
+- the DateRangePicker `onValueChange` contract decision (deferred from Phase K; see the Phase I notes);
+- DataTable additions: row range selection, column resizing and pinning, an opt-in APG grid mode,
+  virtualised bodies;
+- TimePicker hour / minute columns as a `variant`;
+- a FileUpload paste target and folder upload;
+- the carried backlog above.

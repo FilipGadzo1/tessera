@@ -758,6 +758,12 @@ source files automatically (build output + `"use client"` directive checks).
   `dir` on it or any ancestor, for feeding Base UI's `DirectionProvider`. `"ltr"` on the server and in the first
   client render; it is read in a layout effect on mount, then again only when a `dir` attribute changes
   (one shared MutationObserver, no style read per render). Client hook)
+- [x] Time helpers and getLocaleDirection (`parseTime` reads a strict `"HH:mm"` / `"HH:mm:ss"` into
+  `{ hour, minute, second }`, anything else is `null`; `formatTimeValue`, `timeToSeconds` /
+  `secondsToTimeValue`, `compareTime`, `resolveHourCycle`, `formatTime(value, locale, { hourCycle,
+  granularity })` in the locale's format, `timeStepMismatch` (the native step grid counted from `min`) and
+  `getTimeSlots` (the TimePicker's list). `getLocaleDirection(locale)` is the script direction of a
+  locale from `Intl` alone, so it is safe to call while server-rendering. Pure and server-safe)
 - [x] ColorPicker, ColorArea, ColorHueSlider, ColorAlphaSlider, ColorInput, ColorFormatToggle, ColorEyeDropper,
   ColorSwatches, ColorSwatch (an inline colour picker, `role="group"` named "Color picker" or by a surrounding
   `Field`'s label. With no children it renders a saturation/brightness area, a hue slider, an alpha slider with
@@ -844,7 +850,9 @@ for the date controls, and the Sidebar app shell) and Phase I (DateRangeField an
 DateRangePicker, the Command palette, Tree and Carousel) are complete. Phase J's components (Kbd and
 platform-aware shortcut labels, the colour helpers, useElementDirection, ColorPicker and
 ColorPickerPopover, Rating, Stepper and Resizable), its Theme Studio example and the RTL direction fix
-for the older Base UI composites are complete.
+for the older Base UI composites are complete. Phase K is complete: the time helpers, TimeField and
+TimePicker, TagsInput, FileUpload, the data-table engine (`useDataTable`) with DataTable,
+DataTableColumnsMenu and DataTablePagination, and the Events admin example.
 
 RTL: the DOM `dir` (on the component's element or any ancestor) is the source of truth. Every Tessera
 component on a direction-aware Base UI part feeds it to Base UI's `DirectionProvider` (keys, slider
@@ -958,16 +966,27 @@ Ctrl/⌘+S saves ("Theme saved" in a status line until the next change) and Ctrl
 panel; both work while typing, call `preventDefault`, and show `aria-hidden` `KbdShortcut` hints with
 `aria-keyshortcuts` on the Button and the Switch.
 
+The Storybook story **Tessera/Examples/Events admin** (`src/docs/examples/events-admin-page.tsx`)
+composes the Phase K components in an events admin page: a `DataTable` (multiple selection, sorted by
+date then start, page size 5 with a size Select) with a search `Input`, a `DataTableColumnsMenu` (the
+Files column starts hidden) and a "Delete selected (n)" Button that reports "3 events deleted" in a
+status line; a right `Drawer` holds a `Form` for a new or edited event with a title `Input`, an
+editable `DatePicker`, a `TimePicker` (08:00–20:00 in 15-minute steps, half-hour slots), a `TagsInput`
+(at most 5 lowercase tags) and a `FileUpload` (images and PDFs up to 5 MB, 3 files). Save runs an
+injected `uploadFile` per attachment with progress and an error state, then adds or updates the row and
+reports "Event saved"; a failed upload keeps the drawer open.
+
 ## Roadmap
 
-Phase J is complete, including the RTL direction fix for the older Base UI composites. Next is
-Phase K; candidates:
+Phase K is complete. Next is Phase L; candidates:
 
-- data-grid pieces: column visibility, sorting and multi-sort state, row selection and pagination
-  state (a headless `useDataTable` over Table);
-- a Calendar events view (month and week agenda);
-- TimeField / TimePicker (the date family's missing half);
-- a FileUpload dropzone;
-- a TagsInput.
+- a Calendar events view (month and week agenda; deferred from Phase K);
+- the DateRangePicker `onValueChange` contract decision (complete ranges from the button picker, partial
+  pairs from the editable one; deferred from Phase K);
+- DataTable additions: row range selection, column resizing and pinning, an opt-in APG grid mode,
+  virtualised bodies;
+- TimePicker hour / minute columns as a `variant`;
+- a FileUpload paste target and folder upload;
+- the carried items in `docs/backlog.md`.
 
 Later: visual regression · React Compiler on output · publish to npm (`@tessera/ui` is free).
