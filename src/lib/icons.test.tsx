@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import {
   AlertIcon,
+  ArrowDownIcon,
+  ArrowUpDownIcon,
+  ArrowUpIcon,
   CalendarIcon,
   CheckIcon,
   ChevronDownIcon,
@@ -10,6 +13,7 @@ import {
   ChevronUpIcon,
   ClockIcon,
   CloseIcon,
+  Columns3Icon,
   DotIcon,
   EllipsisIcon,
   FileIcon,
@@ -28,6 +32,9 @@ import {
 
 const icons = {
   AlertIcon,
+  ArrowDownIcon,
+  ArrowUpDownIcon,
+  ArrowUpIcon,
   CalendarIcon,
   CheckIcon,
   ChevronDownIcon,
@@ -36,6 +43,7 @@ const icons = {
   ChevronUpIcon,
   ClockIcon,
   CloseIcon,
+  Columns3Icon,
   DotIcon,
   EllipsisIcon,
   FileIcon,

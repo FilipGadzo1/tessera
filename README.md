@@ -288,7 +288,8 @@ source files automatically (build output + `"use client"` directive checks).
   client-side paging) also gets `tabIndex={-1}` and keeps focus if it disables while focused.
   `PaginationLink` takes the same server-safe `render` escape hatch as `BreadcrumbLink`.
   `PaginationPrevious` / `PaginationNext` take `children` (visible text, default "Previous" /
-  "Next") and `aria-label` (default "Go to previous page" / "Go to next page") to localise.
+  "Next") and `aria-label` (default "Go to previous page" / "Go to next page") to localise; their
+  chevrons point the reading way under `dir="rtl"` (`rtl:`, so any RTL ancestor flips them).
   `getPaginationRange({ page, pageCount, siblings, boundaries })` is a pure helper that collapses a
   long run of pages into `1 … 4 5 [6] 7 8 … 20` (never collapsing a single page — it shows that page
   instead, since hiding it saves no space). Server-safe)
@@ -301,7 +302,9 @@ source files automatically (build output + `"use client"` directive checks).
   (in forced colors a selected row is filled with `Highlight` / `HighlightText`).
   `TableSortButton` is a presentational `<button>` for a sortable column header — no hooks, `onClick`
   and the current `direction` are the caller's, and it swaps its trailing icon (arrow-up / arrow-down
-  / arrow-up-down) to match. Server-safe)
+  / arrow-up-down) to match. Headers are `text-start` and the sort button hangs into the cell's start
+  padding (`-ms-2`), so both follow the direction; an end-aligned column passes `ms-0 -me-2`. Each
+  part takes a `data-slot` that replaces its default, for components built on them. Server-safe)
 - [x] Slider, SliderLabel, SliderValue (Root → Control → Track → Indicator + one Thumb per value —
   a plain number or, for a range, a `number[]` with one Thumb each. `color` (tone) and `size`
   (`sm` | `md`, default `md`) match Progress; `SliderLabel`/`SliderValue` render in a row above the
@@ -644,6 +647,29 @@ source files automatically (build output + `"use client"` directive checks).
   `rejectedLabel` / `rejectionMessage` for the strings. The helpers are exported too:
   `matchesAccept`, `formatFileSize` (SI units in the locale's words), `validateFiles` and
   `getFileKey`. Client component)
+- [x] DataTable, DataTableColumnsMenu, DataTablePagination, useDataTable (a headless engine and the
+  parts that render it; a table, not an APG grid, so its controls are ordinary Tab stops.
+  `useDataTable({ data, columns, getRowId })` holds sorting, paging, row selection (ids) and column
+  visibility, each controlled (`sorting` / `onSortingChange`, …) or uncontrolled (`default…`); with
+  `manual` and `rowCount` the data is the server's sorted page. A column is `{ id, header, label,
+  accessor, cell, sortable, compare, hideable, align, rowHeader, headerClassName, cellClassName }`.
+  `DataTable` renders it: a click on a header sorts ascending → descending → off, and Shift+click,
+  Shift+Enter or Shift+Space adds the column to the sort (up to `maxMultiSort`, 3); `aria-sort` sits
+  on the primary column only, each sort button says its direction and rank ("sorted ascending, 2 of
+  2") and every sort is announced in a polite status region. Sorting returns to the first page.
+  `selectionMode="multiple"` adds row checkboxes and a header checkbox for the current page
+  (indeterminate when part of it is selected); `"single"` adds native radios sharing one name (one
+  Tab stop, the arrows move the choice; clear it with `clearSelection()`). `isRowSelectable`
+  disables rows, a selected row has `data-state="selected"`, and `empty` / `loading` (skeleton rows,
+  `aria-busy`; the header and pager stay usable) cover the other states. `DataTableColumnsMenu` is a
+  "Columns" Menu of check items (the last visible column cannot be hidden); `DataTablePagination`
+  shows "Showing 1–5 of 12", an optional `pageSizeOptions` Select and a pager of `<button>`s whose
+  Previous / Next leave the Tab order at the ends but keep focus, and announces only its own page
+  changes. Every string has an English default and a prop (`selectAllLabel`, `selectRowLabel`,
+  `sortStateLabel`, `sortAnnouncement`, `multiSortHint`, `rangeLabel`, `pageLabel`, …). The engine's
+  pure helpers (`nextSorting`, `sortRows`, `paginateRows`, `getRowRange`, …) are exported for a
+  server that sorts and pages itself. Pass `locale` for server rendering: the sort collator uses the
+  runtime's default otherwise. Client component)
 - [x] Sidebar, SidebarProvider, SidebarTrigger, SidebarRail, SidebarInset, SidebarHeader, SidebarFooter,
   SidebarContent, SidebarSeparator, SidebarGroup, SidebarGroupLabel, SidebarGroupAction, SidebarGroupContent,
   SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuAction, SidebarMenuBadge, SidebarMenuSub,

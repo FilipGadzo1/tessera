@@ -24,6 +24,14 @@ describe("Checkbox", () => {
     await expect.element(checkbox).toHaveAttribute("aria-checked", "false");
   });
 
+  // A component built on Checkbox (DataTable's selection checkboxes) names its own part.
+  it("a passed data-slot replaces the default", async () => {
+    const screen = await render(<Checkbox aria-label="Select row" data-slot="my-checkbox" />);
+    await expect
+      .element(screen.getByRole("checkbox", { name: "Select row" }))
+      .toHaveAttribute("data-slot", "my-checkbox");
+  });
+
   it("toggles aria-checked and data-checked on click and reports true to onCheckedChange", async () => {
     const onCheckedChange = vi.fn();
     const screen = await render(

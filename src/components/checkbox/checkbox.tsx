@@ -5,7 +5,10 @@ import { cn } from "../../lib/cn";
 import { mergeClassName } from "../../lib/merge-class-name";
 
 /** Base UI Checkbox.Root props. Tessera renders the indicator, so `children` is ignored. */
-export type CheckboxProps = Omit<BaseCheckbox.Root.Props, "children">;
+export interface CheckboxProps extends Omit<BaseCheckbox.Root.Props, "children"> {
+  /** A component built on Checkbox names its own part. @default "checkbox" */
+  "data-slot"?: string;
+}
 
 const checkboxClasses = cn(
   "inline-flex shrink-0 items-center justify-center",
@@ -56,11 +59,15 @@ function DashIcon() {
 }
 
 /** A checkbox with checked and indeterminate (dash) states. Pair with Label or use inside a Field. */
-export function Checkbox({ className, ...props }: CheckboxProps) {
+export function Checkbox({
+  className,
+  "data-slot": dataSlot = "checkbox",
+  ...props
+}: CheckboxProps) {
   return (
     <BaseCheckbox.Root
       {...props}
-      data-slot="checkbox"
+      data-slot={dataSlot}
       className={mergeClassName(checkboxClasses, className)}
     >
       <BaseCheckbox.Indicator

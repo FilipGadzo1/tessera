@@ -110,6 +110,10 @@ export interface DataTableInstance<TData> {
   /** The column's direction and 1-based priority, or `null`s when it is not sorted. */
   getSort: (id: string) => { direction: SortDirection | null; priority: number | null };
   primarySortId: string | null;
+  /** Whether `toggleSort(id)` acts: `sortable`, else the column has an `accessor` or `compare`. */
+  canSort: (id: string) => boolean;
+  /** Whether Shift (`multi`) adds a column to the sort. */
+  enableMultiSort: boolean;
 
   selectionMode: SelectionMode;
   toggleRow: (id: string) => void;
@@ -328,6 +332,8 @@ export function useDataTable<TData>(options: UseDataTableOptions<TData>): DataTa
       return { direction: entry.desc ? "descending" : "ascending", priority: index + 1 };
     },
     primarySortId: sorting[0]?.id ?? null,
+    canSort: (id) => canSort(columns.find((column) => column.id === id)),
+    enableMultiSort,
 
     selectionMode,
     toggleRow: (id) => {

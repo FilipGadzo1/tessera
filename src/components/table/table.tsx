@@ -1,5 +1,6 @@
 import type { ComponentProps } from "react";
 import { cn } from "../../lib/cn";
+import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from "../../lib/icons";
 
 export interface TableProps extends ComponentProps<"table"> {
   /** className for the scroll container wrapping the `<table>`. */
@@ -141,7 +142,7 @@ export function TableHead({
       aria-sort={sort}
       data-slot={dataSlot}
       className={cn(
-        "h-10 px-3 text-left align-middle font-medium text-muted-foreground whitespace-nowrap",
+        "h-10 px-3 text-start align-middle font-medium text-muted-foreground whitespace-nowrap",
         className,
       )}
     />
@@ -177,62 +178,6 @@ export function TableCaption({ className, ...props }: TableCaptionProps) {
   );
 }
 
-function ArrowUpIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="size-4"
-    >
-      <path d="M12 19V5" />
-      <path d="m5 12 7-7 7 7" />
-    </svg>
-  );
-}
-
-function ArrowDownIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="size-4"
-    >
-      <path d="M12 5v14" />
-      <path d="m19 12-7 7-7-7" />
-    </svg>
-  );
-}
-
-function ArrowUpDownIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="size-4"
-    >
-      <path d="m21 16-4 4-4-4" />
-      <path d="M17 20V4" />
-      <path d="m3 8 4-4 4 4" />
-      <path d="M7 4v16" />
-    </svg>
-  );
-}
-
 export interface TableSortButtonProps extends ComponentProps<"button"> {
   /** Picks the trailing icon (arrow-up / arrow-down / arrow-up-down). @default "none" */
   direction?: "ascending" | "descending" | "none";
@@ -240,8 +185,13 @@ export interface TableSortButtonProps extends ComponentProps<"button"> {
   "data-slot"?: string;
 }
 
+/**
+ * `-ms-2` hangs the button's padding into the cell's start padding, so its label lines up with
+ * the column's other headers in either direction. An end-aligned column resets it with
+ * `ms-0 -me-2` (tailwind-merge does not treat `-ms-2` and `-me-2` as conflicting).
+ */
 const tableSortButtonClasses =
-  "-ml-2 inline-flex h-8 cursor-pointer items-center gap-1 rounded-md px-2 hover:bg-muted hover:text-foreground outline-none outline-offset-2 outline-ring focus-visible:outline-2 focus-visible:outline-solid";
+  "-ms-2 inline-flex h-8 cursor-pointer items-center gap-1 rounded-md px-2 hover:bg-muted hover:text-foreground outline-none outline-offset-2 outline-ring focus-visible:outline-2 focus-visible:outline-solid forced-colors:focus-visible:outline-[Highlight] transition-[color,background-color,outline-color] duration-150 ease-out motion-reduce:transition-none";
 
 /**
  * A button for a `TableHead`'s sortable column label. No hooks: `onClick` and the current
@@ -264,11 +214,11 @@ export function TableSortButton({
     >
       {children}
       {direction === "ascending" ? (
-        <ArrowUpIcon />
+        <ArrowUpIcon className="size-4" />
       ) : direction === "descending" ? (
-        <ArrowDownIcon />
+        <ArrowDownIcon className="size-4" />
       ) : (
-        <ArrowUpDownIcon />
+        <ArrowUpDownIcon className="size-4" />
       )}
     </button>
   );

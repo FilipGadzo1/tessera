@@ -137,7 +137,7 @@ export function PaginationPrevious({
       size="md"
       className={cn("gap-1.5", className)}
     >
-      <ChevronLeftIcon className="size-4" />
+      <ChevronLeftIcon className="size-4 rtl:-scale-x-100" />
       <span className="hidden sm:inline">{children}</span>
     </PaginationLink>
   );
@@ -165,7 +165,7 @@ export function PaginationNext({
       className={cn("gap-1.5", className)}
     >
       <span className="hidden sm:inline">{children}</span>
-      <ChevronRightIcon className="size-4" />
+      <ChevronRightIcon className="size-4 rtl:-scale-x-100" />
     </PaginationLink>
   );
 }

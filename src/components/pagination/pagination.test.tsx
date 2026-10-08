@@ -218,6 +218,23 @@ describe("Pagination", () => {
     );
   });
 
+  // Spec Phase K §7: the chevrons point along the reading direction (a CSS variant: these parts
+  // are server-safe).
+  it.each([
+    ["ltr", "none"],
+    ["rtl", "-1 1"],
+  ] as const)("%s: the Previous / Next chevrons' scale is %s", async (dir, scale) => {
+    const screen = await render(
+      <div dir={dir}>
+        <Pager page={2} />
+      </div>,
+    );
+    for (const slot of ["pagination-previous", "pagination-next"]) {
+      const icon = screen.container.querySelector(`[data-slot="${slot}"] svg`) as SVGElement;
+      expect(getComputedStyle(icon).scale).toBe(scale);
+    }
+  });
+
   it("hides the ellipsis from assistive technology with visible sr text", async () => {
     const screen = await render(<Pager page={1} />);
     const ellipsis = screen.container.querySelector('[data-slot="pagination-ellipsis"]');

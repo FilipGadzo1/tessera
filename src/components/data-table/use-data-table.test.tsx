@@ -141,6 +141,29 @@ describe("useDataTable: sorting", () => {
     expect(result.current.state.sorting).toEqual([{ id: "attendees", desc: false }]);
   });
 
+  // *Amended in Task 7*: DataTable renders a sort button only where toggleSort acts, and the
+  // multi-sort hint only when Shift adds a column.
+  it("canSort follows toggleSort's rule; enableMultiSort is on the instance", async () => {
+    const { result } = await setup({
+      columns: [
+        ...columns,
+        { id: "server", header: "Server", sortable: true },
+        { id: "fixed", header: "Fixed", accessor: (row) => row.id, sortable: false },
+        { id: "custom", header: "Custom", compare: () => 0 },
+      ],
+    });
+    const table = result.current;
+    expect(table.canSort("title")).toBe(true);
+    expect(table.canSort("actions")).toBe(false);
+    expect(table.canSort("server")).toBe(true);
+    expect(table.canSort("fixed")).toBe(false);
+    expect(table.canSort("custom")).toBe(true);
+    expect(table.canSort("missing")).toBe(false);
+    expect(table.enableMultiSort).toBe(true);
+    const { result: single } = await setup({ enableMultiSort: false });
+    expect(single.current.enableMultiSort).toBe(false);
+  });
+
   it("controlled: the parent's sorting shows; toggleSort only reports", async () => {
     const onSortingChange = vi.fn();
     const sorting: SortingState = [{ id: "attendees", desc: true }];

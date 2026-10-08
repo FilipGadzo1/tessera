@@ -2,7 +2,12 @@ import axe from "axe-core";
 import { afterEach, describe, expect, it } from "vitest";
 import { userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
-import { emulateForcedColors, resetEmulatedMedia, systemColor } from "../../../test/emulation";
+import {
+  emulateForcedColors,
+  emulateReducedMotion,
+  resetEmulatedMedia,
+  systemColor,
+} from "../../../test/emulation";
 import {
   Table,
   TableBody,
@@ -214,6 +219,65 @@ describe("Table", () => {
     const style = getComputedStyle(button);
     expect(style.outlineStyle).toBe("solid");
     expect(Number.parseFloat(style.outlineWidth)).toBeGreaterThanOrEqual(1);
+  });
+
+  // Spec Phase K §7: headers and the sort button's hang follow the inline direction.
+  it.each(["ltr", "rtl"] as const)(
+    "%s: a header starts at the inline start and the sort button hangs into its start padding",
+    async (dir) => {
+      const screen = await render(
+        <div dir={dir} style={{ width: 400 }}>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Invoice</TableHead>
+                <TableHead>
+                  <TableSortButton>Total</TableSortButton>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+          </Table>
+        </div>,
+      );
+      const [plain, sorted] = screen.container.querySelectorAll<HTMLElement>(
+        '[data-slot="table-head"]',
+      );
+      if (!plain || !sorted) throw new Error("heads missing");
+      const button = sorted.querySelector("button") as HTMLElement;
+      const box = plain.getBoundingClientRect();
+      const text = plain.firstChild as Text;
+      const range = document.createRange();
+      range.selectNodeContents(text);
+      const textBox = range.getBoundingClientRect();
+      const sortedBox = sorted.getBoundingClientRect();
+      const buttonBox = button.getBoundingClientRect();
+      if (dir === "ltr") {
+        expect(textBox.left - box.left).toBeCloseTo(12, 0);
+        expect(buttonBox.left - sortedBox.left).toBeCloseTo(4, 0);
+      } else {
+        expect(box.right - textBox.right).toBeCloseTo(12, 0);
+        expect(sortedBox.right - buttonBox.right).toBeCloseTo(4, 0);
+      }
+    },
+  );
+
+  it("forced colors: the sort button's focus ring is Highlight", async () => {
+    await emulateForcedColors(true);
+    const screen = await render(<TableSortButton>Total</TableSortButton>);
+    const button = screen.getByRole("button", { name: /Total/ }).element();
+    await userEvent.tab();
+    expect(document.activeElement).toBe(button);
+    expect(getComputedStyle(button).outlineColor).toBe(systemColor("Highlight"));
+  });
+
+  it("reduced motion: the sort button has no transition", async () => {
+    const screen = await render(<TableSortButton>Total</TableSortButton>);
+    const button = screen.getByRole("button", { name: /Total/ }).element();
+    expect(getComputedStyle(button).transitionProperty).toBe(
+      "color, background-color, outline-color",
+    );
+    await emulateReducedMotion(true);
+    expect(getComputedStyle(button).transitionProperty).toBe("none");
   });
 
   // A bare `border-t` takes `currentColor` (Tessera sets no default border colour), which would

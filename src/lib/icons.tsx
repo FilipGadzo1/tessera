@@ -223,6 +223,49 @@ export function UploadIcon(props: ComponentProps<"svg">) {
   );
 }
 
+/** A sorted-ascending column (TableSortButton). */
+export function ArrowUpIcon(props: ComponentProps<"svg">) {
+  return (
+    <StrokeIcon {...props}>
+      <path d="M12 19V5" />
+      <path d="m5 12 7-7 7 7" />
+    </StrokeIcon>
+  );
+}
+
+/** A sorted-descending column (TableSortButton). */
+export function ArrowDownIcon(props: ComponentProps<"svg">) {
+  return (
+    <StrokeIcon {...props}>
+      <path d="M12 5v14" />
+      <path d="m19 12-7 7-7-7" />
+    </StrokeIcon>
+  );
+}
+
+/** A sortable column that is not sorted (TableSortButton). */
+export function ArrowUpDownIcon(props: ComponentProps<"svg">) {
+  return (
+    <StrokeIcon {...props}>
+      <path d="m21 16-4 4-4-4" />
+      <path d="M17 20V4" />
+      <path d="m3 8 4-4 4 4" />
+      <path d="M7 4v16" />
+    </StrokeIcon>
+  );
+}
+
+/** Three columns: the DataTable columns menu. */
+export function Columns3Icon(props: ComponentProps<"svg">) {
+  return (
+    <StrokeIcon {...props}>
+      <rect width="18" height="18" x="3" y="3" rx="2" />
+      <path d="M9 3v18" />
+      <path d="M15 3v18" />
+    </StrokeIcon>
+  );
+}
+
 export function EllipsisIcon(props: ComponentProps<"svg">) {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor" {...props}>

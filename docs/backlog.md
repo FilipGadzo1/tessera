@@ -392,6 +392,11 @@ DateRangeField test and the Tree position compare.
   - Floating UI does not observe `dir` changes: an open popup whose trigger's ancestor `dir` flips keeps its
     old alignment until the next `autoUpdate`.
 
+### Phase K notes
+- Pagination (Task 7): `PaginationPrevious` / `PaginationNext` flip their chevrons with `rtl:-scale-x-100`
+  (they are server-safe, so a CSS variant is the only option). Tailwind's `rtl:` matches any `[dir="rtl"]`
+  ancestor, so an LTR pager inside an RTL page without its own `dir="ltr"` still flips.
+
 ## Next components
 Follow the phases in the design-system spec §6
 (`docs/superpowers/specs/2026-09-23-tessera-design-system-v2.md`): Phase B forms (Label, Field, Input,

@@ -566,6 +566,7 @@ Exported from `src/index.ts` (types and functions: they also serve server-side s
   - The instance's `getRowLabel` takes a `DataTableRow` (the option takes the original row), so it can fall back to the row's id; an empty `rowHeader` text falls back to the id too.
   - `canHideColumn(id)` is "`toggleColumn(id)` would change it": `true` for a hidden column (so its menu item stays enabled to show it again), `false` for an unknown id, a non-hideable column or the last visible one.
   - The dev warning fires once per hook instance (a `console.warn` in an effect, the FileUpload pattern).
+- *Amended in Task 7*: the instance also returns `canSort(id)` (`toggleSort`'s rule: `sortable`, else an `accessor` or `compare`; `false` for an unknown id) and `enableMultiSort`. Evidence: DataTable renders a sort button only where `toggleSort` acts and the multi-sort hint only while Shift adds a column, and neither the rule nor the option was reachable from the instance. Tested in `use-data-table.test.tsx`.
 
 ## 7. DataTable parts (Task 7)
 
@@ -647,6 +648,20 @@ Exported from `src/index.ts` (types and functions: they also serve server-side s
 - the existing `table.test.tsx` and `pagination.test.tsx` stay green (amended only for `text-start`).
 
 **Stories (Task 7, `Components/DataTable`):** Basic (sortable, 12 rows, 5 per page), Multi-sort, Selection (multiple, with a "Delete 3 selected" toolbar button), Single selection, Column visibility, Pagination with page sizes, Empty and loading, Server-side (`manual` with a story-local fake fetch), RTL.
+
+- *Amended in Task 7* (keyboard sorting, evidence for the review's open question): Chromium's keyboard-activated click carries the modifier keys (`shiftKey` is `true` on the click from Shift+Enter and Shift+Space), and a `preventDefault` on a button's keydown suppresses its click for Enter (keydown) and for Space (keyup) alike. So the keydown handler with `preventDefault` is required, not just sufficient: without it Shift+Enter toggled the sort twice (the keydown and the click's `shiftKey`; a mutation run of the test failed with 2 calls). Pinned by "a prevented Space keydown on a button fires no keyup click" and "Shift+Enter and Shift+Space each toggle a multi-sort exactly once".
+- *Amended in Task 7*: `sortAnnouncement(label, direction, count)` takes a third argument, the number of sorted columns after the change, and the default for a removed column is `` `Not sorted by ${label}` `` while other columns stay sorted ("Sorting cleared" only when nothing is). Evidence: Shift-removing a secondary column left the primary sorted, so "Sorting cleared" was false. Tested.
+- *Amended in Task 7*: the sort state's `span.sr-only` holds `sortStateLabel(...)` alone; the accessible name is "Title sorted ascending, 1 of 2" (Chromium separates the absolutely positioned span's text with a space; a ", " prefix produced "Title , sorted ascending"). Announcements are made in an effect after the change renders (a sort button or a pager action marks itself pending), so they speak the state a controlled parent accepted, and a refused change speaks nothing.
+- *Amended in Task 7*: `Checkbox` takes an optional `"data-slot"` (default `"checkbox"`), as the Table parts do: it set `data-slot` after `{...props}`, so `data-table-select-all` / `data-table-select-row` could not be applied. Tested in `checkbox.test.tsx`.
+- *Amended in Task 7*: the columns trigger is `MenuTrigger` styled with `buttonVariants({ variant: "outline", color: "neutral", size: "sm" })`, not `render={<Button />}`: `Button` sets `data-slot="button"` after its props, which would replace `data-table-columns-trigger`. Same look and focus ring (tested).
+- *Amended in Task 7* (details the text above leaves open):
+  - The `rowHeader` cell is `th scope="row"` with `px-3 py-2.5 align-middle text-start font-normal` (TableCell's classes plus resets of the UA `th` centring and bold; tested against the next cell's weight).
+  - Slots the text does not name: `data-table-cell` (every body cell, the row header too), `data-table-loading-row`, `data-table-sort-hint`, and `data-table-pagination-controls`, a `flex flex-wrap items-center gap-3` group holding the page-size Select (`w-20`) and the pager, so `justify-between` puts the range text at the start and the controls at the end.
+  - The header checkbox is disabled while loading or when the page has no selectable row. An end-aligned column's skeleton adds `ms-auto`.
+  - `getRowProps` returns `tr` props plus any `data-*` attribute; the row's own `data-slot` and `data-state` win.
+  - `DataTableColumnsMenu` takes `label` (default "Columns") and `className` (the trigger); `DataTablePagination` takes `rangeLabel`, `pageSizeLabel`, `paginationLabel`, `pageLabel` and `div` props.
+  - No existing `table.test.tsx` or `pagination.test.tsx` expectation pinned `left`, so none changed; new guards cover `text-start` and `-ms-2` in both directions, the chevrons' `scale` (`none` LTR, `-1 1` RTL), the sort button's Highlight ring and its `transition-property`. The Orders example's `-mr-2 ml-0` keeps its 0 / −8px margins (the physical utilities win over `-ms-2`; checked).
+  - The axe cases run in a 1280px viewport: at the default 414px one axe leaves the columns clipped by the scroll container as `color-contrast` "elmPartiallyObscured" (needs review). A 390px case checks the scrolling instead: the container scrolls, the page and the pager do not overflow.
 
 ## 8. Events admin example (Task 8)
 

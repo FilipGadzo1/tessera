@@ -244,7 +244,13 @@ export {
   type ContextMenuTriggerProps,
 } from "./components/context-menu";
 export {
+  DataTable,
+  DataTableColumnsMenu,
+  type DataTableColumnsMenuProps,
   type DataTableInstance,
+  DataTablePagination,
+  type DataTablePaginationProps,
+  type DataTableProps,
   type DataTableRow,
   type UseDataTableOptions,
   useDataTable,
