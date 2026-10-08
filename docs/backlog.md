@@ -396,6 +396,10 @@ DateRangeField test and the Tree position compare.
 - Pagination (Task 7): `PaginationPrevious` / `PaginationNext` flip their chevrons with `rtl:-scale-x-100`
   (they are server-safe, so a CSS variant is the only option). Tailwind's `rtl:` matches any `[dir="rtl"]`
   ancestor, so an LTR pager inside an RTL page without its own `dir="ltr"` still flips.
+- `sr-only` in RTL (Task 8): an absolutely positioned 1px `sr-only` span (`margin: -1px`) whose static position
+  is flush with the viewport's right edge overflows it by 1px in an RTL page (`scrollWidth` 1281 at 1280:
+  DataTable's sort hint and status, DataTablePagination's status). Unpadded full-width RTL layouts get a 1px
+  horizontal scroll. Not specific to DataTable; a fix belongs in a shared `sr-only` variant (e.g. `start-0`).
 
 ## Next components
 Follow the phases in the design-system spec §6
