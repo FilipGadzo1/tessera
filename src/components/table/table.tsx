@@ -4,13 +4,20 @@ import { cn } from "../../lib/cn";
 export interface TableProps extends ComponentProps<"table"> {
   /** className for the scroll container wrapping the `<table>`. */
   containerClassName?: string;
+  /** The `<table>`'s `data-slot` (the container keeps `table-container`). @default "table" */
+  "data-slot"?: string;
 }
 
 /**
  * A `<table>` inside a horizontally-scrollable container, so wide tables don't overflow the page.
  * `className` styles the table; `containerClassName` styles the wrapping `div`.
  */
-export function Table({ className, containerClassName, ...props }: TableProps) {
+export function Table({
+  className,
+  containerClassName,
+  "data-slot": dataSlot = "table",
+  ...props
+}: TableProps) {
   return (
     <div
       data-slot="table-container"
@@ -18,28 +25,42 @@ export function Table({ className, containerClassName, ...props }: TableProps) {
     >
       <table
         {...props}
-        data-slot="table"
+        data-slot={dataSlot}
         className={cn("w-full caption-bottom text-sm", className)}
       />
     </div>
   );
 }
 
-export type TableHeaderProps = ComponentProps<"thead">;
-
-/** `<thead>`. Rows inside lose their bottom border on the last row via `TableBody`'s selector. */
-export function TableHeader({ className, ...props }: TableHeaderProps) {
-  return <thead {...props} data-slot="table-header" className={cn("[&_tr]:border-b", className)} />;
+export interface TableHeaderProps extends ComponentProps<"thead"> {
+  /** @default "table-header" */
+  "data-slot"?: string;
 }
 
-export type TableBodyProps = ComponentProps<"tbody">;
+/** `<thead>`. Rows inside lose their bottom border on the last row via `TableBody`'s selector. */
+export function TableHeader({
+  className,
+  "data-slot": dataSlot = "table-header",
+  ...props
+}: TableHeaderProps) {
+  return <thead {...props} data-slot={dataSlot} className={cn("[&_tr]:border-b", className)} />;
+}
+
+export interface TableBodyProps extends ComponentProps<"tbody"> {
+  /** @default "table-body" */
+  "data-slot"?: string;
+}
 
 /** `<tbody>`. Its last row has no bottom border. */
-export function TableBody({ className, ...props }: TableBodyProps) {
+export function TableBody({
+  className,
+  "data-slot": dataSlot = "table-body",
+  ...props
+}: TableBodyProps) {
   return (
     <tbody
       {...props}
-      data-slot="table-body"
+      data-slot={dataSlot}
       className={cn("[&_tr:last-child]:border-0", className)}
     />
   );
@@ -61,7 +82,10 @@ export function TableFooter({ className, ...props }: TableFooterProps) {
   );
 }
 
-export type TableRowProps = ComponentProps<"tr">;
+export interface TableRowProps extends ComponentProps<"tr"> {
+  /** @default "table-row" */
+  "data-slot"?: string;
+}
 
 /**
  * Forced colors replaces the muted selected background with Canvas, so a selected row takes the
@@ -77,11 +101,15 @@ const selectedForcedColorsClasses =
   "forced-colors:aria-selected:bg-[Highlight] forced-colors:aria-selected:text-[HighlightText] forced-colors:aria-selected:forced-color-adjust-none forced-colors:data-[state=selected]:bg-[Highlight] forced-colors:data-[state=selected]:text-[HighlightText] forced-colors:data-[state=selected]:forced-color-adjust-none";
 
 /** `<tr>`. Hover highlight, plus a selected look via `data-state="selected"` or `aria-selected`. */
-export function TableRow({ className, ...props }: TableRowProps) {
+export function TableRow({
+  className,
+  "data-slot": dataSlot = "table-row",
+  ...props
+}: TableRowProps) {
   return (
     <tr
       {...props}
-      data-slot="table-row"
+      data-slot={dataSlot}
       className={cn(
         "border-b border-border transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted aria-selected:bg-muted",
         selectedForcedColorsClasses,
@@ -94,16 +122,24 @@ export function TableRow({ className, ...props }: TableRowProps) {
 export interface TableHeadProps extends ComponentProps<"th"> {
   /** Sets `aria-sort`; omitted (not rendered) when left `undefined`. */
   sort?: "ascending" | "descending" | "none";
+  /** @default "table-head" */
+  "data-slot"?: string;
 }
 
 /** `<th>`, `scope="col"` by default (override for row headers). */
-export function TableHead({ className, sort, scope = "col", ...props }: TableHeadProps) {
+export function TableHead({
+  className,
+  sort,
+  scope = "col",
+  "data-slot": dataSlot = "table-head",
+  ...props
+}: TableHeadProps) {
   return (
     <th
       {...props}
       scope={scope}
       aria-sort={sort}
-      data-slot="table-head"
+      data-slot={dataSlot}
       className={cn(
         "h-10 px-3 text-left align-middle font-medium text-muted-foreground whitespace-nowrap",
         className,
@@ -112,12 +148,19 @@ export function TableHead({ className, sort, scope = "col", ...props }: TableHea
   );
 }
 
-export type TableCellProps = ComponentProps<"td">;
+export interface TableCellProps extends ComponentProps<"td"> {
+  /** @default "table-cell" */
+  "data-slot"?: string;
+}
 
 /** `<td>`. */
-export function TableCell({ className, ...props }: TableCellProps) {
+export function TableCell({
+  className,
+  "data-slot": dataSlot = "table-cell",
+  ...props
+}: TableCellProps) {
   return (
-    <td {...props} data-slot="table-cell" className={cn("px-3 py-2.5 align-middle", className)} />
+    <td {...props} data-slot={dataSlot} className={cn("px-3 py-2.5 align-middle", className)} />
   );
 }
 
@@ -193,6 +236,8 @@ function ArrowUpDownIcon() {
 export interface TableSortButtonProps extends ComponentProps<"button"> {
   /** Picks the trailing icon (arrow-up / arrow-down / arrow-up-down). @default "none" */
   direction?: "ascending" | "descending" | "none";
+  /** @default "table-sort-button" */
+  "data-slot"?: string;
 }
 
 const tableSortButtonClasses =
@@ -207,13 +252,14 @@ export function TableSortButton({
   className,
   type = "button",
   children,
+  "data-slot": dataSlot = "table-sort-button",
   ...props
 }: TableSortButtonProps) {
   return (
     <button
       {...props}
       type={type}
-      data-slot="table-sort-button"
+      data-slot={dataSlot}
       className={cn(tableSortButtonClasses, className)}
     >
       {children}

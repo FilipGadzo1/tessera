@@ -71,6 +71,49 @@ describe("Table", () => {
     for (const cell of cells) expect(cell.tagName).toBe("TD");
   });
 
+  // DataTable names its parts with its own slots (spec Phase K §7); the defaults stay unchanged.
+  it("renders each part's default data-slot and lets a passed data-slot replace it", async () => {
+    const parts = (slot?: (name: string) => string) => {
+      const s = (name: string) => (slot ? { "data-slot": slot(name) } : {});
+      return (
+        <Table {...s("table")}>
+          <TableHeader {...s("table-header")}>
+            <TableRow {...s("table-row")}>
+              <TableHead {...s("table-head")}>
+                <TableSortButton {...s("table-sort-button")}>Total</TableSortButton>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody {...s("table-body")}>
+            <TableRow {...s("table-row")}>
+              <TableCell {...s("table-cell")}>1</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      );
+    };
+    const tags = {
+      table: "TABLE",
+      "table-header": "THEAD",
+      "table-body": "TBODY",
+      "table-row": "TR",
+      "table-head": "TH",
+      "table-cell": "TD",
+      "table-sort-button": "BUTTON",
+    };
+    const defaults = await render(parts());
+    for (const [name, tag] of Object.entries(tags)) {
+      expect(defaults.container.querySelector(`[data-slot="${name}"]`)?.tagName).toBe(tag);
+    }
+    const custom = await render(parts((name) => `custom-${name}`));
+    for (const [name, tag] of Object.entries(tags)) {
+      expect(custom.container.querySelector(`[data-slot="custom-${name}"]`)?.tagName).toBe(tag);
+      expect(custom.container.querySelector(`[data-slot="${name}"]`)).toBeNull();
+    }
+    // The scroll container keeps its own slot.
+    expect(custom.container.querySelector('[data-slot="table-container"]')?.tagName).toBe("DIV");
+  });
+
   it("scopes TableHead columns by default and lets callers override", async () => {
     const screen = await render(
       <Table>
