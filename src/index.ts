@@ -743,6 +743,27 @@ export {
   rgbToHsv,
   wcagContrast,
 } from "./lib/color";
+export {
+  type ColumnVisibility,
+  clampPageIndex,
+  type DataTableColumn,
+  defaultCompare,
+  getPageCount,
+  getPageSelection,
+  getRowRange,
+  getVisibleColumns,
+  nextSorting,
+  type PageSelection,
+  type PaginationState,
+  paginateRows,
+  type SelectionMode,
+  type SortDirection,
+  type SortingState,
+  sortRows,
+  toggleColumnVisibility,
+  togglePageSelection,
+  toggleRowSelection,
+} from "./lib/data-table";
 export { getLocaleDirection } from "./lib/direction";
 export {
   type FileRejection,
