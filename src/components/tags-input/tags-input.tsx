@@ -201,15 +201,17 @@ export function TagsInput({
     inputProps?.["aria-invalid"] === true ||
     inputProps?.["aria-invalid"] === "true";
 
-  // What to do once a change arrives as the new `tags` (clear the input, move focus). A controlled
-  // parent that refuses the change keeps its tags, so the typed text and the focus stay.
+  // What to do once a change arrives as the new `tags` (clear the input, move focus). It is settled
+  // by the change's own render (each change also announces, so that render always happens): a
+  // controlled parent that refused it still has the old tags there, so the typed text and the
+  // focus stay and nothing is left to run on a later, unrelated change of `value`.
   const afterChange = useRef<{ previous: readonly string[]; run: () => void } | null>(null);
   useLayoutEffect(() => {
     const pending = afterChange.current;
-    if (!pending || sameTags(pending.previous, tags)) return;
+    if (!pending) return;
     afterChange.current = null;
-    pending.run();
-  }, [tags]);
+    if (!sameTags(pending.previous, tags)) pending.run();
+  });
   const change = (next: string[], run: () => void = () => {}) => {
     afterChange.current = { previous: tags, run };
     setTags(next);

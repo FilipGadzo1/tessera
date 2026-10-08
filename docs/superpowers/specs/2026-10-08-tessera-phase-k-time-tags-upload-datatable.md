@@ -336,6 +336,7 @@ A move, no behaviour change, so the date suites are the guard (`date-field`, `da
 - *IME:* keys during a composition are ignored (`isForeignKey`), so Enter that commits a composition does not add a tag.
 - *Read-only:* tags show without remove buttons; the input is `readOnly`; no commit, removal or paste-splitting. *Disabled:* the input and buttons are disabled; nothing is focusable.
 - *Controlled:* a controlled `value` that the parent refuses (it keeps its array) stays; the input text is not cleared by a refused add (the text is cleared only when the new value arrives).
+  - *Amended in review fix wave*: a change's follow-up (clear the input, move focus) is settled by the change's own render, which always happens because every change also announces: it runs if the tags differ from the ones before the change and is dropped otherwise. Before, a refused add kept it pending until the next change of `value`, so an unrelated outside change later cleared what the user had typed meanwhile. A parent that accepts a change only after a later render (asynchronously) no longer gets the follow-up. Tested: refuse "b", type "c", the parent sets `["a", "z"]` → the input still holds "bc".
 
 **Key table** (the same rules as the bullets above, in one place):
 

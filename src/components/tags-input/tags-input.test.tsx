@@ -695,6 +695,20 @@ describe("TagsInput: controlled and uncontrolled", () => {
     expect(tags()).toEqual(["a"]);
   });
 
+  it("a refused add runs no follow-up later: an outside change keeps the text typed since", async () => {
+    const onValueChange = vi.fn();
+    const screen = await render(<Basic value={["a"]} onValueChange={onValueChange} />);
+    await userEvent.click(input());
+    await userEvent.keyboard("b");
+    await press("{Enter}");
+    expect(onValueChange).toHaveBeenCalledWith(["a", "b"]);
+    await userEvent.keyboard("c");
+    expect(input().value).toBe("bc");
+    await screen.rerender(<Basic value={["a", "z"]} onValueChange={onValueChange} />);
+    expect(tags()).toEqual(["a", "z"]);
+    expect(input().value).toBe("bc");
+  });
+
   it("controlled inputValue: onInputValueChange reports typing and clearing", async () => {
     const onInputValueChange = vi.fn();
     function Controlled() {
