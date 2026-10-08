@@ -434,6 +434,23 @@ describe("TimePicker: second granularity", () => {
     expect(onValueChange).toHaveBeenCalledWith("10:30:00");
     expect(texts()).toEqual(["10", "30", "00", "AM"]);
   });
+
+  it("a min off the whole minute lists slots on its seconds, shown with them", async () => {
+    const onValueChange = vi.fn();
+    await render(
+      <Picker granularity="second" min="09:00:30" max="10:00" onValueChange={onValueChange} />,
+    );
+    await openList();
+    expect(options().map((o) => o.dataset.value)).toEqual(["09:00:30", "09:30:30"]);
+    expect(options().map((o) => o.textContent)).toEqual(
+      ["09:00:30", "09:30:30"].map((v) => formatTime(v, "en-US", { granularity: "second" })),
+    );
+    await expect.poll(focusedValue).toBe("09:00:30");
+    await userEvent.keyboard("{ArrowDown}");
+    await userEvent.keyboard("{Enter}");
+    expect(onValueChange).toHaveBeenCalledWith("09:30:30");
+    expect(texts()).toEqual(["09", "30", "30", "AM"]);
+  });
 });
 
 describe("TimePicker: controlled", () => {

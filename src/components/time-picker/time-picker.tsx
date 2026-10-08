@@ -18,6 +18,7 @@ import {
   getTimeSlots,
   parseTime,
   type TimeGranularity,
+  timeToSeconds,
 } from "../../lib/time";
 import { useControllableState } from "../../lib/use-controllable-state";
 import { EditableShell, type PickerOwnProps } from "../date-picker/editable-shell";
@@ -68,6 +69,8 @@ interface TimePickerListProps {
   value: string | null;
   locale: string;
   hourCycle?: 12 | 24;
+  /** The slots' granularity: their text shows seconds when they carry them. */
+  granularity: TimeGranularity;
   labels?: TimePickerLabels;
   onPick: (slot: string) => void;
 }
@@ -77,7 +80,15 @@ interface TimePickerListProps {
  * option). ↑/↓ move (no wrap), Home/End jump, PageUp/PageDown move five, Enter or Space picks;
  * hovering an option focuses it, a click picks it.
  */
-function TimePickerList({ slots, value, locale, hourCycle, labels, onPick }: TimePickerListProps) {
+function TimePickerList({
+  slots,
+  value,
+  locale,
+  hourCycle,
+  granularity,
+  labels,
+  onPick,
+}: TimePickerListProps) {
   const listId = useId();
   const listRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(() => initialIndex(slots, value));
@@ -172,7 +183,7 @@ function TimePickerList({ slots, value, locale, hourCycle, labels, onPick }: Tim
             </span>
             {/* The locale's direction, as TimeField's row: in an RTL page an en-US "9:30 AM"
                 starts with a digit, so without it the bidi algorithm shows "AM 9:30". */}
-            <span dir={textDirection}>{formatTime(slot, locale, { hourCycle })}</span>
+            <span dir={textDirection}>{formatTime(slot, locale, { hourCycle, granularity })}</span>
           </div>
         );
       })}
@@ -214,7 +225,19 @@ export function TimePicker({
     resolveLocale(locale) ?? new Intl.DateTimeFormat().resolvedOptions().locale;
   // No overnight ranges: the field warns and ignores `max`; the list follows it.
   const overnight = min !== undefined && max !== undefined && compareTime(min, max) > 0;
-  const slots = getTimeSlots({ slotStep, min, max: overnight ? undefined : max, step });
+  // The slots carry seconds only when `min` puts them off the whole minute (every slot then shares
+  // its seconds); the grid is the field's effective step.
+  const slotGranularity: TimeGranularity =
+    granularity === "second" && ((min === undefined ? null : timeToSeconds(min)) ?? 0) % 60 !== 0
+      ? "second"
+      : "minute";
+  const slots = getTimeSlots({
+    slotStep,
+    min,
+    max: overnight ? undefined : max,
+    step: step ?? (granularity === "second" ? 1 : 60),
+    granularity: slotGranularity,
+  });
 
   const pick = (next: string | null) => {
     setValue(next);
@@ -255,9 +278,10 @@ export function TimePicker({
           value={normalizeTime(value, granularity)}
           locale={resolvedLocale}
           hourCycle={hourCycle}
+          granularity={slotGranularity}
           labels={labels}
           onPick={(slot) => {
-            pick(granularity === "second" ? `${slot}:00` : slot);
+            pick(normalizeTime(slot, granularity));
             close();
           }}
         />
