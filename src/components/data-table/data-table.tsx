@@ -40,6 +40,7 @@ import {
   dataTablePaginationControls,
   dataTableRadio,
   dataTableRange,
+  dataTableRow,
   dataTableRowHeader,
   dataTableSelectCell,
   dataTableSelectHead,
@@ -262,12 +263,14 @@ export function DataTable<TData>({
           ) : (
             rows.map((row) => {
               const label = selectRowLabel(table.getRowLabel(row));
+              const rowProps = getRowProps?.(row);
               return (
                 <TableRow
-                  {...getRowProps?.(row)}
+                  {...rowProps}
                   key={row.id}
                   data-slot="data-table-row"
                   data-state={row.selected ? "selected" : undefined}
+                  className={cn(dataTableRow, rowProps?.className)}
                 >
                   {selecting && (
                     <TableCell data-slot="data-table-select-cell" className={dataTableSelectCell}>

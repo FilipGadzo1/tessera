@@ -987,6 +987,23 @@ describe("DataTable: focus, forced colors and motion", () => {
     expect(getComputedStyle(button).outlineColor).toBe(highlight);
   });
 
+  it("forced colors: a button in a selected row's cell keeps system colours, not the row's Highlight pair", async () => {
+    await emulateForcedColors(true);
+    await render(<Events selectionMode="multiple" defaultRowSelection={["e1"]} />);
+    const row = rowOf("Launch party");
+    expect(row.getAttribute("data-state")).toBe("selected");
+    await expect.poll(() => getComputedStyle(row).backgroundColor).toBe(systemColor("Highlight"));
+    const edit = page.getByRole("button", { name: "Edit Launch party" }).element() as HTMLElement;
+    const style = getComputedStyle(edit);
+    // Inheriting the row's `forced-color-adjust: none`, the outline Button kept its theme colours:
+    // dark text on the Highlight fill. Repainted, it is ButtonText on its own system background.
+    expect(style.forcedColorAdjust).toBe("auto");
+    expect(style.color).toBe(systemColor("ButtonText"));
+    expect(style.backgroundColor).not.toBe(systemColor("Highlight"));
+    // The row's own text keeps the Highlight pair.
+    expect(getComputedStyle(row).color).toBe(systemColor("HighlightText"));
+  });
+
   it("reduced motion: the sort button has no transition", async () => {
     await render(<Events />);
     expect(getComputedStyle(sortButton("Title")).transitionProperty).not.toBe("none");

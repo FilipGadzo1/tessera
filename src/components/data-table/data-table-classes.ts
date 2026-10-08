@@ -11,6 +11,12 @@ export const dataTableSelectHead = "w-10";
  * whose `forced-color-adjust: none` (TableRow's Highlight pair) it would otherwise inherit.
  */
 export const dataTableSelectCell = "w-10 forced-colors:forced-color-adjust-auto";
+/**
+ * A body row: links, buttons and fields in its cells take `forced-color-adjust: auto` too, so a
+ * selected row's Highlight pair (`forced-color-adjust: none`) does not leave them in theme colours.
+ */
+export const dataTableRow =
+  "forced-colors:[&_:is(a,button,input,select,textarea)]:forced-color-adjust-auto";
 /** Single selection: a native radio (`accent-color` keeps system colours in forced colors). */
 export const dataTableRadio = `size-4 cursor-pointer accent-primary ${toggleFocusClasses} forced-colors:focus-visible:outline-[Highlight] disabled:cursor-not-allowed`;
 /** An end-aligned column's header and cells. */
