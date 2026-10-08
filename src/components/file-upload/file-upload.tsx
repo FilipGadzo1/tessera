@@ -101,7 +101,12 @@ export interface FileUploadProps
    * `More than ${maxFiles} files`, duplicate "Already added", invalid the `validate` message
    */
   rejectionMessage?: (rejection: FileRejection) => string;
-  /** The locale of the file sizes. @default the document's `lang` */
+  /**
+   * The locale of the file sizes. @default the document's `lang`, else the runtime's
+   *
+   * Required when server-rendering: sizes are formatted with the document language on the client
+   * and the server default otherwise, so the two can render different text.
+   */
   locale?: string;
 }
 

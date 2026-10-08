@@ -409,19 +409,18 @@ DateRangeField test and the Tree position compare.
 - TimePicker: its own suite runs axe on a 5-slot list (`min` 09:00, `max` 11:00); the Events admin test covers
   the scrolled 25-slot list.
 - TagsInput:
-  - The "N tags added" announcement after a multi-tag paste is fixed English; `addedLabel` covers only the
-    single-tag case (it needs an `addedCountLabel`).
   - Read-only chips use the same `bg-muted` as the read-only root (`data-readonly:bg-muted`), so they do not
     stand out from it.
-  - A controlled parent that refuses a change leaves the queued follow-up (clear the input, move focus)
-    pending until the next external change of `value`.
+  - A change's follow-up (clear the input, move focus) is settled by the change's own render (review fix
+    wave), so a parent that accepts a change asynchronously, after a later render, does not get it.
+- TimeField: in 12-hour mode the hour arrows step a grid computed on the displayed 12-hour values (1–12), while
+  `step` counts in 24-hour time from `min`. A step of whole hours that does not divide 12 (e.g. `step={18000}`,
+  5 hours: valid hours 0, 5, 10, 15, 20) cannot reach every valid hour with the arrows (the grid is 5 and 10).
+  Either compute the hour grid from 24-hour values with the day period, or document the limit.
 - DataTable:
   - `DataTablePagination` has no props for Previous / Next: `PaginationPrevious` / `PaginationNext` take
     `children` (the visible text) and `aria-label`, but the pager does not pass them through, so both stay
     English (small additive props).
-  - A controlled `sorting` or `pagination` that refuses a change leaves the pending-announcement flag set (the
-    sort button's in `DataTable`, the pager's in `DataTablePagination`) until the next change of that state,
-    which is then announced.
   - A stored page index stays out of range after a clamp (the engine clamps what it reports, not what it
     stores), so the table jumps back to it if the data grows again.
   - In forced colors a selected row's outline buttons have a transparent background on Highlight (readable
@@ -432,6 +431,20 @@ DateRangeField test and the Tree position compare.
 - FileUpload: a browser without the `DataTransfer` constructor (older Safari) cannot write the list back to
   `input.files`, so a native submit carries only the last native pick (a `Form`'s `onFormSubmit` still reports
   the full `File[]`).
+- FileUpload and TagsInput duplicate the removal focus logic (move focus before the remove button unmounts,
+  give it back if a controlled parent refuses: `pendingRemoval` with a removal counter) and twin helpers
+  (`sameFiles` / `sameTags`). They also differ after a pointer removal: TagsInput focuses the input, FileUpload
+  the next item's remove button (else the previous, else the input). Extract a shared hook and pick one rule.
+- Label API inconsistencies across the Phase K components (renames are breaking, so batch them):
+  - TagsInput `addedLabel(tag: string)` cannot localise the "N tags added" announcement after a multi-tag
+    paste (fixed English); align it with FileUpload's `addedLabel(files[])`, i.e. `addedLabel(tags: string[])`.
+  - TimePicker `labels.open` vs DatePicker / DateRangePicker `labels.openCalendar` for the same icon button.
+  - Rejections: TagsInput `rejectionLabel` / `onTagRejected` vs FileUpload `rejectionMessage` /
+    `rejectedLabel` / `onFilesRejected`.
+  - DataTable's `defaultSortStateLabel` puts the raw `"ascending"` / `"descending"` enum into its text; a
+    localised `sortStateLabel` must map the enum itself.
+- Changelog: `TableHead` changed from `text-left` to `text-start` in Phase K, so headers in an RTL page now align
+  right; an existing RTL consumer sees the change (note it in the release notes).
 - Popover: `PopoverContent.collisionAvoidance` is public API (tested in `popover.test.tsx`). The editable
   DatePicker's calendar popup keeps the default placement, so it can open beside the field when there is no room
   above or below (TimePicker passes `fallbackAxisSide: "none"`).

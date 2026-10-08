@@ -646,7 +646,8 @@ source files automatically (build output + `"use client"` directive checks).
   Field's), `form`, `locale` (sizes) and `addedLabel` / `removedLabel` / `removeLabel` /
   `rejectedLabel` / `rejectionMessage` for the strings. The helpers are exported too:
   `matchesAccept`, `formatFileSize` (SI units in the locale's words), `validateFiles` and
-  `getFileKey`. Client component)
+  `getFileKey`. `locale` is required when server-rendering: sizes are formatted with the document
+  language on the client and the server default otherwise. Client component)
 - [x] DataTable, DataTableColumnsMenu, DataTablePagination, useDataTable (a headless engine and the
   parts that render it; a table, not an APG grid, so its controls are ordinary Tab stops.
   `useDataTable({ data, columns, getRowId })` holds sorting, paging, row selection (ids) and column
@@ -669,7 +670,8 @@ source files automatically (build output + `"use client"` directive checks).
   `sortStateLabel`, `sortAnnouncement`, `multiSortHint`, `rangeLabel`, `pageLabel`, …). The engine's
   pure helpers (`nextSorting`, `sortRows`, `paginateRows`, `getRowRange`, …) are exported for a
   server that sorts and pages itself. Pass `locale` for server rendering: the sort collator uses the
-  runtime's default otherwise. Client component)
+  runtime's default otherwise, and the range text's numbers ("1,234") the document's `lang` on the
+  client. Client component)
 - [x] Sidebar, SidebarProvider, SidebarTrigger, SidebarRail, SidebarInset, SidebarHeader, SidebarFooter,
   SidebarContent, SidebarSeparator, SidebarGroup, SidebarGroupLabel, SidebarGroupAction, SidebarGroupContent,
   SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuAction, SidebarMenuBadge, SidebarMenuSub,
