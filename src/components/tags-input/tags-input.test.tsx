@@ -984,6 +984,57 @@ describe("TagsInput: Form and Field", () => {
     expect(fieldRoot.hasAttribute("data-focused")).toBe(true);
     expect(fieldRoot.hasAttribute("data-touched")).toBe(false);
   });
+
+  it.each([
+    ["keyed by text", false],
+    ["allowDuplicates, keyed by index", true],
+  ])("removing a focused tag with the keyboard is not a blur (%s)", async (_, allowDuplicates) => {
+    await render(
+      <div>
+        <TagsForm validationMode="onBlur">
+          <TagsInput required allowDuplicates={allowDuplicates} defaultValue={["a", "b", "c"]} />
+        </TagsForm>
+        <button type="button">after</button>
+      </div>,
+    );
+    const fieldRoot = document.querySelector("[data-slot=field]") as HTMLElement;
+    await userEvent.click(input());
+    await press("{ArrowLeft}");
+    expect(focusedRemove()).toBe(2);
+    // The last tag: focus goes to the previous one.
+    await press("{Enter}");
+    await expect.poll(() => tags()).toEqual(["a", "b"]);
+    expect(focusedRemove()).toBe(1);
+    // The first tag: focus stays at its index (the next tag).
+    await press("{Home}");
+    await press("{Delete}");
+    await expect.poll(() => tags()).toEqual(["b"]);
+    expect(focusedRemove()).toBe(0);
+    // The only tag: focus goes to the input.
+    await press("{Backspace}");
+    await expect.poll(() => tags()).toEqual([]);
+    expect(document.activeElement).toBe(input());
+    expect(fieldRoot.hasAttribute("data-focused")).toBe(true);
+    expect(fieldRoot.hasAttribute("data-touched")).toBe(false);
+    await expect.element(page.getByText(/fill out this field/i)).not.toBeInTheDocument();
+    await userEvent.click(page.getByRole("button", { name: "after" }));
+    await expect.element(page.getByText(/fill out this field/i)).toBeVisible();
+    expect(fieldRoot.hasAttribute("data-touched")).toBe(true);
+  });
+
+  it("a controlled parent that refuses a keyboard removal keeps the tag and the focus", async () => {
+    const onValueChange = vi.fn();
+    await render(<Basic value={["a", "b"]} onValueChange={onValueChange} />);
+    await userEvent.click(input());
+    await press("{ArrowLeft}");
+    const button = removes()[1] as HTMLButtonElement;
+    expect(document.activeElement).toBe(button);
+    await press("{Enter}");
+    expect(onValueChange).toHaveBeenLastCalledWith(["a"]);
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    expect(tags()).toEqual(["a", "b"]);
+    expect(document.activeElement).toBe(button);
+  });
 });
 
 describe("TagsInput: sizes and geometry", () => {

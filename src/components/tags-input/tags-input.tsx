@@ -305,10 +305,32 @@ export function TagsInput({
       .join("|"),
   );
 
+  // A keyboard removal moves focus off a remove button that is about to unmount (Chromium reports a
+  // focused element's removal as a `focusout` to nowhere, which the Field would take for a blur). A
+  // controlled parent that refuses the removal keeps the tag: focus goes back to its button.
+  const [removals, setRemovals] = useState(0);
+  const pendingRemoval = useRef<{ previous: readonly string[]; button: HTMLElement } | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs once per removal, after its render.
+  useLayoutEffect(() => {
+    const pending = pendingRemoval.current;
+    if (!pending) return;
+    pendingRemoval.current = null;
+    if (sameTags(pending.previous, tags) && pending.button.isConnected) pending.button.focus();
+  }, [removals]);
+
   const removeAt = (index: number, refocus: boolean) => {
     const tag = tags[index];
     if (tag === undefined) return;
     const next = tags.filter((_, i) => i !== index);
+    const button = document.activeElement;
+    if (refocus && button instanceof HTMLElement && button.matches(removeSelector)) {
+      // Tags keyed by text unmount the removed tag's button; tags keyed by index unmount the last.
+      const buttons = [...(rootRef.current?.querySelectorAll<HTMLElement>(removeSelector) ?? [])];
+      const unmounts = allowDuplicates ? index === tags.length - 1 : true;
+      if (unmounts) (buttons[index + 1] ?? buttons[index - 1] ?? inputRef.current)?.focus();
+      pendingRemoval.current = { previous: tags, button };
+      setRemovals((count) => count + 1);
+    }
     change(next, () => {
       if (!refocus) return;
       if (next.length === 0) inputRef.current?.focus();

@@ -397,6 +397,7 @@ A move, no behaviour change, so the date suites are the guard (`date-field`, `da
   - `TagRejectionReason` (the `reason` union) is exported with `TagRejection`.
   - The status region is the root's last child (inside its border; `sr-only` takes it out of the flex row); the validation input and the per-tag hidden inputs are the siblings after the root.
   - After a keyboard removal on a remove button, focus moves once the new tags arrive; a controlled parent that refuses the removal keeps the tag and the focus where they are.
+- *Amended in Task 6*: a keyboard removal on a remove button moves focus **before** the button unmounts (the FileUpload rule, §5 *Amended in Task 5*): to the next tag's button, else the previous one, else the input. Tags keyed by text unmount the removed tag's button; with `allowDuplicates` (keyed by index) only the last button unmounts, so focus stays put unless the last tag is removed. A controlled parent that refuses the removal gets the focus back on the kept tag's button. Evidence: the Task 5 finding applied here too: `validationMode="onBlur"` marked the Field touched (`data-touched`) after Enter / Delete / Backspace on a focused remove button while focus never left the TagsInput. Tested (both keyings, and the refusing-parent case).
 
 ## 5. FileUpload (Task 5)
 
