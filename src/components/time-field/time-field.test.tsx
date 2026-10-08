@@ -436,6 +436,24 @@ describe("TimeField: keys", () => {
     expect(valueNow("dayPeriod")).toBe("0");
   });
 
+  it("Home / End land on the step grid: step 900 gives 0 / 45, an off-grid min 10 / 55", async () => {
+    const { rerender } = await render(<Basic step={900} defaultValue="09:30" />);
+    await userEvent.click(seg("minute"));
+    await userEvent.keyboard("{End}");
+    expect(valueNow("minute")).toBe("45");
+    expect(root().hasAttribute("data-invalid")).toBe(false);
+    await userEvent.keyboard("{Home}");
+    expect(valueNow("minute")).toBe("0");
+    await rerender(<Basic key="b" min="09:10" step={900} defaultValue="09:25" />);
+    await userEvent.click(seg("minute"));
+    await userEvent.keyboard("{End}");
+    expect(valueNow("minute")).toBe("55");
+    expect(root().hasAttribute("data-invalid")).toBe(false);
+    await userEvent.keyboard("{Home}");
+    expect(valueNow("minute")).toBe("10");
+    expect(root().hasAttribute("data-invalid")).toBe(false);
+  });
+
   it("Backspace / Delete clear a segment; Backspace on an empty one moves to the previous", async () => {
     await render(<Basic defaultValue="09:30" />);
     await userEvent.click(seg("dayPeriod"));

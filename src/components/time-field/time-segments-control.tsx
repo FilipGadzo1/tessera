@@ -299,10 +299,13 @@ export function useTimeSegments({
         return stepBy(page);
       case "PageDown":
         return stepBy(-page);
+      // The first / last value of the segment's step grid (from an empty segment, as ↑ / ↓ do).
       case "Home":
-        return set(bounds.min);
+        if (type === "dayPeriod") return set(bounds.min);
+        return set(stepTimeSegment(null, 1, bounds, steps[type].step, steps[type].offset));
       case "End":
-        return set(bounds.max);
+        if (type === "dayPeriod") return set(bounds.max);
+        return set(stepTimeSegment(null, -1, bounds, steps[type].step, steps[type].offset));
       case "Backspace":
         if (current === null && !(entry?.type === type && entry.buffer)) moveFocus(target, -1);
         else clear(type);

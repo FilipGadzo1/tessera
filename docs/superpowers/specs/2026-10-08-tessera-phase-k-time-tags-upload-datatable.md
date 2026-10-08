@@ -183,7 +183,7 @@ A move, no behaviour change, so the date suites are the guard (`date-field`, `da
 | digit (ASCII, full-width, locale digits) | `typeTimeDigit`; advance to the next segment (DOM order) when no digit fits; in `h11` / `h12` an empty day period becomes AM |
 | ↑ / ↓ | `stepTimeSegment` with the segment's step and offset from `timeSegmentSteps(step, min)` (§1.3, *Amended in review*: the grid counts from `min`, as native `step`), wrapping; the day period toggles |
 | PageUp / PageDown | hour ±2; minute and second ±max(15, their step); day period toggles |
-| Home / End | the segment's min / max (day period AM / PM) |
+| Home / End | the segment's first / last value on its step grid, `stepTimeSegment(null, ±1, …)` with the ↑ / ↓ step and offset (day period AM / PM); *Amended in review fix wave*: it was the segment's min / max, so End on the minutes with `step={900}` gave 59, off the grid and at once a step mismatch. Tested: `step={900}` End → 45, Home → 0; `min="09:10" step={900}` End → 55, Home → 10, both valid |
 | `a` / `p` / the labels' letters | on the day period: AM / PM (`dayPeriodFromKey`) |
 | Backspace | clears the segment; on an empty segment (nothing typed) moves to the previous one |
 | Delete | clears the segment |
