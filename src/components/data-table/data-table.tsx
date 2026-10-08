@@ -9,6 +9,7 @@ import {
   type PaginationState,
   type SortDirection,
 } from "../../lib/data-table";
+import { resolveLocale } from "../../lib/date";
 import { Columns3Icon } from "../../lib/icons";
 import { useStatusMessage } from "../../lib/use-status-message";
 import { buttonVariants } from "../button/button-variants";
@@ -396,15 +397,20 @@ export function DataTableColumnsMenu<TData>({
   );
 }
 
-const defaultRangeLabel = (from: number, to: number, total: number) =>
-  total === 0 ? "No results" : `Showing ${from}–${to} of ${total}`;
+const defaultRangeLabel = (from: number, to: number, total: number, numbers: Intl.NumberFormat) =>
+  total === 0
+    ? "No results"
+    : `Showing ${numbers.format(from)}–${numbers.format(to)} of ${numbers.format(total)}`;
 const defaultPageLabel = (page: number) => `Page ${page}`;
 
 export interface DataTablePaginationProps<TData> extends Omit<ComponentProps<"div">, "children"> {
   table: DataTableInstance<TData>;
   /** Shows a "Rows per page" Select with these sizes. */
   pageSizeOptions?: number[];
-  /** The range text. @default "Showing 1–5 of 12", or "No results" */
+  /**
+   * The range text. @default "Showing 1–5 of 12", or "No results", the numbers formatted in the
+   * table's `locale` (else the document's `lang`: pass `locale` when server-rendering)
+   */
   rangeLabel?: (from: number, to: number, total: number) => string;
   /** The page-size Select's name. @default "Rows per page" */
   pageSizeLabel?: string;
@@ -423,7 +429,7 @@ export interface DataTablePaginationProps<TData> extends Omit<ComponentProps<"di
 export function DataTablePagination<TData>({
   table,
   pageSizeOptions,
-  rangeLabel = defaultRangeLabel,
+  rangeLabel,
   pageSizeLabel = "Rows per page",
   paginationLabel = "Pagination",
   pageLabel = defaultPageLabel,
@@ -436,7 +442,14 @@ export function DataTablePagination<TData>({
   const pending = useRef<Partial<PaginationState> | null>(null);
   const { pageIndex, pageSize } = table.state.pagination;
   const { from, to } = getRowRange(table.state.pagination, table.rowCount);
-  const rangeText = rangeLabel(from, to, table.rowCount);
+  const rangeText = rangeLabel
+    ? rangeLabel(from, to, table.rowCount)
+    : defaultRangeLabel(
+        from,
+        to,
+        table.rowCount,
+        new Intl.NumberFormat(resolveLocale(table.locale)),
+      );
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: speaks once per page or page-size change made here, after its render.
   useEffect(() => {

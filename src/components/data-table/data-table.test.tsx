@@ -709,6 +709,32 @@ describe("DataTable: pagination", () => {
     expect(next().getAttribute("aria-disabled")).toBe("true");
   });
 
+  it.each(["en-US", "de-DE"])(
+    "the range text formats its numbers in the table's locale (%s)",
+    async (locale) => {
+      const many = Array.from({ length: 1234 }, (_, i) => ({ ...events[0], id: `m${i}` }) as Event);
+      const n = new Intl.NumberFormat(locale);
+      await render(<Events data={many} locale={locale} />);
+      expect(range().textContent).toBe(
+        `Showing ${n.format(1)}–${n.format(5)} of ${n.format(1234)}`,
+      );
+    },
+  );
+
+  it("the range text falls back to the document's language", async () => {
+    const lang = document.documentElement.lang;
+    document.documentElement.lang = "de-DE";
+    try {
+      const many = Array.from({ length: 1234 }, (_, i) => ({ ...events[0], id: `m${i}` }) as Event);
+      await render(<Events data={many} />);
+      expect(range().textContent).toBe(
+        `Showing 1–5 of ${new Intl.NumberFormat("de-DE").format(1234)}`,
+      );
+    } finally {
+      document.documentElement.lang = lang;
+    }
+  });
+
   it("localises the pager strings", async () => {
     const screen = await render(
       <Events

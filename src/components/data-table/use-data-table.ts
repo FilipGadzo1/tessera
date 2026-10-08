@@ -32,7 +32,10 @@ export interface UseDataTableOptions<TData> {
   getRowId?: (row: TData, index: number) => string;
   /** The row's name for its selection checkbox. @default the first `rowHeader` column's text, else the id */
   getRowLabel?: (row: TData) => string;
-  /** The collator's locale for sorting text. @default the runtime's */
+  /**
+   * The collator's locale for sorting text (default: the runtime's), and the locale of
+   * `DataTablePagination`'s range numbers (default: the document's `lang`).
+   */
   locale?: string;
 
   sorting?: SortingState;
