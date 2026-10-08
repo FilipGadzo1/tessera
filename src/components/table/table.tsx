@@ -67,14 +67,21 @@ export function TableBody({
   );
 }
 
-export type TableFooterProps = ComponentProps<"tfoot">;
+export interface TableFooterProps extends ComponentProps<"tfoot"> {
+  /** @default "table-footer" */
+  "data-slot"?: string;
+}
 
 /** `<tfoot>`, styled distinctly from the body (muted background, medium weight). */
-export function TableFooter({ className, ...props }: TableFooterProps) {
+export function TableFooter({
+  className,
+  "data-slot": dataSlot = "table-footer",
+  ...props
+}: TableFooterProps) {
   return (
     <tfoot
       {...props}
-      data-slot="table-footer"
+      data-slot={dataSlot}
       className={cn(
         "border-t border-border bg-muted/50 font-medium [&>tr]:last:border-b-0",
         className,
@@ -165,14 +172,21 @@ export function TableCell({
   );
 }
 
-export type TableCaptionProps = ComponentProps<"caption">;
+export interface TableCaptionProps extends ComponentProps<"caption"> {
+  /** @default "table-caption" */
+  "data-slot"?: string;
+}
 
 /** `<caption>`, placed below the table by `caption-bottom` on `Table`. */
-export function TableCaption({ className, ...props }: TableCaptionProps) {
+export function TableCaption({
+  className,
+  "data-slot": dataSlot = "table-caption",
+  ...props
+}: TableCaptionProps) {
   return (
     <caption
       {...props}
-      data-slot="table-caption"
+      data-slot={dataSlot}
       className={cn("mt-4 text-sm text-muted-foreground", className)}
     />
   );

@@ -94,6 +94,12 @@ describe("Table", () => {
               <TableCell {...s("table-cell")}>1</TableCell>
             </TableRow>
           </TableBody>
+          <TableFooter {...s("table-footer")}>
+            <TableRow {...s("table-row")}>
+              <TableCell {...s("table-cell")}>1</TableCell>
+            </TableRow>
+          </TableFooter>
+          <TableCaption {...s("table-caption")}>Totals</TableCaption>
         </Table>
       );
     };
@@ -101,6 +107,8 @@ describe("Table", () => {
       table: "TABLE",
       "table-header": "THEAD",
       "table-body": "TBODY",
+      "table-footer": "TFOOT",
+      "table-caption": "CAPTION",
       "table-row": "TR",
       "table-head": "TH",
       "table-cell": "TD",
