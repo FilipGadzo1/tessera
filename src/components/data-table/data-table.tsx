@@ -2,7 +2,13 @@
 
 import { type ComponentProps, type ReactNode, useEffect, useId, useRef } from "react";
 import { cn } from "../../lib/cn";
-import { type DataTableColumn, getRowRange, type SortDirection } from "../../lib/data-table";
+import {
+  type DataTableColumn,
+  getRowRange,
+  nextSorting,
+  type PaginationState,
+  type SortDirection,
+} from "../../lib/data-table";
 import { Columns3Icon } from "../../lib/icons";
 import { useStatusMessage } from "../../lib/use-status-message";
 import { buttonVariants } from "../button/button-variants";
@@ -129,24 +135,29 @@ export function DataTable<TData>({
   const hintId = `${id}-hint`;
   const radioName = `${id}-select`;
   const [sortMessage, announceSort] = useStatusMessage();
-  const pendingSort = useRef<string | null>(null);
+  // The clicked column and the direction it asked for: a sort a controlled parent refused is
+  // dropped at the next sort change instead of announcing that change.
+  const pendingSort = useRef<{ columnId: string; direction: SortDirection | null } | null>(null);
   const { visibleColumns, selectionMode, rows } = table;
   const { sorting, pagination } = table.state;
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: speaks once per sort change made by a sort button, after its render.
   useEffect(() => {
-    const columnId = pendingSort.current;
-    if (columnId === null) return;
+    const target = pendingSort.current;
+    if (target === null) return;
     pendingSort.current = null;
-    const column = table.columns.find((candidate) => candidate.id === columnId);
-    if (!column) return;
-    announceSort(
-      sortAnnouncement(columnLabel(column), table.getSort(columnId).direction, sorting.length),
-    );
+    const column = table.columns.find((candidate) => candidate.id === target.columnId);
+    const { direction } = table.getSort(target.columnId);
+    if (!column || direction !== target.direction) return;
+    announceSort(sortAnnouncement(columnLabel(column), direction, sorting.length));
   }, [sorting]);
 
   const sort = (columnId: string, multi: boolean) => {
-    pendingSort.current = columnId;
+    const entry = nextSorting(sorting, columnId, { multi: multi && table.enableMultiSort }).find(
+      (candidate) => candidate.id === columnId,
+    );
+    const direction = entry ? (entry.desc ? "descending" : "ascending") : null;
+    pendingSort.current = { columnId, direction };
     table.toggleSort(columnId, { multi });
   };
 
@@ -417,21 +428,27 @@ export function DataTablePagination<TData>({
   ...props
 }: DataTablePaginationProps<TData>) {
   const [message, announce] = useStatusMessage();
-  const pending = useRef(false);
+  // What this part's last action asked for: an action that changes nothing sets none, and one a
+  // controlled parent refused is dropped at the next change instead of announcing it.
+  const pending = useRef<Partial<PaginationState> | null>(null);
   const { pageIndex, pageSize } = table.state.pagination;
   const { from, to } = getRowRange(table.state.pagination, table.rowCount);
   const rangeText = rangeLabel(from, to, table.rowCount);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: speaks once per page or page-size change made here, after its render.
   useEffect(() => {
-    if (!pending.current) return;
-    pending.current = false;
+    const target = pending.current;
+    if (target === null) return;
+    pending.current = null;
+    if ((target.pageIndex ?? pageIndex) !== pageIndex || (target.pageSize ?? pageSize) !== pageSize)
+      return;
     announce(rangeText);
   }, [pageIndex, pageSize]);
 
-  const act = (change: () => void) => {
-    pending.current = true;
-    change();
+  const goTo = (index: number) => {
+    if (index === pageIndex || index < 0 || index >= table.pageCount) return;
+    pending.current = { pageIndex: index };
+    table.setPageIndex(index);
   };
   const page = pageIndex + 1;
 
@@ -453,7 +470,9 @@ export function DataTablePagination<TData>({
             value={pageSize}
             items={pageSizeOptions.map((size) => ({ value: size, label: String(size) }))}
             onValueChange={(size) => {
-              if (typeof size === "number") act(() => table.setPageSize(size));
+              if (typeof size !== "number" || size === pageSize) return;
+              pending.current = { pageSize: size };
+              table.setPageSize(size);
             }}
           >
             <SelectTrigger size="sm" aria-label={pageSizeLabel} className={dataTablePageSize}>
@@ -474,7 +493,7 @@ export function DataTablePagination<TData>({
               <PaginationPrevious
                 render={<button type="button" />}
                 disabled={!table.canPreviousPage}
-                onClick={() => act(table.previousPage)}
+                onClick={() => goTo(pageIndex - 1)}
               />
             </PaginationItem>
             {getPaginationRange({ page, pageCount: table.pageCount }).map((item) =>
@@ -484,7 +503,7 @@ export function DataTablePagination<TData>({
                     render={<button type="button" />}
                     isActive={item === page}
                     aria-label={pageLabel(item)}
-                    onClick={() => act(() => table.setPageIndex(item - 1))}
+                    onClick={() => goTo(item - 1)}
                   >
                     {item}
                   </PaginationLink>
@@ -499,7 +518,7 @@ export function DataTablePagination<TData>({
               <PaginationNext
                 render={<button type="button" />}
                 disabled={!table.canNextPage}
-                onClick={() => act(table.nextPage)}
+                onClick={() => goTo(pageIndex + 1)}
               />
             </PaginationItem>
           </PaginationContent>

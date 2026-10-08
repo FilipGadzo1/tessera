@@ -12,7 +12,7 @@ import {
   systemColor,
 } from "../../../test/emulation";
 import { auditOpenOverlay, textRect, waitForPopupSettled } from "../../../test/overlay";
-import type { DataTableColumn } from "../../lib/data-table";
+import type { DataTableColumn, PaginationState, SortingState } from "../../lib/data-table";
 import { Button } from "../button";
 import {
   DataTable,
@@ -611,6 +611,55 @@ describe("DataTable: pagination", () => {
     await userEvent.keyboard("{Enter}");
     await expect.element(status()).toHaveTextContent("Sorted by Start, ascending");
     expect(pagerStatus().textContent).toBe("Showing 11–12 of 12");
+  });
+
+  it("a click on the current page leaves nothing pending: a later sort speaks in one region only", async () => {
+    const screen = await render(<Events />);
+    await userEvent.click(screen.getByRole("button", { name: "Page 3" }));
+    await expect.element(pagerStatus()).toHaveTextContent("Showing 11–12 of 12");
+    await userEvent.click(screen.getByRole("button", { name: "Page 3" }));
+    await userEvent.click(sortButton("Title"));
+    await expect.element(range()).toHaveTextContent("Showing 1–5 of 12");
+    await expect.element(status()).toHaveTextContent("Sorted by Title, ascending");
+    expect(pagerStatus().textContent).toBe("Showing 11–12 of 12");
+  });
+
+  it("a change a controlled parent refuses leaves nothing pending for a later change", async () => {
+    function Refusing() {
+      const [sorting, setSorting] = useState<SortingState>([]);
+      const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 5 });
+      const table = useDataTable<Event>({
+        data: events,
+        columns,
+        getRowId: (row) => row.id,
+        sorting,
+        // Refuses a sort by Title and the third page.
+        onSortingChange: (next) => next[0]?.id !== "title" && setSorting(next),
+        pagination,
+        onPaginationChange: (next) => next.pageIndex !== 2 && setPagination(next),
+      });
+      return (
+        <>
+          <Button onClick={() => table.setSorting([{ id: "start", desc: false }])}>
+            Sort by start
+          </Button>
+          <DataTable table={table} caption="Events" />
+          <DataTablePagination table={table} />
+        </>
+      );
+    }
+    const screen = await render(<Refusing />);
+    await userEvent.click(screen.getByRole("button", { name: "Page 2" }));
+    await expect.element(pagerStatus()).toHaveTextContent("Showing 6–10 of 12");
+    await userEvent.click(screen.getByRole("button", { name: "Page 3" }));
+    await userEvent.click(sortButton("Title"));
+    expect(head("Title").hasAttribute("aria-sort")).toBe(false);
+    // A sort from outside the table: it resets the page and neither region speaks.
+    await userEvent.click(screen.getByRole("button", { name: "Sort by start" }));
+    await expect.element(head("Start")).toHaveAttribute("aria-sort", "ascending");
+    await expect.element(range()).toHaveTextContent("Showing 1–5 of 12");
+    expect(status().textContent).toBe("");
+    expect(pagerStatus().textContent).toBe("Showing 6–10 of 12");
   });
 
   it("page sizes: 10 shows 1–10 and keeps the first visible row", async () => {
