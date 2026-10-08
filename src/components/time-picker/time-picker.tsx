@@ -239,7 +239,9 @@ export function TimePicker({
     granularity: slotGranularity,
   });
 
+  // Reports real changes only, as TimeField does: picking the selected slot just closes the list.
   const pick = (next: string | null) => {
+    if (compareTime(next, value) === 0) return;
     setValue(next);
     onValueChange?.(next);
   };

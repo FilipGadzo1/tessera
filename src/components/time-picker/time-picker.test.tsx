@@ -312,6 +312,20 @@ describe("TimePicker: keys", () => {
     await expect.poll(() => document.activeElement).toBe(iconButton());
   });
 
+  it("picking the selected slot reports no change; the popup still closes and focus returns", async () => {
+    const onValueChange = vi.fn();
+    await render(
+      <Picker min="09:00" max="11:00" defaultValue="10:00" onValueChange={onValueChange} />,
+    );
+    await openList();
+    await expect.poll(focusedValue).toBe("10:00");
+    await userEvent.keyboard("{Enter}");
+    await expect.element(dialog()).not.toBeInTheDocument();
+    await expect.poll(() => document.activeElement).toBe(iconButton());
+    expect(onValueChange).not.toHaveBeenCalled();
+    expect(texts()).toEqual(["10", "00", "AM"]);
+  });
+
   it("Space picks too; a Space still held when focus returns does not reopen the popup", async () => {
     const onValueChange = vi.fn();
     await render(<Picker min="09:00" max="11:00" onValueChange={onValueChange} />);
