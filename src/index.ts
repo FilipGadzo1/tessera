@@ -243,6 +243,12 @@ export {
   ContextMenuTrigger,
   type ContextMenuTriggerProps,
 } from "./components/context-menu";
+export {
+  type DataTableInstance,
+  type DataTableRow,
+  type UseDataTableOptions,
+  useDataTable,
+} from "./components/data-table";
 export { DateField, type DateFieldLabels, type DateFieldProps } from "./components/date-field";
 export {
   DatePicker,
