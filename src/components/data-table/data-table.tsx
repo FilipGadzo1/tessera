@@ -298,6 +298,9 @@ export function DataTable<TData>({
                           type="radio"
                           data-slot="data-table-select-row"
                           name={radioName}
+                          // No form owner: an enclosing form does not submit the selection. The
+                          // radios still group by name (all without a form owner, in one tree).
+                          form=""
                           aria-label={label}
                           checked={row.selected}
                           disabled={!row.selectable}

@@ -549,6 +549,32 @@ describe("DataTable: selection", () => {
     expect(rowOf("Code review").hasAttribute("data-state")).toBe(false);
   });
 
+  it("single: inside a form the radios submit nothing and still group natively", async () => {
+    const onRowSelectionChange = vi.fn();
+    const screen = await render(
+      <form aria-label="Pick">
+        <input name="kept" defaultValue="yes" />
+        <Events
+          selectionMode="single"
+          columns={dataColumns}
+          pager={false}
+          onRowSelectionChange={onRowSelectionChange}
+        />
+      </form>,
+    );
+    const form = screen.getByRole("form", { name: "Pick" }).element() as HTMLFormElement;
+    await userEvent.click(screen.getByRole("radio", { name: "Select Code review" }));
+    await expect.element(screen.getByRole("radio", { name: "Select Code review" })).toBeChecked();
+    expect([...new FormData(form).keys()]).toEqual(["kept"]);
+    await userEvent.keyboard("{ArrowDown}");
+    expect(onRowSelectionChange).toHaveBeenLastCalledWith(["e4"]);
+    await expect.element(screen.getByRole("radio", { name: "Select Design sprint" })).toBeChecked();
+    expect([...new FormData(form).keys()]).toEqual(["kept"]);
+    // One Tab stop: Tab from the checked radio leaves the radios.
+    await userEvent.tab();
+    expect(document.activeElement).not.toBeInstanceOf(HTMLInputElement);
+  });
+
   it("single: the radios are one Tab stop", async () => {
     await render(<Events selectionMode="single" columns={dataColumns} pager={false} />);
     const sequence = await tabSequence(6);
