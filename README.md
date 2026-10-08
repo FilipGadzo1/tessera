@@ -621,6 +621,29 @@ source files automatically (build output + `"use client"` directive checks).
   input with `inputProps["aria-label"]`, default "Add a tag", when there is no Field label), and
   `listLabel` / `removeLabel` / `addedLabel` / `removedLabel` / `rejectionLabel` for the strings.
   Client component)
+- [x] FileUpload, FileUploadDropzone, FileUploadList, FileUploadItem, FileUploadItemRemove,
+  FileUploadRejections (a file picker: a visually hidden native `<input type="file">` is the real
+  control and the one Tab stop — named by the Field label or `aria-label` ("Choose files"), opened
+  natively with Enter or Space — and `FileUploadDropzone` is its required visible surface: a click
+  opens the picker, a drop adds the files, and it mirrors the input's focus ring (a dev warning
+  when none is rendered). Picks and drops are checked against `accept`, `minSize` / `maxSize`,
+  `maxFiles`, duplicates (name, size and `lastModified`) and `validate(file)`: accepted files join
+  the list (`multiple={false}` or `maxFiles={1}` replaces it), rejected ones go to
+  `onFilesRejected` and the optional `FileUploadRejections` ("name — message"), and every batch,
+  add and removal is announced in a polite status region; rejections never make the field invalid.
+  The list is the source of truth and is written back to `input.files` (`DataTransfer`), so a native
+  submit carries exactly the listed files, dropped ones included (a browser without the
+  `DataTransfer` constructor submits only its last native pick; a `Form`'s `onFormSubmit` still
+  reports the full `File[]`). `FileUploadList` ("Selected files") renders a `FileUploadItem` per
+  file — an image preview (an object URL made after mount and revoked on removal) or a file icon,
+  the name and size, and a remove button that moves focus to the next item, else the previous,
+  else the input; give an item `progress` (0–100, `null` indeterminate), `status` and `error` to
+  show an upload, which is the app's to run (no network code). `value` / `defaultValue` /
+  `onValueChange` (`File[]`), `disabled`, `required` (at least one file), `name` (else the
+  Field's), `form`, `locale` (sizes) and `addedLabel` / `removedLabel` / `removeLabel` /
+  `rejectedLabel` / `rejectionMessage` for the strings. The helpers are exported too:
+  `matchesAccept`, `formatFileSize` (SI units in the locale's words), `validateFiles` and
+  `getFileKey`. Client component)
 - [x] Sidebar, SidebarProvider, SidebarTrigger, SidebarRail, SidebarInset, SidebarHeader, SidebarFooter,
   SidebarContent, SidebarSeparator, SidebarGroup, SidebarGroupLabel, SidebarGroupAction, SidebarGroupContent,
   SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuAction, SidebarMenuBadge, SidebarMenuSub,

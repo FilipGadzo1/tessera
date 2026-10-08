@@ -212,6 +212,17 @@ export function PlusIcon(props: ComponentProps<"svg">) {
   );
 }
 
+/** An arrow up out of a tray: a FileUpload dropzone. */
+export function UploadIcon(props: ComponentProps<"svg">) {
+  return (
+    <StrokeIcon {...props}>
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <path d="m17 8-5-5-5 5" />
+      <path d="M12 3v12" />
+    </StrokeIcon>
+  );
+}
+
 export function EllipsisIcon(props: ComponentProps<"svg">) {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor" {...props}>

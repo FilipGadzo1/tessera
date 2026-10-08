@@ -486,6 +486,22 @@ Server-safe (no `window`), exported from `src/index.ts`; unit-tested in `file.te
 
 **Stories (Task 5, `Components/FileUpload`):** Basic, Images with previews, Single file (avatar), Constraints and rejections, Upload progress (a story-local fake uploader driven by `setTimeout`; stories may use timers, components may not), In a Form, Disabled, RTL.
 
+- *Amended in Task 5*: a disabled dropzone puts `aria-disabled="true"` on itself. Evidence: the axe run reported the disabled dropzone's text as a `color-contrast` violation (2.02:1 light, 2.53:1 dark at `opacity-50`); the dropzone is no form control, so axe's disabled exemption did not apply. The TagsInput rule (§4, *Amended in Task 4*): an inactive control is exempt from WCAG 1.4.3, and the attribute states it. Tested by the axe case with a disabled FileUpload (light and dark, violations and incomplete both `[]`).
+- *Amended in Task 5*: a removal moves focus **before** the item unmounts (to the next item's remove button, else the previous one, else the input), and a controlled parent that refuses the removal gets the focus back on the kept item's button. Evidence: Chromium reports the removal of a focused element as a `focusout` with no `relatedTarget`, which `useFocusScope` took for a Field blur, so `validationMode="onBlur"` showed "fill out this field" while focus was still inside (the Field-blur test failed). Tested (the onBlur test and the refusing-parent test).
+- *Amended in Task 5* (details the text above leaves open, pinned in `file-upload.test.tsx`):
+  - `removeLabel(file)` (default `` `Remove ${file.name}` ``) is a root label function, as the other strings; `FileUploadItemRemove` also takes an `aria-label` that wins.
+  - The rejections `onFilesRejected` receives and `FileUploadRejections` shows carry `message` filled with `rejectionMessage(rejection)` (or the default), so the reported, shown and announced texts agree.
+  - `too-many` counts the limit as 1 in single mode, and the default reads "More than 1 file" (singular) there, never "More than Infinity files".
+  - One announcement per batch joins its parts with ". " ("report.pdf added. 2 files rejected"), as TagsInput.
+  - The write-back also runs after a pick a controlled parent refuses (a pick counter re-runs the layout effect), since the native pick replaced `input.files` without changing the list.
+  - A drag whose `dataTransfer.types` has no `"Files"` is not handled at all (no `preventDefault`, so it is no drop target). While disabled, `dragover` and `drop` are still prevented (`dropEffect` `"none"`), so the browser does not open the dropped file instead.
+  - The dropzone prevents `mousedown`'s default (focus stays where it is; no text selection), and its click focuses the input with `{ preventScroll: true, focusVisible: false }`, so a pointer click shows no ring (tested).
+  - The preview box adds `flex items-center justify-center text-muted-foreground [&_svg]:size-5` to centre the file icon; the progress bar and the error sit in the name column under the size, so the row keeps its three columns.
+  - A preview image the browser cannot decode (a corrupt file, HEIC in Chromium) falls back to the file icon (`onError`); the visual check showed the broken-image glyph for an undecodable PNG. Tested.
+  - `src/lib/file.ts` also exports the `ValidateFilesOptions` and `ValidateFilesResult` types.
+  - Tests drop the very same `File` objects for the duplicate cases: a pick through the test driver (`userEvent.upload`) restamps `lastModified`. Outside a real drag session Chromium ignores writes to `dropEffect`, so those tests give the `DataTransfer` an own writable `dropEffect`.
+  - Biome's `useAriaPropsSupportedByRole` flags `aria-required` on the file input; ARIA in HTML allows it there, so the line carries a `biome-ignore` naming the review rule.
+
 ## 6. The data-table engine (Task 6)
 
 ### 6.1 `src/lib/data-table.ts` (public, server-safe, pure)

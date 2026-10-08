@@ -23,6 +23,7 @@ import {
   PlusIcon,
   SearchIcon,
   StarIcon,
+  UploadIcon,
 } from "./icons";
 
 const icons = {
@@ -48,6 +49,7 @@ const icons = {
   PlusIcon,
   SearchIcon,
   StarIcon,
+  UploadIcon,
 };
 
 describe("icons", () => {

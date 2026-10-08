@@ -44,8 +44,11 @@ const visuallyHiddenBase: CSSProperties = {
   height: 1,
   margin: -1,
 };
-/** For a named input: stays next to its control, so a native validation bubble points there. */
-const visuallyHiddenInput: CSSProperties = { ...visuallyHiddenBase, position: "absolute" };
+/**
+ * For a named input: stays next to its control, so a native validation bubble points there. Also
+ * FileUpload's native file input, the real (focusable) control under its dropzone.
+ */
+export const visuallyHiddenInput: CSSProperties = { ...visuallyHiddenBase, position: "absolute" };
 /** For an unnamed input: out of the flow entirely. */
 const visuallyHidden: CSSProperties = { ...visuallyHiddenBase, position: "fixed", top: 0, left: 0 };
 
