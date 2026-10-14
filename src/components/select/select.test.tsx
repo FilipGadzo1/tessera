@@ -781,3 +781,14 @@ describe("Select", () => {
     expect(style.backgroundColor).not.toBe(systemColor("Canvas"));
   });
 });
+
+describe("Select trigger text alignment", () => {
+  it.each(["ltr", "rtl"] as const)("%s: the trigger's text-align is start", async (dir) => {
+    await render(
+      <div dir={dir}>
+        <Fruit />
+      </div>,
+    );
+    expect(getComputedStyle(trigger().element()).textAlign).toBe("start");
+  });
+});

@@ -14,7 +14,7 @@ const selectTriggerBase = [
   ...textFieldBase.map((classes) =>
     classes.replace("read-only:bg-muted", "data-readonly:bg-muted"),
   ),
-  "inline-flex items-center justify-between gap-2 cursor-pointer text-left",
+  "inline-flex items-center justify-between gap-2 cursor-pointer text-start",
 ];
 
 const selectTriggerCva = cva(selectTriggerBase, {
