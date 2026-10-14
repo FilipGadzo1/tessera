@@ -146,6 +146,50 @@ describe("Calendar: structure", () => {
   });
 });
 
+describe("Calendar: Gregorian only", () => {
+  const gregorian = (locale: string, options: Intl.DateTimeFormatOptions, date: Date) =>
+    new Intl.DateTimeFormat(locale, { ...options, calendar: "gregory" }).format(date);
+  const gregorianYear = (locale: string) =>
+    new Intl.NumberFormat(locale, { useGrouping: false }).format(2026);
+
+  it.each(["fa-IR", "th-TH", "ar-SA", "ja-JP-u-ca-japanese"])(
+    "%s: caption, month and year buttons, day numbers and day labels agree with the Gregorian grid",
+    async (locale) => {
+      const screen = await render(<Calendar locale={locale} defaultMonth={d(2026, 9, 1)} />);
+      const caption = gregorian(locale, { month: "long", year: "numeric" }, d(2026, 9, 1));
+      await expect.element(screen.getByRole("grid", { name: caption })).toBeVisible();
+      const slot = (name: string) =>
+        screen.container.querySelector(`[data-slot="${name}"]`) as HTMLElement;
+      expect(slot("calendar-caption").textContent).toBe(caption);
+      expect(caption).toContain(gregorianYear(locale));
+      expect(slot("calendar-month-button").textContent).toBe(
+        gregorian(locale, { month: "long" }, d(2026, 9, 1)),
+      );
+      expect(slot("calendar-year-button").textContent).toBe(
+        gregorian(locale, { year: "numeric" }, d(2026, 1, 1)),
+      );
+      for (const day of [1, 15, 25, 30]) {
+        const date = d(2026, 9, day);
+        const button = screen.container.querySelector(
+          `[data-slot="calendar-day"][data-date="2026-09-${String(day).padStart(2, "0")}"]`,
+        ) as HTMLButtonElement;
+        expect(button.textContent).toBe(gregorian(locale, { day: "numeric" }, date));
+        const label = gregorian(locale, { dateStyle: "full" }, date);
+        expect(button.getAttribute("aria-label")).toBe(label);
+        expect(label).toContain(gregorianYear(locale));
+      }
+    },
+  );
+
+  it("RangeCalendar uses the same Gregorian labels", async () => {
+    const screen = await render(<RangeCalendar locale="th-TH" defaultMonth={d(2026, 9, 1)} />);
+    const label = gregorian("th-TH", { dateStyle: "full" }, d(2026, 9, 25));
+    await expect
+      .element(screen.getByRole("button", { name: label, exact: true }))
+      .toBeInTheDocument();
+  });
+});
+
 describe("Calendar: selection", () => {
   it("selects a day on click (aria-selected on the gridcell) and reports it", async () => {
     const onValueChange = vi.fn();

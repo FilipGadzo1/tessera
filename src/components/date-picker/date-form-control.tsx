@@ -46,7 +46,7 @@ export function dateValidationMessage(
 ): string {
   if (!date) return "";
   const format = (bound: Date) =>
-    new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(bound);
+    new Intl.DateTimeFormat(locale, { dateStyle: "medium", calendar: "gregory" }).format(bound);
   if (min && compareDay(date, min) < 0) {
     const text = format(min);
     return labels?.rangeUnderflow?.(text, min) ?? `Enter a date on or after ${text}.`;

@@ -136,12 +136,16 @@ interface CalendarFormatters extends CalendarViewFormatters {
 
 function useFormatters(locale: string | undefined, weekStartsOn: WeekDay): CalendarFormatters {
   return useMemo(() => {
-    const caption = new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" });
-    const full = new Intl.DateTimeFormat(locale, { dateStyle: "full" });
-    const dayNumber = new Intl.DateTimeFormat(locale, { day: "numeric" });
-    const longWeekday = new Intl.DateTimeFormat(locale, { weekday: "long" });
-    const shortWeekday = new Intl.DateTimeFormat(locale, { weekday: "short" });
-    const narrowWeekday = new Intl.DateTimeFormat(locale, { weekday: "narrow" });
+    // Gregorian only (Phase L ruling): the grid is Gregorian, so a locale whose default calendar
+    // differs (fa-IR, th-TH, ar-SA) or a `-u-ca-` tag must not rename the month, year or day.
+    const gregorian = (options: Intl.DateTimeFormatOptions) =>
+      new Intl.DateTimeFormat(locale, { ...options, calendar: "gregory" });
+    const caption = gregorian({ month: "long", year: "numeric" });
+    const full = gregorian({ dateStyle: "full" });
+    const dayNumber = gregorian({ day: "numeric" });
+    const longWeekday = gregorian({ weekday: "long" });
+    const shortWeekday = gregorian({ weekday: "short" });
+    const narrowWeekday = gregorian({ weekday: "narrow" });
     // Any week works for the names: take the one starting on 2026-01-04 (a Sunday).
     const week = Array.from(
       { length: 7 },
@@ -160,9 +164,9 @@ function useFormatters(locale: string | undefined, weekStartsOn: WeekDay): Calen
     // first (ja-JP "2026年9月", hu-HU "2026. szeptember").
     const parts = caption.formatToParts(new Date(2026, 8, 1)).map((part) => part.type);
     const yearFirst = parts.indexOf("year") < parts.indexOf("month");
-    const monthName = new Intl.DateTimeFormat(locale, { month: "long" });
-    const shortMonth = new Intl.DateTimeFormat(locale, { month: "short" });
-    const year = new Intl.DateTimeFormat(locale, { year: "numeric" });
+    const monthName = gregorian({ month: "long" });
+    const shortMonth = gregorian({ month: "short" });
+    const year = gregorian({ year: "numeric" });
     return {
       caption,
       full,

@@ -59,6 +59,21 @@ function Picker(props: DatePickerProps) {
 }
 
 describe("DatePicker: trigger", () => {
+  it.each(["fa-IR", "th-TH", "ar-SA", "ja-JP-u-ca-japanese"])(
+    "%s: the trigger shows the Gregorian date",
+    async (locale) => {
+      await render(<Picker locale={locale} defaultValue={d(2026, 9, 25)} />);
+      const expected = new Intl.DateTimeFormat(locale, {
+        dateStyle: "medium",
+        calendar: "gregory",
+      }).format(d(2026, 9, 25));
+      expect(triggerEl().textContent).toBe(expected);
+      expect(expected).toContain(
+        new Intl.NumberFormat(locale, { useGrouping: false }).format(2026),
+      );
+    },
+  );
+
   it("shows the placeholder in the muted colour with data-placeholder, and a leading calendar icon", async () => {
     const screen = await render(
       <div>

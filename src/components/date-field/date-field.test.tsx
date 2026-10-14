@@ -138,6 +138,41 @@ describe("DateField: structure", () => {
   });
 });
 
+describe("DateField: Gregorian only", () => {
+  const locales = ["fa-IR", "th-TH", "ar-SA", "ja-JP-u-ca-japanese"];
+  const input = () =>
+    document.querySelector<HTMLInputElement>("[data-slot=date-form-control]") as HTMLInputElement;
+
+  // Guard: green on the first run (the segments are already Gregorian, see the spec correction).
+  it.each(locales)(
+    "%s: segments show the Gregorian year, month name and ISO value",
+    async (locale) => {
+      await render(<Basic locale={locale} defaultValue={d(2026, 9, 25)} />);
+      expect(seg("year").textContent).toBe(
+        new Intl.NumberFormat(locale, { useGrouping: false }).format(2026),
+      );
+      expect(seg("month").getAttribute("aria-valuetext")).toBe(
+        new Intl.DateTimeFormat(locale, { month: "long", calendar: "gregory" }).format(
+          d(2026, 9, 1),
+        ),
+      );
+      expect(input().value).toBe("2026-09-25");
+    },
+  );
+
+  it.each(locales)(
+    "%s: the min / max messages format the bound in the Gregorian calendar",
+    async (locale) => {
+      await render(<Basic locale={locale} min={d(2026, 9, 10)} defaultValue={d(2026, 9, 1)} />);
+      const bound = new Intl.DateTimeFormat(locale, {
+        dateStyle: "medium",
+        calendar: "gregory",
+      }).format(d(2026, 9, 10));
+      expect(input().validationMessage).toBe(`Enter a date on or after ${bound}.`);
+    },
+  );
+});
+
 describe("DateField: typing", () => {
   it("types a full date with auto-advance and reports it once", async () => {
     const onValueChange = vi.fn();

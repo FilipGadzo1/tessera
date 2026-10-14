@@ -73,7 +73,7 @@ interface PickerTriggerProps
 interface PickerFields {
   /** Trigger text while nothing is picked. */
   placeholder?: string;
-  /** How the trigger shows the value. @default { dateStyle: "medium" } */
+  /** How the trigger shows the value; the calendar is always Gregorian. @default { dateStyle: "medium" } */
   format?: Intl.DateTimeFormatOptions;
   /**
    * BCP 47 locale for the trigger text and the calendar.
@@ -321,7 +321,7 @@ export function DatePicker({
   const field = useFieldRootContext();
   const [value, setValue] = useControllableState(valueProp, defaultValue);
   const resolvedLocale = resolveLocale(locale);
-  const formatter = new Intl.DateTimeFormat(resolvedLocale, format);
+  const formatter = new Intl.DateTimeFormat(resolvedLocale, { ...format, calendar: "gregory" });
   const iso = value ? toISODate(value) : "";
 
   if (editable) {
@@ -525,7 +525,7 @@ export function DateRangePicker({
 }: DateRangePickerProps) {
   const [value, setValue] = useControllableState(valueProp, defaultValue);
   const resolvedLocale = resolveLocale(locale);
-  const formatter = new Intl.DateTimeFormat(resolvedLocale, format);
+  const formatter = new Intl.DateTimeFormat(resolvedLocale, { ...format, calendar: "gregory" });
 
   const calendarProps = {
     numberOfMonths,
