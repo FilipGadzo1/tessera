@@ -218,3 +218,20 @@ describe("Breadcrumb", () => {
     expect(results.incomplete.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
   });
 });
+
+describe("Breadcrumb RTL", () => {
+  it.each([
+    ["ltr", "none"],
+    ["rtl", "-1 1"],
+  ] as const)("%s: the default separator chevron's scale is %s", async (dir, scale) => {
+    const screen = await render(
+      <div dir={dir}>
+        <Trail />
+      </div>,
+    );
+    const icon = screen.container.querySelector(
+      '[data-slot="breadcrumb-separator"] svg',
+    ) as SVGElement;
+    expect(getComputedStyle(icon).scale).toBe(scale);
+  });
+});

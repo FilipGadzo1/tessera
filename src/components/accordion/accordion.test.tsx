@@ -540,3 +540,17 @@ describe("Accordion", () => {
     }
   });
 });
+
+describe("Accordion RTL", () => {
+  it.each(["ltr", "rtl"] as const)("%s: the trigger text aligns to the inline start", async (dir) => {
+    const screen = await render(
+      <div dir={dir}>
+        <Faq />
+      </div>,
+    );
+    const trigger = screen.container.querySelector(
+      '[data-slot="accordion-trigger"]',
+    ) as HTMLElement;
+    expect(getComputedStyle(trigger).textAlign).toBe("start");
+  });
+});

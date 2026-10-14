@@ -87,7 +87,7 @@ export interface BreadcrumbSeparatorProps extends ComponentProps<"li"> {
 export function BreadcrumbSeparator({ children, ...props }: BreadcrumbSeparatorProps) {
   return (
     <li {...props} role="presentation" aria-hidden="true" data-slot="breadcrumb-separator">
-      {children ?? <ChevronRightIcon className="size-3.5" />}
+      {children ?? <ChevronRightIcon className="size-3.5 rtl:-scale-x-100" />}
     </li>
   );
 }
