@@ -28,7 +28,7 @@ const trackClasses = cn(
 
 const thumbClasses = cn(
   "block size-5 rounded-full bg-surface-0 shadow-sm data-checked:bg-primary-foreground",
-  "translate-x-0 data-checked:translate-x-5",
+  "translate-x-0 data-checked:translate-x-5 rtl:data-checked:-translate-x-5",
   "transition-[translate,background-color] duration-150 ease-out motion-reduce:transition-none",
 );
 

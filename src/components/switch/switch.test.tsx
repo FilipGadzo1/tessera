@@ -351,3 +351,28 @@ describe("Switch", () => {
     expect(results.incomplete.map((v) => `${v.id}: ${v.nodes.map((n) => n.target)}`)).toEqual([]);
   });
 });
+
+describe("Switch RTL", () => {
+  it.each(["ltr", "rtl"] as const)(
+    "%s: the thumb starts at the inline start and slides to the inline end when checked",
+    async (dir) => {
+      const screen = await render(
+        <div dir={dir}>
+          <Switch aria-label="Notifications" />
+        </div>,
+      );
+      const toggle = screen.getByRole("switch", { name: "Notifications" });
+      const track = toggle.element();
+      const thumb = track.querySelector('[data-slot="switch-thumb"]') as HTMLElement;
+      /** The thumb's distance from the track's inline-start edge. */
+      const fromStart = () => {
+        const t = track.getBoundingClientRect();
+        const h = thumb.getBoundingClientRect();
+        return dir === "rtl" ? t.right - h.right : h.left - t.left;
+      };
+      expect(fromStart()).toBeCloseTo(2, 0);
+      await toggle.click();
+      await expect.poll(fromStart).toBeCloseTo(22, 0);
+    },
+  );
+});
