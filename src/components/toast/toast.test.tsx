@@ -201,28 +201,31 @@ describe("Toast", () => {
       ["info", "tone-info"],
       // Base UI's `promise()` marks a rejected promise's toast `error`.
       ["error", "tone-danger"],
-    ])("%s sets the %s tone, an inline-start accent and a tone-coloured icon", async (type, tone) => {
-      const { screen, toast } = await renderToaster(
-        {},
-        <span data-testid="ref" className={`${tone} border-s-4 border-s-tone text-tone-ink`} />,
-      );
-      toast().add({ title: `A ${type} toast`, type, timeout: 0 });
-      await expect.poll(() => toastWith(`A ${type} toast`)).not.toBeNull();
-      const root = toastWith(`A ${type} toast`) as HTMLElement;
-      expect(root.dataset.type).toBe(type);
-      expect(root.classList.contains(tone)).toBe(true);
-      expect(root.classList.contains("border-s-4")).toBe(true);
-      const icon = root.querySelector('[data-slot="toast-icon"]') as SVGElement;
-      expect(icon).not.toBeNull();
-      expect(icon.getAttribute("aria-hidden")).toBe("true");
-      // The icon uses the tone's ink, the accent its line colour (a reference in the same tone).
-      const ref = screen.getByTestId("ref").element();
-      expect(getComputedStyle(icon).color).toBe(getComputedStyle(ref).color);
-      expect(getComputedStyle(root).borderInlineStartColor).toBe(
-        getComputedStyle(ref).borderInlineStartColor,
-      );
-      expect(getComputedStyle(root).borderInlineStartWidth).toBe("4px");
-    });
+    ])(
+      "%s sets the %s tone, an inline-start accent and a tone-coloured icon",
+      async (type, tone) => {
+        const { screen, toast } = await renderToaster(
+          {},
+          <span data-testid="ref" className={`${tone} border-s-4 border-s-tone text-tone-ink`} />,
+        );
+        toast().add({ title: `A ${type} toast`, type, timeout: 0 });
+        await expect.poll(() => toastWith(`A ${type} toast`)).not.toBeNull();
+        const root = toastWith(`A ${type} toast`) as HTMLElement;
+        expect(root.dataset.type).toBe(type);
+        expect(root.classList.contains(tone)).toBe(true);
+        expect(root.classList.contains("border-s-4")).toBe(true);
+        const icon = root.querySelector('[data-slot="toast-icon"]') as SVGElement;
+        expect(icon).not.toBeNull();
+        expect(icon.getAttribute("aria-hidden")).toBe("true");
+        // The icon uses the tone's ink, the accent its line colour (a reference in the same tone).
+        const ref = screen.getByTestId("ref").element();
+        expect(getComputedStyle(icon).color).toBe(getComputedStyle(ref).color);
+        expect(getComputedStyle(root).borderInlineStartColor).toBe(
+          getComputedStyle(ref).borderInlineStartColor,
+        );
+        expect(getComputedStyle(root).borderInlineStartWidth).toBe("4px");
+      },
+    );
 
     it("default has no accent and no icon", async () => {
       const { toast } = await renderToaster();
