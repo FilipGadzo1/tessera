@@ -406,3 +406,45 @@ describe("NumberField", () => {
     expect(results.incomplete.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
   });
 });
+
+describe("NumberField RTL", () => {
+  it.each(["ltr", "rtl"] as const)(
+    "%s: the stepper dividers sit on the sides facing the input",
+    async (dir) => {
+      const screen = await render(
+        <div dir={dir}>
+          <NumberField aria-label="Quantity" defaultValue={3} />
+        </div>,
+      );
+      const root = screen.container.querySelector('[data-slot="number-field"]') as HTMLElement;
+      const increment = incrementOf(root);
+      const decrement = decrementOf(root);
+      const input = inputOf(root);
+      // The decrement button comes first in the reading order: at the left in LTR, the right in RTL.
+      if (dir === "ltr") {
+        expect(decrement.getBoundingClientRect().right).toBeLessThanOrEqual(
+          input.getBoundingClientRect().left + 1,
+        );
+      } else {
+        expect(decrement.getBoundingClientRect().left).toBeGreaterThanOrEqual(
+          input.getBoundingClientRect().right - 1,
+        );
+      }
+      const decrementStyle = getComputedStyle(decrement);
+      const incrementStyle = getComputedStyle(increment);
+      // Decrement's divider is on its inline end, Increment's on its inline start.
+      expect(dir === "ltr" ? decrementStyle.borderRightWidth : decrementStyle.borderLeftWidth).toBe(
+        "1px",
+      );
+      expect(dir === "ltr" ? decrementStyle.borderLeftWidth : decrementStyle.borderRightWidth).toBe(
+        "0px",
+      );
+      expect(dir === "ltr" ? incrementStyle.borderLeftWidth : incrementStyle.borderRightWidth).toBe(
+        "1px",
+      );
+      expect(dir === "ltr" ? incrementStyle.borderRightWidth : incrementStyle.borderLeftWidth).toBe(
+        "0px",
+      );
+    },
+  );
+});

@@ -104,7 +104,7 @@ export function NumberFieldIncrement({ className, ...props }: NumberFieldIncreme
     <BaseNumberField.Increment
       {...props}
       data-slot="number-field-increment"
-      className={mergeClassName(`${numberFieldButtonBase} border-l border-field-border`, className)}
+      className={mergeClassName(`${numberFieldButtonBase} border-s border-field-border`, className)}
     >
       <PlusIcon className="size-3.5" />
     </BaseNumberField.Increment>
@@ -119,7 +119,7 @@ export function NumberFieldDecrement({ className, ...props }: NumberFieldDecreme
     <BaseNumberField.Decrement
       {...props}
       data-slot="number-field-decrement"
-      className={mergeClassName(`${numberFieldButtonBase} border-r border-field-border`, className)}
+      className={mergeClassName(`${numberFieldButtonBase} border-e border-field-border`, className)}
     >
       <MinusIcon className="size-3.5" />
     </BaseNumberField.Decrement>
