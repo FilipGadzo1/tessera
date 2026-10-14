@@ -91,8 +91,8 @@ const rootClasses = [
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-ring",
 ].join(" ");
 
-/** Toned types add a left accent in the tone's line colour. */
-const accentClasses = "border-l-4 border-l-tone";
+/** Toned types add an inline-start accent in the tone's line colour. */
+const accentClasses = "border-s-4 border-s-tone";
 
 /*
  * Behind the front toast (collapsed) the content fades out so stacked texts never overlap; it
@@ -193,7 +193,7 @@ function ToastItem({ toast, position }: { toast: ToastObject<object>; position: 
             <BaseToast.Action render={<Button size="sm" variant="outline" color="neutral" />} />
           </span>
         )}
-        <span data-slot="toast-close" className="-mt-1 -mr-1 flex shrink-0">
+        <span data-slot="toast-close" className="-mt-1 -me-1 flex shrink-0">
           <BaseToast.Close
             render={<Button variant="ghost" color="neutral" size="icon-xs" aria-label="Close" />}
           >

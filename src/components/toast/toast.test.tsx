@@ -201,25 +201,27 @@ describe("Toast", () => {
       ["info", "tone-info"],
       // Base UI's `promise()` marks a rejected promise's toast `error`.
       ["error", "tone-danger"],
-    ])("%s sets the %s tone, a left accent and a tone-coloured icon", async (type, tone) => {
+    ])("%s sets the %s tone, an inline-start accent and a tone-coloured icon", async (type, tone) => {
       const { screen, toast } = await renderToaster(
         {},
-        <span data-testid="ref" className={`${tone} border-l-4 border-l-tone text-tone-ink`} />,
+        <span data-testid="ref" className={`${tone} border-s-4 border-s-tone text-tone-ink`} />,
       );
       toast().add({ title: `A ${type} toast`, type, timeout: 0 });
       await expect.poll(() => toastWith(`A ${type} toast`)).not.toBeNull();
       const root = toastWith(`A ${type} toast`) as HTMLElement;
       expect(root.dataset.type).toBe(type);
       expect(root.classList.contains(tone)).toBe(true);
-      expect(root.classList.contains("border-l-4")).toBe(true);
+      expect(root.classList.contains("border-s-4")).toBe(true);
       const icon = root.querySelector('[data-slot="toast-icon"]') as SVGElement;
       expect(icon).not.toBeNull();
       expect(icon.getAttribute("aria-hidden")).toBe("true");
       // The icon uses the tone's ink, the accent its line colour (a reference in the same tone).
       const ref = screen.getByTestId("ref").element();
       expect(getComputedStyle(icon).color).toBe(getComputedStyle(ref).color);
-      expect(getComputedStyle(root).borderLeftColor).toBe(getComputedStyle(ref).borderLeftColor);
-      expect(getComputedStyle(root).borderLeftWidth).toBe("4px");
+      expect(getComputedStyle(root).borderInlineStartColor).toBe(
+        getComputedStyle(ref).borderInlineStartColor,
+      );
+      expect(getComputedStyle(root).borderInlineStartWidth).toBe("4px");
     });
 
     it("default has no accent and no icon", async () => {
@@ -227,7 +229,7 @@ describe("Toast", () => {
       toast().add({ title: "Plain", timeout: 0 });
       await expect.poll(() => toastWith("Plain")).not.toBeNull();
       const root = toastWith("Plain") as HTMLElement;
-      expect(root.classList.contains("border-l-4")).toBe(false);
+      expect(root.classList.contains("border-s-4")).toBe(false);
       expect(getComputedStyle(root).borderLeftWidth).toBe("1px");
       expect(root.querySelector('[data-slot="toast-icon"]')).toBeNull();
     });
@@ -248,7 +250,7 @@ describe("Toast", () => {
       expect(loading.dataset.type).toBe("loading");
       const spinner = loading.querySelector('[data-slot="toast-icon"]') as SVGElement;
       expect(spinner.classList.contains("animate-spin")).toBe(true);
-      expect(loading.classList.contains("border-l-4")).toBe(false);
+      expect(loading.classList.contains("border-s-4")).toBe(false);
       resolve("report.pdf");
       await expect.poll(() => toastWith("report.pdf uploaded")?.dataset.type).toBe("success");
       expect(toastWith("report.pdf uploaded")?.classList.contains("tone-success")).toBe(true);
@@ -617,6 +619,31 @@ describe("Toast", () => {
         }
       } finally {
         document.documentElement.classList.remove("dark");
+      }
+    },
+  );
+});
+
+describe("Toast RTL", () => {
+  it.each(["ltr", "rtl"] as const)(
+    "%s: the accent border and the Close offset sit on the logical edges",
+    async (dir) => {
+      document.documentElement.dir = dir;
+      try {
+        const { toast } = await renderToaster();
+        toast().add({ title: "Saved", type: "success", timeout: 0 });
+        await expect.poll(() => toastWith("Saved")).not.toBeNull();
+        const root = toastWith("Saved") as HTMLElement;
+        const rootStyle = getComputedStyle(root);
+        expect(dir === "rtl" ? rootStyle.borderRightWidth : rootStyle.borderLeftWidth).toBe("4px");
+        expect(dir === "rtl" ? rootStyle.borderLeftWidth : rootStyle.borderRightWidth).toBe("1px");
+        const closeStyle = getComputedStyle(
+          root.querySelector('[data-slot="toast-close"]') as HTMLElement,
+        );
+        expect(dir === "rtl" ? closeStyle.marginLeft : closeStyle.marginRight).toBe("-4px");
+        expect(dir === "rtl" ? closeStyle.marginRight : closeStyle.marginLeft).toBe("0px");
+      } finally {
+        document.documentElement.removeAttribute("dir");
       }
     },
   );
