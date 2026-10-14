@@ -35,6 +35,19 @@ Failure modes the spec implies that a person using the library would hit; each i
 - Two Sidebars in one provider, a held Ctrl/Cmd+B, a click-only PaginationLink, and `NaN` / fractional pagination input (Task 4).
 - Existing `FieldError` tests when it gains the shared live-region role (Task 6).
 
+## Plan-review amendments (critic pass, 2026-10-14)
+
+Fixed in the plan text: the Task 8 baseline-worktree command now names the branch tip by commit; the Separator step gained a no-fixed-height flex-row test with a documented fallback; the button DateRangePicker reset only calls `onValueChange` for a complete default range (the contract change is L3); the DateField "ignores the request" reset test now clears the mock before resetting so it can fail on the baseline. Apply these during execution:
+
+- **Canary (Task 7):** give the `npm install @base-ui/react@latest` step `continue-on-error: true` and guard the report step against an empty version, so an ERESOLVE cannot fail the run. `ci.yml` has 7 steps, not 8.
+- **OTPField (Task 4.6):** in `fitGroups`, skip non-finite counts (`if (!Number.isFinite(count)) continue`) so `[2, NaN]` for `length` 4 does not return `[2]`.
+- **DataTable (Task 3):** `toggleColumn` drops a hidden column from `sorting` even when a parent controls `columnVisibility` and refuses the hide. Only drop it when the visibility change is applied (uncontrolled), and say so in the spec-correction note.
+- **Counts:** the live-region test has 6 tests (six tones), not 7.
+- **Commit trailer:** use the session's attribution line; the hardcoded `Co-Authored-By` text in the steps is a stand-in.
+- **`getPaginationRange` edit:** anchor on the text, not on "lines 23-39".
+- **Backlog entries to add (Task 8):** `parseDateRangeString` still needs padded ISO; a controlled button DateRangePicker with an incomplete default is not notified on reset (L3); a plain `<Input>` inside `InputGroup` is unsupported (use `InputGroupInput`); a new `getRowId` with unchanged `data` keeps old ids.
+- **Behaviour changes to list in the report:** client-mode `sortable: true` columns with no accessor lose their sort button; a `PaginationLink` with no `href` and no `onClick` becomes a dead Tab stop; a picker's `format.calendar` is overridden.
+
 ## File structure
 
 - Fix tasks modify existing component files and their tests; the one new shared module is `src/lib/live-region.ts` (Task 6).
@@ -612,7 +625,7 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 **Semantics (decided here, binding for the steps below).** Reset target is the component's `defaultValue` prop as of the latest render (default `null`, `{start: null, end: null}` for ranges). The handler runs from a `setTimeout(0)` scheduled in the `reset` listener, so a later listener's `preventDefault()` (a React `onReset` on the `<form>` runs after ours) is seen; a cancelled reset does nothing.
 - **Uncontrolled:** the internal value becomes `defaultValue`; partial segment input is discarded; `onValueChange(defaultValue)` fires once, and only if the value actually changes (resetting an already-default field with partial typing clears the typing and fires nothing).
 - **Controlled:** the component never writes its own state. It calls `onValueChange(defaultValue)` once if `value` differs from `defaultValue`, and the parent decides. If the parent ignores it, the segments show the controlled `value` again (partial typing is still discarded). With no `defaultValue`, the reset target is `null`.
-- Same rule for DateRangeField (a range differs if either end differs), TimePicker, and the pickers. Wrapped fields (editable DatePicker / DateRangePicker / TimePicker) receive the picker's `defaultValue` so the inner field resets to the picker's default, not to `null`. The button DatePicker / DateRangePicker use the same rule through `PickerShell`'s form control. The button DateRangePicker calls `onValueChange` with the (possibly incomplete) default range on reset: a controlled parent has no other way to learn of it, and the editable range already reports pairs.
+- Same rule for DateRangeField (a range differs if either end differs), TimePicker, and the pickers. Wrapped fields (editable DatePicker / DateRangePicker / TimePicker) receive the picker's `defaultValue` so the inner field resets to the picker's default, not to `null`. The button DatePicker / DateRangePicker use the same rule through `PickerShell`'s form control. The button DateRangePicker calls `onValueChange` on reset only when the default range is complete (its documented contract is "called only with a complete range"; changing that contract is the deferred L3 decision). An incomplete default resets the uncontrolled state silently; a controlled parent with an incomplete default is not notified, which goes in the backlog for L3.
 - A disabled field resets too (a native input does). Dirty state needs no code: `useFormControl` recomputes it from the input string against the first rendered string.
 
 - [ ] **Step 1: RED, DateField.** In `src/components/date-field/date-field.test.tsx` add:
@@ -691,8 +704,11 @@ describe("DateField: native form reset", () => {
     );
     await userEvent.click(seg("day"));
     await type("0");
+    // Typing 0 already reports null (the day is cleared), so clear the mock: only the reset's own call may remain.
+    onValueChange.mockClear();
     form().reset();
-    await expect.poll(() => onValueChange.mock.calls.length).toBe(1);
+    await afterResetHandler();
+    expect(onValueChange).toHaveBeenCalledOnce();
     expect(onValueChange).toHaveBeenCalledWith(null);
     expect(texts()).toEqual(["09", "20", "2026"]);
   });
@@ -715,7 +731,7 @@ describe("DateField: native form reset", () => {
 });
 ```
 
-  Note on the "ignores" test: it types `0` into the day segment (a partial entry, no report), so the reset must also discard the typing.
+  Note on the "ignores" test: typing `0` into the day segment clears the day and already reports `null` (`commit({day:null})` calls `emit(null)`), which is why the test clears the mock before the reset. After that the only call left is the reset's own `onValueChange(null)`, so the test fails on the baseline (no reset listener, zero calls) and passes after the fix.
 
   In `src/components/time-field/time-field.test.tsx` add:
 
@@ -995,7 +1011,9 @@ describe("TimePicker: native form reset", () => {
             return;
           }
           setValue(defaultValue);
-          onValueChange?.(defaultValue);
+          // The documented contract is "called only with a complete range" (date-picker.tsx ~418-423); the
+          // contract decision is deferred to L3, so an incomplete default resets the state silently.
+          if (defaultValue.start && defaultValue.end) onValueChange?.(defaultValue);
         },
 ```
   - `src/components/time-picker/time-picker.tsx`: add `defaultValue={defaultValue}` to `<TimeField` in `renderField` (after `value={value}`).
@@ -2157,6 +2175,8 @@ Spec L1 rows #6, #12, #15, #16, #17, #18. Six independent commits, one per row, 
 
 **Spec correction (#15).** `Children.toArray` drops `null`, `undefined` and booleans only. A `<></>` fragment or an empty string child still counts as a child, so it still renders the header. That is the rule the spec states and is kept.
 
+**Risk flagged by plan review (#16), verify before keeping `h-full`.** In a flex row whose height is auto, `h-full` (a percentage of an indefinite height) may stop `self-stretch` from stretching the separator, which would collapse it to 0 in toolbars, including the repo's own `InAToolbar` story. Step 1 therefore adds a second test, a flex row with no fixed height containing a 32px Button and a vertical Separator, asserting the separator's height equals the row's height. If that test fails with `h-full`, do NOT ship `h-full`: instead leave the class list unchanged, document in the Separator JSDoc that a vertical separator in a block parent needs an explicit `h-*`, and record the deviation from the spec (row #16) in the report as `deferred: documented`.
+
 **Spec correction (#16).** `h-full` is added to the vertical branch alongside `self-stretch`. `cn` (tailwind-merge) lets a caller's `h-4` or `h-6` replace `h-full`, so explicit heights keep working.
 
 **Files:**
@@ -2635,6 +2655,21 @@ git commit -m "fix(meter,progress): render the header only when there are real c
     const rect = screen.getByTestId("sep").element().getBoundingClientRect();
     expect(rect.width).toBe(1);
     expect(rect.height).toBe(40);
+  });
+
+  it("still stretches in a flex row with no fixed height", async () => {
+    const screen = await render(
+      <div data-testid="row" style={{ display: "flex", alignItems: "stretch" }}>
+        <button type="button" style={{ height: 32 }}>
+          A
+        </button>
+        <Separator data-testid="sep" orientation="vertical" />
+      </div>,
+    );
+    const sep = screen.getByTestId("sep").element().getBoundingClientRect().height;
+    const row = screen.getByTestId("row").element().getBoundingClientRect().height;
+    expect(sep).toBe(row);
+    expect(sep).toBe(32);
   });
 
   it("lets an explicit height class replace h-full", async () => {
@@ -7184,10 +7219,13 @@ npm run check
   Expected: green. For each L1-NN row run its command (for example `npx vitest run src/components/switch`) and confirm `Test Files  N passed`. Then record the result by editing the report: replace `pending` with `fixed` and write the commit hash and test name in the evidence cell, found with `git log --oneline --grep "<area>" 2ac9c54..HEAD` and `grep -rn "<keyword>" <dir>/*.test.tsx`. A row whose test does not exist, or fails, is not `fixed`: stop and report it as a Task 1-5 defect instead of editing the report.
 - [ ] **Step 11: Prove the failing-first claim for the L1 rows on the baseline.** Using a throwaway worktree so the main tree stays untouched:
 
+Run this as ONE Bash command (the working directory resets between calls), from the main working tree on the `phase-l` branch. It names the branch tip by commit, not by `main`, because the work lives on `phase-l`:
+
 ```bash
+TIP=$(git rev-parse HEAD)
 git worktree add ../tessera-reaudit 2ac9c54
 cd ../tessera-reaudit && npm ci
-git checkout main -- $(git diff --name-only 2ac9c54 main -- 'src/**/*.test.ts' 'src/**/*.test.tsx' 'test/**/*.test.tsx')
+git checkout "$TIP" -- $(git diff --name-only 2ac9c54 "$TIP" -- 'src/**/*.test.ts' 'src/**/*.test.tsx' 'test/**/*.test.tsx')
 npx vitest run 2>&1 | tail -n 40
 cd ../tessera && git worktree remove --force ../tessera-reaudit
 ```
