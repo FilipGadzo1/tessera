@@ -1,8 +1,35 @@
-# Tessera
+<div align="center">
 
-> A *tessera* is a single tile of a mosaic. Every component here is a tile; every project is a mosaic.
+# 🧩 Tessera
 
-Filip's personal React component library — `@tessera/ui`. Local only (not published).
+**A *tessera* is a single tile of a mosaic. Every component here is a tile; every project is a mosaic.**
+
+A personal React component library — `@tessera/ui`.
+
+![React 19](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)
+![Tailwind CSS v4](https://img.shields.io/badge/Tailwind-v4-06b6d4?logo=tailwindcss&logoColor=white)
+![Base UI](https://img.shields.io/badge/built%20on-Base%20UI-6366f1)
+![Storybook 10](https://img.shields.io/badge/Storybook-10-ff4785?logo=storybook&logoColor=white)
+![Tested with Vitest](https://img.shields.io/badge/tests-Vitest%20%2B%20axe-6e9f18?logo=vitest&logoColor=white)
+![Node ≥ 22](https://img.shields.io/badge/node-%E2%89%A5%2022-339933?logo=nodedotjs&logoColor=white)
+
+[Setup](#setup-first-time) · [Commands](#commands) · [Theming](#theming) · [Components](#components) · [Roadmap](#roadmap)
+
+</div>
+
+---
+
+## ✨ Highlights
+
+- 🎨 **Themeable** — four primary palettes (`malachite`, `lapis`, `amethyst`, `carnelian`), three surfaces (`marble`, `slate`, `sandstone`), light and dark, or bring your own scale.
+- ♿ **Accessible by default** — built on [Base UI](https://base-ui.com) primitives, every component tested in real Chromium with axe-core.
+- 🌍 **RTL-aware** — logical properties throughout, with RTL tests.
+- 🧱 **Composable** — compound components styled with `cva` + `tailwind-merge`; use `buttonVariants()` on your own elements.
+- 📦 **Tree-shakeable ESM** — built with tsdown, with `"use client"` directives verified for consumers.
+- 📚 **Documented** — a Storybook story and autodocs page for every component.
+
+> Not published to npm yet — see [Using Tessera in another project](#using-tessera-in-another-project-locally-without-publishing).
 
 ## Setup (first time)
 
