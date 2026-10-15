@@ -83,3 +83,7 @@ Surface: `marble` · `slate` · `sandstone`
 ## Stack
 
 React 19 · Base UI · Tailwind CSS v4 · cva + tailwind-merge · tsdown · Vitest + Playwright + axe-core · Storybook 10 · Biome · TypeScript
+
+## License
+
+[MIT](LICENSE)
