@@ -1,6 +1,7 @@
 import type { Preview } from "@storybook/react-vite";
 import "@fontsource-variable/inter";
 import "./storybook.css";
+import { ThemedDocsContainer } from "./docs-container";
 
 const preview: Preview = {
   globalTypes: {
@@ -57,6 +58,7 @@ const preview: Preview = {
   parameters: {
     layout: "centered",
     controls: { expanded: true },
+    docs: { container: ThemedDocsContainer },
   },
 };
 
