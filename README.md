@@ -4,7 +4,7 @@
 
 **A *tessera* is a single tile of a mosaic. Every component here is a tile; every project is a mosaic.**
 
-A personal React component library — `@tessera/ui`.
+A personal React component library — `@filipgadzo1/tessera`.
 
 ![React 19](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)
@@ -54,11 +54,11 @@ npm install ../tessera/tessera-ui-<version>.tgz
 ```css
 /* your main CSS */
 @import "tailwindcss";
-@import "@tessera/ui/styles.css";
+@import "@filipgadzo1/tessera/styles.css";
 ```
 
 ```tsx
-import { Button } from "@tessera/ui";
+import { Button } from "@filipgadzo1/tessera";
 
 <Button variant="outline" onClick={save}>Save</Button>
 ```

@@ -1,9 +1,15 @@
 {
-  "name": "@tessera/ui",
+  "name": "@filipgadzo1/tessera",
   "version": "0.1.0",
-  "private": true,
   "license": "MIT",
-  "description": "Tessera — Filip's personal React component library. Every component a tile; every project a mosaic.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FilipGadzo1/tessera.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "description": "Tessera — personal React component library. Every component a tile; every project a mosaic.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -36,6 +42,7 @@
     "verify:consumer": "node scripts/verify-consumer.mjs",
     "palettes": "node scripts/generate-palettes.mjs",
     "palettes:check": "node scripts/generate-palettes.mjs --check",
+    "prepublishOnly": "npm run check",
     "check": "npm run palettes:check && npm run lint && npm run typecheck && npm run test && npm run build && npm run verify:consumer"
   },
   "peerDependencies": {

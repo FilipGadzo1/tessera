@@ -154,7 +154,7 @@ pass("source map references resolve");
 // 3. Install the real `npm pack` tarball (validates package.json "files") into a consumer
 //    that only imports the stylesheet, and check Tessera's classes get generated.
 rmSync(fixture, { recursive: true, force: true });
-const pkgDir = join(fixture, "node_modules", "@tessera", "ui");
+const pkgDir = join(fixture, "node_modules", "@filipgadzo1", "tessera");
 mkdirSync(pkgDir, { recursive: true });
 
 // Single command strings (not an args array) — Node deprecates args + shell: true.
@@ -173,7 +173,7 @@ if (!tarball || !existsSync(join(fixture, tarball)))
 
 // Relative paths only: GNU tar (e.g. Git Bash's) would read "C:\…" as a remote host.
 const extracted = run(
-  `tar -xzf "${tarball}" -C node_modules/@tessera/ui --strip-components=1`,
+  `tar -xzf "${tarball}" -C node_modules/@filipgadzo1/tessera --strip-components=1`,
   fixture,
 );
 if (extracted.status !== 0) fail(`tar extraction failed:\n${extracted.stderr}`);
@@ -189,7 +189,7 @@ if (!existsSync(join(pkgDir, "dist", stylesDistPath)))
 // in theme.css compile at least once, proving that scaffolding survives the packed install.
 writeFileSync(
   join(fixture, "input.css"),
-  '@import "tailwindcss" source(none);\n@import "@tessera/ui/styles.css";\n@source inline("tone-primary");\n',
+  '@import "tailwindcss" source(none);\n@import "@filipgadzo1/tessera/styles.css";\n@source inline("tone-primary");\n',
 );
 
 const cliPkg = JSON.parse(

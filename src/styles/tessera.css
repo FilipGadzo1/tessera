@@ -1,6 +1,6 @@
 /*
  * Tessera — entry stylesheet.
- * Consumers:  @import "tailwindcss";  @import "@tessera/ui/styles.css";
+ * Consumers:  @import "tailwindcss";  @import "@filipgadzo1/tessera/styles.css";
  * Theme with <html data-primary="lapis" data-surface="slate" class="dark"> (any ancestor works).
  * Custom brand: override the scale --tsr-primary-50 … --tsr-primary-950 (and/or --tsr-surface-0 …
  * --tsr-surface-950) in an unlayered :root — every role (hover, soft, ring, dark, scales) follows.
